@@ -1,7 +1,7 @@
 # Architecture: Stage & Load Barcode Module Frontend
 
-**Version**: 1.3
-**Date**: 2026-03-19
+**Version**: 1.4
+**Date**: 2026-03-20
 
 ---
 
@@ -112,6 +112,7 @@ flowchart TB
 After authentication, the server must load the linked profile before allowing the user into the application:
 
 - If the profile is inactive, the user is blocked.
+- If the profile is missing, the user is also treated as blocked.
 - If the profile is active, the server resolves the operational target.
 
 ### Target resolution
@@ -119,7 +120,7 @@ After authentication, the server must load the linked profile before allowing th
 #### Non-admin users
 
 - Read `profiles.warehouse_id`
-- Join to `warehouses.alias`
+- Look up `warehouses.alias`
 - Resolve to `Canton` or `Freeport`
 - If missing or invalid, fall back to `Canton` for now
 - User cannot change the target manually
@@ -137,8 +138,73 @@ After authentication, the server must load the linked profile before allowing th
 ### Persistence rules
 
 - Auth session lives in Supabase-managed cookies
-- Admin-selected target should live in a small session cookie because server-side proxy helpers must read it on every request
+- Admin-selected target lives in the HttpOnly session cookie `dak_active_target` because server-side proxy helpers must read it on every request
 - Workflow state such as loader, department, drop area, current drop, and scan text should remain in memory only
+
+---
+
+## Request Lifecycle
+
+### Request guard
+
+`hooks.server.ts` is the single access-control gate for the app. On each request it:
+
+1. Creates the Supabase SSR server client
+2. Calls `supabase.auth.getUser()` for verified identity
+3. Loads `profiles` and looks up `warehouses.alias`
+4. Resolves the active access state and target
+5. Stores the results on `event.locals`
+6. Applies redirects before page-specific logic runs
+
+### Access states
+
+The resolved server auth context uses these access states:
+
+- `anonymous`
+- `inactive`
+- `operator-ready`
+- `admin-needs-target`
+- `admin-ready`
+
+### `event.locals` contract
+
+The server places these values on `event.locals`:
+
+- `supabase`
+- `getVerifiedUser()`
+- `authContext`
+
+`authContext` contains:
+
+- verified Supabase user
+- linked profile
+- `isActive`
+- `role`
+- `isAdmin`
+- resolved `target`
+- final `accessState`
+
+### Redirect rules
+
+The redirect matrix is centralized in the hook:
+
+- anonymous user on app route -> `/login`
+- anonymous user on auth route -> allowed
+- missing profile -> `/inactive`
+- inactive profile -> `/inactive`
+- active non-admin on auth route -> `/home`
+- active non-admin hitting `/location` -> `/home`
+- active admin with no selected target -> `/location`
+- active admin with selected target on auth route -> `/home`
+
+### Safe layout data
+
+The app layout server load returns a minimal UI-safe subset of auth state for downstream routes:
+
+- `displayName`
+- `userRole`
+- `isAdmin`
+- `activeTarget`
 
 ---
 
@@ -170,6 +236,7 @@ src/routes/
     ├── +layout.server.ts
     ├── +layout.svelte
     ├── home/+page.svelte
+    ├── location/+page.server.ts
     ├── location/+page.svelte          # admin-only selector
     ├── inactive/+page.svelte
     ├── dropsheets/+page.svelte
