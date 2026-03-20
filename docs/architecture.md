@@ -106,6 +106,7 @@ flowchart TB
 - Users sign in with Supabase email/password auth.
 - Accounts are created manually in Supabase by administrators.
 - Password recovery uses a code-based reset flow inside the app.
+- The Supabase recovery email template must be configured to emit the recovery token/code for this flow; the default reset link template is not sufficient for the in-app OTP screen.
 
 ### Profile gate
 

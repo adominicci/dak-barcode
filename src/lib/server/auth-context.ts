@@ -13,7 +13,7 @@ import {
 
 export const TARGET_COOKIE_NAME = 'dak_active_target';
 
-type ProfileRow = {
+export type ProfileRow = {
 	id: string;
 	email: string | null;
 	display_name: string | null;
@@ -22,7 +22,7 @@ type ProfileRow = {
 	warehouse_id: number | null;
 };
 
-type WarehouseRow = {
+export type WarehouseRow = {
 	id: number;
 	alias: string | null;
 };
@@ -103,12 +103,13 @@ export function getAccessRedirect({
 	const isAuthRoute = AUTH_ROUTES.has(pathname);
 	const isLocationRoute = pathname === '/location';
 	const isInactiveRoute = pathname === '/inactive';
+	const isLogoutRoute = pathname === '/logout';
 
 	switch (accessState) {
 		case 'anonymous':
-			return isAuthRoute ? null : '/login';
+			return isAuthRoute || isLogoutRoute ? null : '/login';
 		case 'inactive':
-			return isInactiveRoute ? null : '/inactive';
+			return isInactiveRoute || isLogoutRoute ? null : '/inactive';
 		case 'operator-ready':
 			if (isAuthRoute || isLocationRoute || isInactiveRoute) {
 				return '/home';
@@ -116,7 +117,7 @@ export function getAccessRedirect({
 
 			return null;
 		case 'admin-needs-target':
-			return isLocationRoute ? null : '/location';
+			return isLocationRoute || isLogoutRoute ? null : '/location';
 		case 'admin-ready':
 			if (isAuthRoute || isInactiveRoute) {
 				return '/home';

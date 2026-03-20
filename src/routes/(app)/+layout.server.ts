@@ -8,5 +8,6 @@ export const load: LayoutServerLoad = async ({ locals }) => ({
 		locals.authContext.user?.email ??
 		'DST User',
 	isAdmin: locals.authContext.isAdmin,
+	userEmail: locals.authContext.user?.email ?? locals.authContext.profile?.email ?? null,
 	userRole: locals.authContext.role
 });

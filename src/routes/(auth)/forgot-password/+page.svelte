@@ -1,27 +1,74 @@
-<section class="space-y-4">
-	<p class="text-sm font-medium uppercase tracking-[0.22em] text-muted-foreground">Recovery</p>
-	<h2 class="text-3xl font-semibold tracking-tight">Forgot password</h2>
-	<p class="max-w-prose text-sm leading-6 text-muted-foreground">
-		This shell will host the code-based reset request flow: submit your email, receive the
-		Supabase verification code, and continue in-app.
-	</p>
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { ArrowLeft, CircleAlert, MailCheck } from '@lucide/svelte';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import FixedDomainEmailField from '$lib/components/auth/fixed-domain-email-field.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import type { PageProps } from './$types';
 
-	<form class="mt-8 space-y-4" aria-label="Forgot password form">
-		<label class="block space-y-2">
-			<span class="text-sm font-medium">Email</span>
-			<input
-				class="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm outline-none ring-0 transition focus:border-primary"
-				type="email"
-				name="email"
-				placeholder="you@dakotasteelandtrim.com"
-			/>
-		</label>
+	let { form }: PageProps = $props();
+	let isSubmitting = $state(false);
 
-		<button
-			class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-			type="button"
+	const enhanceForm: SubmitFunction = () => {
+		isSubmitting = true;
+
+		return async ({ update }) => {
+			await update();
+			isSubmitting = false;
+		};
+	};
+</script>
+
+<section class="space-y-6">
+	<div class="space-y-3">
+		<h2 class="font-display text-[2.2rem] font-semibold leading-none tracking-[-0.04em] text-[var(--text-strong)]">
+			Forgot password
+		</h2>
+		<p class="text-sm leading-7 text-[var(--text-muted)]">
+			Enter your email to receive a recovery code
+		</p>
+	</div>
+
+	{#if form?.message}
+		<Alert
+			variant="destructive"
+			class="auth-control border-transparent bg-[rgba(190,30,45,0.08)] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(190,30,45,0.08)]"
 		>
-			Send verification code
-		</button>
+			<CircleAlert class="size-4" />
+			<AlertTitle class="font-medium">Request blocked</AlertTitle>
+			<AlertDescription>{form.message}</AlertDescription>
+		</Alert>
+	{/if}
+
+	<form
+		method="POST"
+		class="space-y-5"
+		aria-label="Forgot password form"
+		use:enhance={enhanceForm}
+	>
+		<FixedDomainEmailField
+			id="recovery-email"
+			username={form?.email ?? ''}
+			placeholder="andresd"
+		/>
+
+		<Button
+			class="auth-control ui-primary h-12 w-full border-0 text-sm font-semibold text-white hover:brightness-[1.03]"
+			type="submit"
+			disabled={isSubmitting}
+		>
+			{isSubmitting ? 'Sending code...' : 'Send verification code'}
+			<MailCheck class="size-4" />
+		</Button>
 	</form>
+
+	<a
+		class="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] transition hover:text-[#0058bc]"
+		href={resolve('/login')}
+	>
+		<ArrowLeft class="size-4" />
+		Back to sign in
+	</a>
 </section>
