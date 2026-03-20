@@ -93,7 +93,7 @@ describe('createWorkflowStores', () => {
 		expect(get(stores.scannedText)).toBe('');
 	});
 
-	it('prepares for loading entry by clearing stale workflow state and preserving the active target', () => {
+	it('prepares for loading entry by preserving loader and department while clearing scan state', () => {
 		const stores = createWorkflowStores();
 
 		stores.syncActiveTarget('Freeport');
@@ -105,8 +105,8 @@ describe('createWorkflowStores', () => {
 		stores.prepareForLoadingEntry();
 
 		expect(get(stores.activeTarget)).toBe('Freeport');
-		expect(get(stores.currentLoader)).toBeNull();
-		expect(get(stores.selectedDepartment)).toBeNull();
+		expect(get(stores.currentLoader)).toEqual({ loaderId: 30, loaderName: 'Loader 30' });
+		expect(get(stores.selectedDepartment)).toBe('Parts');
 		expect(get(stores.currentDropArea)).toBeNull();
 		expect(get(stores.scannedText)).toBe('');
 	});

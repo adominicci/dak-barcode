@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { KeyRound, LogOut } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -9,10 +8,6 @@
 	let { children, data }: LayoutProps = $props();
 
 	$effect(() => {
-		if (!browser) {
-			return;
-		}
-
 		workflowStores.syncActiveTarget(data.activeTarget);
 	});
 </script>

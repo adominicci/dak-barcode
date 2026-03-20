@@ -52,6 +52,11 @@ export function createWorkflowStores(): WorkflowStores {
 		clearScannedText();
 	};
 
+	const resetTransientScanState = () => {
+		clearCurrentDropArea();
+		clearScannedText();
+	};
+
 	return {
 		activeTarget: readonly(activeTarget),
 		currentLoader: readonly(currentLoader),
@@ -68,9 +73,12 @@ export function createWorkflowStores(): WorkflowStores {
 		setScannedText: (text) => scannedText.set(text),
 		clearScannedText,
 		resetOperationalState,
+		// Staging starts fresh on entry and does not carry loader or department context forward.
 		prepareForStagingEntry: () => resetOperationalState(),
-		prepareForLoadingEntry: () => resetOperationalState()
+		// Loading entry preserves the loader and department selected before navigation.
+		prepareForLoadingEntry: () => resetTransientScanState()
 	};
 }
 
+// NOTE: this singleton is intentionally browser-driven; never mutate it from server-side code.
 export const workflowStores = createWorkflowStores();
