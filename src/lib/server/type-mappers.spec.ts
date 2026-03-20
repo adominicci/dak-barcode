@@ -71,8 +71,8 @@ describe('dst record mappers', () => {
 				WrapLocation: false,
 				PartLocation: true,
 				RollLocation: true,
-				LoadLocation: true,
-				DriverLocation: false,
+				loadLocation: true,
+				driverLocation: false,
 				firstCharacter: 'R'
 			})
 		).toEqual({

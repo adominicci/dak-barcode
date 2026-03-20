@@ -72,8 +72,8 @@ export function mapDstDropArea(raw: RawDstDropArea): DropArea {
 		supportsWrap: raw.WrapLocation ?? raw.wrapLocation ?? false,
 		supportsParts: raw.PartLocation ?? raw.partLocation ?? false,
 		supportsRoll: raw.RollLocation ?? raw.rollLocation ?? false,
-		supportsLoading: raw.LoadLocation ?? false,
-		supportsDriverLocation: raw.DriverLocation ?? false,
+		supportsLoading: raw.LoadLocation ?? raw.loadLocation ?? false,
+		supportsDriverLocation: raw.DriverLocation ?? raw.driverLocation ?? false,
 		firstCharacter: nullableString(raw.firstCharacter)
 	};
 }

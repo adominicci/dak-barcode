@@ -191,6 +191,14 @@ export function isFrontendTarget(value: string | null | undefined): value is Fro
 	return FRONTEND_TARGETS.includes(value as FrontendTarget);
 }
 
+/**
+ * Resolves the locked non-admin warehouse target from profile data.
+ *
+ * Per the current product rules, missing or unknown profile aliases default to `Canton`
+ * during operator auth resolution. Callers that require strict alias validation should
+ * use `isWarehouseAlias` first and handle invalid data explicitly instead of relying on
+ * this fallback helper.
+ */
 export function resolveWarehouseAlias(alias: string | null | undefined): WarehouseAlias {
 	if (isWarehouseAlias(alias)) {
 		return alias;

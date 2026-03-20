@@ -28,7 +28,9 @@ export type RawDstDropArea = {
 	RollLocation?: boolean | null;
 	rollLocation?: boolean | null;
 	LoadLocation?: boolean | null;
+	loadLocation?: boolean | null;
 	DriverLocation?: boolean | null;
+	driverLocation?: boolean | null;
 	firstCharacter?: string | null;
 };
 
