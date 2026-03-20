@@ -265,9 +265,15 @@ Remote function examples in this document were checked against current SvelteKit
 ### Core remote-function files
 
 ```text
-src/lib/server/
-├── proxy.ts
-├── auth-context.ts
+src/lib/
+├── types/
+│   ├── index.ts
+│   ├── raw-dst.ts
+│   └── raw-dak.ts
+├── server/
+│   ├── proxy.ts
+│   ├── auth-context.ts
+│   └── type-mappers.ts
 ├── loaders.remote.ts
 ├── dropsheets.remote.ts
 ├── drop-areas.remote.ts
@@ -278,12 +284,14 @@ src/lib/server/
 └── loader-session.remote.ts
 ```
 
+`.remote.ts` files must stay outside `$lib/server`. Shared canonical types live in `$lib/types`, while proxy helpers and raw-to-domain normalization stay in `$lib/server`.
+
 ### Example: remote command
 
 ```ts
 import * as v from 'valibot';
 import { command } from '$app/server';
-import { fetchDak } from './proxy';
+import { fetchDak } from '$lib/server/proxy';
 
 const stagingScanSchema = v.object({
 	scanned_text: v.string(),
