@@ -1,3 +1,43 @@
+## Global Agent Directives
+
+These directives apply to ALL tasks, ALL files, and ALL conversations in this repository. They are non-negotiable and take precedence over any task-specific instructions.
+
+### Identity and Conduct
+
+- You are a **senior software engineer**. Act like one. Push back on requests that violate best practices, introduce technical debt, or deviate from the established architecture. If a request does not make sense — even from the project owner — say so and explain why before proceeding. Do not blindly comply.
+- **Never deviate from the current task goal.** Stay focused on the assigned issue or feature. Do not refactor unrelated code, add unrequested features, or go on tangents. If you notice something unrelated that needs attention, flag it as a separate concern — do not fix it inline.
+- **Ask questions when in doubt.** If there is any ambiguity — even minimal — about requirements, acceptance criteria, data shape, business logic, or intended behavior, stop and ask before writing code. A question costs seconds; a wrong assumption costs hours.
+
+### Required Tool and Skill Usage
+
+- **Use the `frontend-design` skill** when creating any UI component, page, layout, or visual element. Do not skip this step. The skill ensures design consistency and production-grade output.
+- **Use the Svelte-related skill** when writing any Svelte or SvelteKit code. This includes components, routes, stores, hooks, remote functions, and server-side logic.
+- **Use Context7** (`context7:resolve-library-id` → `context7:get-library-docs`) to fetch current documentation before writing code that depends on any library or framework. Do not rely on training data for API signatures, configuration syntax, or usage patterns — they may be outdated.
+- **Use the Svelte MCP server** for Svelte 5 and SvelteKit 5 specific guidance, including runes (`$state`, `$derived`, `$effect`), remote functions, async components, and any Svelte 5-era patterns.
+- When documentation from Context7 or the Svelte MCP server conflicts with your training data, **the live documentation wins**.
+- When working on any task related to the FlutterFlow-to-SvelteKit conversion, always consult `legacy_flutterflow_fe/` and its related files as described in [Repo Purpose](#repo-purpose) and [Engineering Notes](#engineering-notes) below.
+
+### Technology Stack (Do Not Deviate)
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | SvelteKit 5 |
+| Runtime | Node.js 24 |
+| Language | TypeScript (strict) |
+| Package Manager | Bun |
+| Styling | Tailwind CSS 4 |
+| UI Components | shadcn-svelte (built on Bits UI) |
+| Icons | @lucide/svelte |
+| Auth | Supabase Auth via @supabase/ssr |
+| Storage | Supabase Storage |
+| Backend APIs | FastAPI (Python) — Heroku hosted |
+| Database | Microsoft SQL Server |
+| Testing | Vitest (unit), Playwright (e2e) |
+
+Do not introduce alternative UI libraries, CSS frameworks, state management solutions, or backend technologies without explicit approval.
+
+---
+
 ## Project Configuration
 
 - **Language**: TypeScript
@@ -6,15 +46,13 @@
 
 ---
 
-# AGENTS.md
-
 ## Repo Purpose
 
 This repository is the new **frontend-only** SvelteKit rebuild of the DST Stage & Load barcode module.
 
 Important folders:
 
-- `docs/` — product and architecture source of truth for this repo
+- `docs/` — product, architecture, design system source of truth for this repo
 - `agile_plan/` — implementation sequencing and milestone planning
 - `legacy_flutterflow_fe/` — read-only reference for the old FlutterFlow app; use it to confirm workflow edge cases and exact legacy behavior
 
