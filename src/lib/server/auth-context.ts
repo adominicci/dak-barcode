@@ -13,7 +13,7 @@ import {
 
 export const TARGET_COOKIE_NAME = 'dak_active_target';
 
-type ProfileRow = {
+export type ProfileRow = {
 	id: string;
 	email: string | null;
 	display_name: string | null;
@@ -22,7 +22,7 @@ type ProfileRow = {
 	warehouse_id: number | null;
 };
 
-type WarehouseRow = {
+export type WarehouseRow = {
 	id: number;
 	alias: string | null;
 };

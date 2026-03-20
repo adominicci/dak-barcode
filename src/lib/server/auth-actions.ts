@@ -1,6 +1,9 @@
 import { fail, redirect, error, type Cookies, type RequestEvent } from '@sveltejs/kit';
 import { type AuthContext, type AccessState } from '$lib/auth/types';
 import {
+	type AuthContextSupabaseClient,
+	type ProfileRow,
+	type WarehouseRow,
 	getTargetCookieOptions,
 	resolveAuthContext,
 	TARGET_COOKIE_NAME
@@ -22,6 +25,22 @@ type ChangePasswordFailure = {
 	message: string;
 };
 
+type ProfilesQuery = {
+	select: (selection: string) => {
+		eq: (column: 'id', value: string) => {
+			maybeSingle: () => PromiseLike<{ data: ProfileRow | null; error: unknown }>;
+		};
+	};
+};
+
+type WarehousesQuery = {
+	select: (selection: string) => {
+		eq: (column: 'id', value: number) => {
+			maybeSingle: () => PromiseLike<{ data: WarehouseRow | null; error: unknown }>;
+		};
+	};
+};
+
 function getString(formData: FormData, name: string) {
 	const value = formData.get(name);
 	return typeof value === 'string' ? value.trim() : '';
@@ -29,6 +48,61 @@ function getString(formData: FormData, name: string) {
 
 function clearTargetCookie(cookies: Cookies) {
 	cookies.delete(TARGET_COOKIE_NAME, getTargetCookieOptions());
+}
+
+function toAuthContextSupabaseClient(
+	supabase: ReturnType<typeof createSupabaseServerClient>
+): AuthContextSupabaseClient {
+	function from(table: 'profiles'): ProfilesQuery;
+	function from(table: 'warehouses'): WarehousesQuery;
+	function from(table: 'profiles' | 'warehouses'): ProfilesQuery | WarehousesQuery {
+		if (table === 'profiles') {
+			return {
+				select: (selection: string) => ({
+					eq: (column: 'id', value: string) => ({
+						maybeSingle: async () => {
+							const { data, error } = await supabase
+								.from('profiles')
+								.select(selection)
+								.eq(column, value)
+								.maybeSingle();
+
+							return {
+								data: data as ProfileRow | null,
+								error
+							};
+						}
+					})
+				})
+			};
+		}
+
+		return {
+			select: (selection: string) => ({
+				eq: (column: 'id', value: number) => ({
+					maybeSingle: async () => {
+						const { data, error } = await supabase
+							.from('warehouses')
+							.select(selection)
+							.eq(column, value)
+							.maybeSingle();
+
+						return {
+							data: data as WarehouseRow | null,
+							error
+						};
+					}
+				})
+			})
+		};
+	}
+
+	return {
+		auth: {
+			getUser: () => supabase.auth.getUser()
+		},
+		from
+	};
 }
 
 function getAuthRedirect(accessState: AccessState) {
@@ -73,7 +147,7 @@ export async function handleLogin(event: Pick<RequestEvent, 'request' | 'cookies
 	clearTargetCookie(event.cookies);
 
 	const authContext = await resolveAuthContext({
-		supabase: supabase as never,
+		supabase: toAuthContextSupabaseClient(supabase),
 		selectedTarget: null
 	});
 
