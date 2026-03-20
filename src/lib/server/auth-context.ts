@@ -103,12 +103,13 @@ export function getAccessRedirect({
 	const isAuthRoute = AUTH_ROUTES.has(pathname);
 	const isLocationRoute = pathname === '/location';
 	const isInactiveRoute = pathname === '/inactive';
+	const isLogoutRoute = pathname === '/logout';
 
 	switch (accessState) {
 		case 'anonymous':
-			return isAuthRoute ? null : '/login';
+			return isAuthRoute || isLogoutRoute ? null : '/login';
 		case 'inactive':
-			return isInactiveRoute ? null : '/inactive';
+			return isInactiveRoute || isLogoutRoute ? null : '/inactive';
 		case 'operator-ready':
 			if (isAuthRoute || isLocationRoute || isInactiveRoute) {
 				return '/home';
@@ -116,7 +117,7 @@ export function getAccessRedirect({
 
 			return null;
 		case 'admin-needs-target':
-			return isLocationRoute ? null : '/location';
+			return isLocationRoute || isLogoutRoute ? null : '/location';
 		case 'admin-ready':
 			if (isAuthRoute || isInactiveRoute) {
 				return '/home';

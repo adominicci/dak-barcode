@@ -262,9 +262,19 @@ describe('getAccessRedirect', () => {
 			expected: null
 		},
 		{
+			pathname: '/logout',
+			accessState: 'anonymous',
+			expected: null
+		},
+		{
 			pathname: '/login',
 			accessState: 'operator-ready',
 			expected: '/home'
+		},
+		{
+			pathname: '/logout',
+			accessState: 'operator-ready',
+			expected: null
 		},
 		{
 			pathname: '/location',
@@ -280,6 +290,11 @@ describe('getAccessRedirect', () => {
 			pathname: '/login',
 			accessState: 'inactive',
 			expected: '/inactive'
+		},
+		{
+			pathname: '/logout',
+			accessState: 'inactive',
+			expected: null
 		},
 		{
 			pathname: '/home',
@@ -300,6 +315,11 @@ describe('getAccessRedirect', () => {
 			pathname: '/login',
 			accessState: 'admin-ready',
 			expected: '/home'
+		},
+		{
+			pathname: '/logout',
+			accessState: 'admin-ready',
+			expected: null
 		},
 		{
 			pathname: '/location',

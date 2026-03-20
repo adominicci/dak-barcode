@@ -11,6 +11,7 @@ These directives apply to ALL tasks, ALL files, and ALL conversations in this re
 ### Required Tool and Skill Usage
 
 - **Use the `frontend-design` skill** when creating any UI component, page, layout, or visual element. Do not skip this step. The skill ensures design consistency and production-grade output.
+- **Before building UI, consult `docs/design.md`, `docs/ui-reference/tokens.md`, `docs/ui-reference/screen-map.md`, and the raw references in `docs/ui-reference/screens/`.** Stay close to those references unless the task explicitly calls for a visual deviation.
 - **Use the Svelte-related skill** when writing any Svelte or SvelteKit code. This includes components, routes, stores, hooks, remote functions, and server-side logic.
 - **Use Context7** (`context7:resolve-library-id` → `context7:get-library-docs`) to fetch current documentation before writing code that depends on any library or framework. Do not rely on training data for API signatures, configuration syntax, or usage patterns — they may be outdated.
 - **Use the Svelte MCP server** for Svelte 5 and SvelteKit 5 specific guidance, including runes (`$state`, `$derived`, `$effect`), remote functions, async components, and any Svelte 5-era patterns.
@@ -52,7 +53,7 @@ This repository is the new **frontend-only** SvelteKit rebuild of the DST Stage 
 
 Important folders:
 
-- `docs/` — product, architecture, design system source of truth for this repo
+- `docs/` — product, architecture, design system source of truth for this repo, including `docs/ui-reference/` for sample-driven UI guidance
 - `agile_plan/` — implementation sequencing and milestone planning
 - `legacy_flutterflow_fe/` — read-only reference for the old FlutterFlow app; use it to confirm workflow edge cases and exact legacy behavior
 

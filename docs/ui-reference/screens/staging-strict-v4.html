@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Staging - Stage &amp; Load Module</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error": "#ffffff",
+              "on-tertiary-fixed-variant": "#7c2e00",
+              "on-secondary-fixed": "#001a41",
+              "primary-fixed-dim": "#adc6ff",
+              "on-surface": "#1a1b1f",
+              "surface-container-high": "#e9e7ed",
+              "on-background": "#1a1b1f",
+              "inverse-on-surface": "#f1f0f5",
+              "tertiary-container": "#c64f00",
+              "surface-bright": "#faf9fe",
+              "surface-variant": "#e3e2e7",
+              "secondary-fixed-dim": "#adc6ff",
+              "outline": "#717786",
+              "on-tertiary": "#ffffff",
+              "on-primary-container": "#fefcff",
+              "inverse-surface": "#2f3034",
+              "inverse-primary": "#adc6ff",
+              "secondary-container": "#a1befd",
+              "primary-container": "#0070eb",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#2d4c83",
+              "surface": "#faf9fe",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb595",
+              "surface-container-lowest": "#ffffff",
+              "on-primary-fixed-variant": "#004493",
+              "on-primary-fixed": "#001a41",
+              "on-primary": "#ffffff",
+              "surface-dim": "#dad9df",
+              "on-tertiary-container": "#fffbff",
+              "on-error-container": "#93000a",
+              "background": "#faf9fe",
+              "tertiary": "#9e3d00",
+              "surface-tint": "#005bc1",
+              "surface-container": "#eeedf3",
+              "primary-fixed": "#d8e2ff",
+              "tertiary-fixed": "#ffdbcc",
+              "surface-container-low": "#f4f3f8",
+              "on-tertiary-fixed": "#351000",
+              "on-surface-variant": "#414755",
+              "surface-container-highest": "#e3e2e7",
+              "primary": "#0058bc",
+              "secondary": "#405e96",
+              "outline-variant": "#c1c6d7",
+              "error": "#ba1a1a",
+              "secondary-fixed": "#d8e2ff",
+              "on-secondary-fixed-variant": "#26467d"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body { font-family: 'Inter', sans-serif; }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm dark:shadow-none flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-full text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-slate-900 dark:text-slate-100 font-sans tracking-tight">Staging</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-3 py-1 rounded-lg font-sans text-lg font-semibold tracking-tight">Complete Load</button>
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-3 py-1 rounded-lg font-sans text-lg font-semibold tracking-tight">Order Status</button>
+<button class="text-blue-600 dark:text-blue-400 px-3 py-1 rounded-lg font-sans text-lg font-semibold tracking-tight">Dropsheet</button>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-700 dark:text-blue-400 p-2">calendar_today</span>
+<span class="material-symbols-outlined text-blue-700 dark:text-blue-400 p-2">schedule</span>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden ml-2">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a warehouse manager" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTcVkqZo8TyrF7dlPGDSA3brtRxou8fYb5K56ZHfgUe_k2iyEDmMHGbSZh5t4u4lY4_kA5UYcfkIv3AJ7XblXhP-gva11fjJ8edUfQxiytjdCS0HR0Ii_WcZaEi_2MvcNYZwOQ9uYzxb4S3kokDpv54ubiGWrGAoO4fkwsI5h0XYuvXeFDqKaj47GY16TC7ym8Uk6LE30z9dGfRZlm4pelxV5mBUjZwc5jh-SQZVSgUH1xCw_CPHx4gYdFYhPrLBHKjFSdVDP1NwA6"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-7xl mx-auto space-y-8">
+<!-- Header Section: Scan & Filters -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+<div class="lg:col-span-6 space-y-2">
+<label class="text-[13px] font-bold Inter tracking-wide uppercase text-on-surface-variant px-1">Scan Barcode</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary">barcode_scanner</span>
+<input class="w-full h-16 pl-14 pr-6 bg-surface-container-highest border-none rounded-2xl focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all text-lg placeholder:text-on-surface-variant/50" placeholder="Scan or type item barcode..." type="text"/>
+</div>
+</div>
+<div class="lg:col-span-3 space-y-2">
+<label class="text-[13px] font-bold Inter tracking-wide uppercase text-on-surface-variant px-1">Department</label>
+<button class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors">
+<span>Select Department</span>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</button>
+</div>
+<div class="lg:col-span-3 space-y-2">
+<label class="text-[13px] font-bold Inter tracking-wide uppercase text-on-surface-variant px-1">Location</label>
+<button class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors">
+<span>Select Location</span>
+<span class="material-symbols-outlined text-on-surface-variant">location_on</span>
+</button>
+</div>
+</section>
+<!-- Middle Section: State & Table -->
+<div class="bg-surface-container-low rounded-[2rem] p-8 min-h-[400px] flex flex-col">
+<!-- Context Indicator -->
+<div class="flex items-center gap-3 mb-8 text-on-surface-variant/60">
+<span class="material-symbols-outlined">info</span>
+<span class="text-lg font-medium">No Location</span>
+</div>
+<!-- Staging Table -->
+<div class="flex-grow overflow-hidden">
+<div class="w-full">
+<!-- Table Header -->
+<div class="grid grid-cols-5 px-6 py-4 text-[13px] font-bold tracking-widest uppercase text-on-surface-variant/70">
+<div>Part Number</div>
+<div>Description</div>
+<div class="text-center">Quantity</div>
+<div>Order Number</div>
+<div>Location</div>
+</div>
+<!-- Empty State / Placeholder Content -->
+<div class="space-y-4 mt-4">
+<!-- Row 1 -->
+<div class="grid grid-cols-5 items-center px-6 py-6 bg-surface-container-lowest rounded-2xl shadow-sm">
+<div class="font-bold text-primary">PN-8829-XL</div>
+<div class="text-on-surface-variant">Industrial Grade Steel Beam</div>
+<div class="text-center font-bold">12</div>
+<div class="font-mono text-sm">#ORD-2024-991</div>
+<div>
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-lg text-sm">Unassigned</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-5 items-center px-6 py-6 bg-surface-container-lowest/50 rounded-2xl">
+<div class="font-bold text-primary">PN-4410-SM</div>
+<div class="text-on-surface-variant">Reinforced Concrete Anchor</div>
+<div class="text-center font-bold">45</div>
+<div class="font-mono text-sm">#ORD-2024-882</div>
+<div>
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-lg text-sm">Unassigned</span>
+</div>
+</div>
+</div>
+<!-- Table Footer / Empty State Message -->
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar (Footer) -->
+<!-- Hidden Navigation Shell Logic for Responsive -->
+<nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around p-2 z-40 hidden">
+<!-- Suppressed as per Task-Focused Page Rule (Back action implied focus) -->
+</nav>
+</body></html>

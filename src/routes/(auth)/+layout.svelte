@@ -1,25 +1,31 @@
 <script lang="ts">
+	import * as Card from '$lib/components/ui/card';
+	import logo from '$lib/assets/logo.png';
+
 	let { children } = $props();
 </script>
 
-<div class="min-h-dvh bg-[linear-gradient(180deg,var(--color-sidebar)_0%,var(--color-background)_40%,oklch(0.98_0.01_80)_100%)] text-foreground">
-	<div class="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-10 px-6 py-8 lg:px-10">
-		<header class="flex items-center justify-between border-b border-border/70 pb-4">
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-					Dakota Steel & Trim
-				</p>
-				<h1 class="text-xl font-semibold tracking-tight">Barcode Operations</h1>
+<div class="auth-page min-h-dvh overflow-hidden text-foreground">
+	<div class="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-start gap-4 px-4 py-5 lg:gap-5 lg:px-8 lg:py-6">
+		<section class="flex w-full justify-center pt-0 text-center">
+			<div class="space-y-1.5">
+				<img
+					src={logo}
+					alt="Dakota Steel & Trim"
+					class="mx-auto h-auto w-[min(24rem,70vw)]"
+				/>
+				<h1 class="font-display text-[clamp(1.35rem,2.2vw,1.85rem)] font-semibold leading-none tracking-[-0.03em] text-[#0058bc]">
+					Scanning
+				</h1>
 			</div>
-			<p class="rounded-full border border-border bg-background/80 px-3 py-1 text-sm text-muted-foreground">
-				Shared iPad shell
-			</p>
-		</header>
+		</section>
 
-		<main class="flex flex-1 items-center justify-center pb-8">
-			<div class="w-full max-w-xl rounded-[2rem] border border-border/70 bg-background/92 p-8 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
-				{@render children()}
-			</div>
+		<main class="flex w-full flex-1 items-start justify-center py-0">
+			<Card.Root class="auth-card w-full max-w-[34rem] border-0 bg-white py-0 ring-1 ring-[var(--auth-card-ring)]">
+				<Card.Content class="px-6 py-6 sm:px-8 sm:py-8">
+					{@render children()}
+				</Card.Content>
+			</Card.Root>
 		</main>
 	</div>
 </div>

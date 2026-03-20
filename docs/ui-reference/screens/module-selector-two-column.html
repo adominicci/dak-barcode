@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stage &amp; Load Module</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error": "#ffffff",
+              "on-tertiary-fixed-variant": "#7c2e00",
+              "on-secondary-fixed": "#001a41",
+              "primary-fixed-dim": "#adc6ff",
+              "on-surface": "#1a1b1f",
+              "surface-container-high": "#e9e7ed",
+              "on-background": "#1a1b1f",
+              "inverse-on-surface": "#f1f0f5",
+              "tertiary-container": "#c64f00",
+              "surface-bright": "#faf9fe",
+              "surface-variant": "#e3e2e7",
+              "secondary-fixed-dim": "#adc6ff",
+              "outline": "#717786",
+              "on-tertiary": "#ffffff",
+              "on-primary-container": "#fefcff",
+              "inverse-surface": "#2f3034",
+              "inverse-primary": "#adc6ff",
+              "secondary-container": "#a1befd",
+              "primary-container": "#0070eb",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#2d4c83",
+              "surface": "#faf9fe",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb595",
+              "surface-container-lowest": "#ffffff",
+              "on-primary-fixed-variant": "#004493",
+              "on-primary-fixed": "#001a41",
+              "on-primary": "#ffffff",
+              "surface-dim": "#dad9df",
+              "on-tertiary-container": "#fffbff",
+              "on-error-container": "#93000a",
+              "background": "#faf9fe",
+              "tertiary": "#9e3d00",
+              "surface-tint": "#005bc1",
+              "surface-container": "#eeedf3",
+              "primary-fixed": "#d8e2ff",
+              "tertiary-fixed": "#ffdbcc",
+              "surface-container-low": "#f4f3f8",
+              "on-tertiary-fixed": "#351000",
+              "on-surface-variant": "#414755",
+              "surface-container-highest": "#e3e2e7",
+              "primary": "#0058bc",
+              "secondary": "#405e96",
+              "outline-variant": "#c1c6d7",
+              "error": "#ba1a1a",
+              "secondary-fixed": "#d8e2ff",
+              "on-secondary-fixed-variant": "#26467d"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body { font-family: 'Inter', sans-serif; }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-nav {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm flex justify-between items-center px-6 py-4">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:opacity-70">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Stage &amp; Load Module</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+<span class="material-symbols-outlined text-[20px]" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm">Thursday, March 19</span>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-700">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-xs font-bold">
+                    JD
+                </div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center pt-24 pb-12 px-6">
+<div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Staging Section -->
+<button class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 active:scale-95">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined text-3xl" data-icon="grid_view">grid_view</span>
+</div>
+<div class="text-left">
+<span class="block text-2xl font-bold tracking-tight text-on-surface">Staging</span>
+<span class="text-on-surface-variant text-sm font-medium">Organize outgoing inventory</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Loading Section -->
+<button class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 active:scale-95">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined text-3xl" data-icon="local_shipping">local_shipping</span>
+</div>
+<div class="text-left">
+<span class="block text-2xl font-bold tracking-tight text-on-surface">Loading</span>
+<span class="text-on-surface-variant text-sm font-medium">Scan items onto trailers</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Will Call Section -->
+<button class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 active:scale-95">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined text-3xl" data-icon="person_pin_circle">person_pin_circle</span>
+</div>
+<div class="text-left">
+<span class="block text-2xl font-bold tracking-tight text-on-surface">Will Call</span>
+<span class="text-on-surface-variant text-sm font-medium">Customer pickups and direct load</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Add Loader Section -->
+<button class="group w-full bg-primary/5 border-2 border-dashed border-primary/20 p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-primary/10 hover:border-primary/40 active:scale-95">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-3xl" data-icon="person_add">person_add</span>
+</div>
+<div class="text-left">
+<span class="block text-2xl font-bold tracking-tight text-primary">Add Loader</span>
+<span class="text-primary/60 text-sm font-medium">Assign personnel to bay</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary/40" data-icon="add">add</span>
+</button>
+</div>
+</main>
+<!-- Contextual background aesthetic elements -->
+<div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full pointer-events-none z-[-1]"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-tertiary/5 blur-[100px] rounded-full pointer-events-none z-[-1]"></div>
+</body></html>

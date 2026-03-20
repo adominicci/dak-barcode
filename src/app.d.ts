@@ -15,6 +15,7 @@ declare global {
 			activeTarget?: Target | null;
 			displayName?: string | null;
 			isAdmin?: boolean;
+			userEmail?: string | null;
 			userRole?: UserRole;
 		}
 		// interface PageState {}
