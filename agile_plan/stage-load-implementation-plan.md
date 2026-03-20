@@ -34,6 +34,12 @@ These rules apply to every milestone:
 3. **Framework examples must stay current.**
    - Validate documentation snippets against current docs before preserving them in plans or architecture notes
 
+4. **Bun is the package-manager standard.**
+   - Use `bun install` for dependencies
+   - Use `bun run` for project scripts
+   - Use `bunx` for one-off CLIs
+   - Keep `bun.lock` committed as the package-manager source of truth
+
 ---
 
 ## Milestone 1: Project Scaffolding + Supabase Auth + Profile Gate

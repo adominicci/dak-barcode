@@ -1,8 +1,8 @@
 ## Project Configuration
 
 - **Language**: TypeScript
-- **Package Manager**: npm
-- **Add-ons**: none
+- **Package Manager**: Bun
+- **Add-ons**: Tailwind CSS 4, Vitest, Playwright, shadcn-svelte
 
 ---
 
@@ -48,6 +48,13 @@ Do not let docs, Linear, and the implementation drift apart.
 ### Verify framework examples
 
 If you add or modify framework-specific code examples in docs, verify them against current official documentation first. Use Context7 for SvelteKit and Supabase examples when needed.
+
+### Package manager standard
+
+- Use `bun` for dependency installation and script execution in this repo
+- Prefer `bun install`, `bun run <script>`, and `bunx <tool>`
+- Keep `bun.lock` committed and do not introduce `package-lock.json`, `pnpm-lock.yaml`, or `yarn.lock`
+- Vercel deployments should rely on Bun package-manager detection via `bun.lock`
 
 ---
 

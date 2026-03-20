@@ -24,12 +24,13 @@ The architecture is built around shared iPads, hardware barcode scanners, and fa
 - **SvelteKit 5**
 - **Svelte 5**
 - **TypeScript**
+- **Bun 1** for package management, installs, and local script execution
 - **Tailwind CSS 4**
 - **shadcn-svelte**
 - **Bits UI**
 - **@lucide/svelte**
 - **svelte-sonner**
-- **Node.js 24**
+- **Node.js 24** as the default deployment/runtime baseline unless a future ticket explicitly adopts the Bun runtime on Vercel
 
 ### Authentication and access metadata
 

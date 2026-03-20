@@ -1,42 +1,27 @@
-# sv
+# dak-barcode
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Frontend-only SvelteKit rebuild of the DST Stage & Load barcode module.
 
-## Creating a project
+## Package manager
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+This project uses **Bun** as the package-manager standard.
 
 ```sh
-# recreate this project
-npx sv@0.12.8 create --template minimal --types ts --install npm .
+bun install
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Common commands
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun run dev
+bun run check
+bun run test:unit --run
+bun run test:e2e src/routes/app-shell.e2e.ts
+bun run build
 ```
 
-## Building
+## Notes
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- Primary runtime target is shared iPad Safari with hardware barcode scanners
+- `legacy_flutterflow_fe/` is reference-only legacy behavior
+- Vercel supports Bun as a package manager through `bun.lock`
