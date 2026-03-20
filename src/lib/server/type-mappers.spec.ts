@@ -236,6 +236,19 @@ describe('dak record mappers', () => {
 			endedAt: null
 		});
 	});
+
+	it('fails fast when dak-web returns a non-scannable operational department', () => {
+		expect(() =>
+			mapDakLoaderSession({
+				loader_id: 88,
+				fkDropSheetID: 42,
+				fkLoaderID: 7,
+				Department: 'Soffit',
+				loader_name: 'Alex',
+				started_at: '2026-03-20T10:00:00Z'
+			})
+		).toThrowError('Unsupported operational department: Soffit');
+	});
 });
 
 describe('shared operational and scan contracts', () => {

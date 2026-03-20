@@ -28,6 +28,8 @@ function nullableNumber(value: number | null | undefined): number | null {
 	return value ?? null;
 }
 
+// Loader sessions should only exist for scanner-eligible departments.
+// Fail fast if dak-web broadens this payload unexpectedly so the mismatch is visible.
 function mapOperationalDepartment(department: string): OperationalDepartment {
 	switch (department) {
 		case 'Roll':

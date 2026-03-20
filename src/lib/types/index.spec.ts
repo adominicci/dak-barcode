@@ -4,6 +4,7 @@ import {
 	FRONTEND_TARGETS,
 	WAREHOUSE_ALIASES,
 	resolveWarehouseAlias,
+	toDstTarget,
 	toDakTarget,
 	type AuthContext,
 	type FrontendTarget,
@@ -23,6 +24,8 @@ describe('shared target contracts', () => {
 		expect(resolveWarehouseAlias('Freeport')).toBe<WarehouseAlias>('Freeport');
 		expect(resolveWarehouseAlias('Unknown')).toBe<WarehouseAlias>('Canton');
 		expect(resolveWarehouseAlias(null)).toBe<WarehouseAlias>('Canton');
+		expect(toDstTarget('Canton')).toBe('Canton');
+		expect(toDstTarget('Sandbox')).toBe('Sandbox');
 		expect(toDakTarget('Canton')).toBe('CANTON');
 		expect(toDakTarget('Sandbox')).toBe('SANDBOX');
 	});

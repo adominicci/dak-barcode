@@ -199,6 +199,8 @@ export function resolveWarehouseAlias(alias: string | null | undefined): Warehou
 	return 'Canton';
 }
 
+// DST already accepts the canonical title-case frontend targets, so this helper marks the
+// backend boundary without changing the value.
 export function toDstTarget(target: FrontendTarget): DstTarget {
 	return target;
 }
