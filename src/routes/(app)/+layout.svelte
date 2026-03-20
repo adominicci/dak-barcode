@@ -2,9 +2,14 @@
 	import { page } from '$app/state';
 	import { KeyRound, LogOut } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { workflowStores } from '$lib/workflow/stores';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
+
+	$effect(() => {
+		workflowStores.syncActiveTarget(data.activeTarget);
+	});
 </script>
 
 <div class="ui-page min-h-dvh text-foreground">
