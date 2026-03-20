@@ -61,9 +61,10 @@ describe('logout actions', () => {
 	});
 
 	it('signs out and clears the active target cookie', async () => {
+		const signOut = vi.fn(async () => ({ error: null }));
 		createSupabaseServerClient.mockReturnValue({
 			auth: {
-				signOut: vi.fn(async () => ({ error: null }))
+				signOut
 			}
 		});
 
@@ -75,6 +76,7 @@ describe('logout actions', () => {
 			location: '/login?logout=success'
 		});
 
+		expect(signOut).toHaveBeenCalledWith({ scope: 'local' });
 		expect(event.cookies.delete).toHaveBeenCalledWith(
 			TARGET_COOKIE_NAME,
 			expect.objectContaining({ path: '/' })

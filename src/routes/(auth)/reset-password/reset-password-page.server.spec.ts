@@ -120,7 +120,7 @@ describe('reset-password actions', () => {
 		expect(updateUser).toHaveBeenCalledWith({
 			password: 'new-password'
 		});
-		expect(signOut).toHaveBeenCalledOnce();
+		expect(signOut).toHaveBeenCalledWith({ scope: 'local' });
 		expect(event.cookies.delete).toHaveBeenCalledWith(
 			TARGET_COOKIE_NAME,
 			expect.objectContaining({ path: '/' })

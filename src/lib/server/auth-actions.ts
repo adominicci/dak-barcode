@@ -94,6 +94,8 @@ export async function handleForgotPassword(
 	}
 
 	const supabase = createSupabaseServerClient(event);
+	// This code-based reset flow depends on the Supabase recovery email template
+	// being configured to expose the recovery token instead of the default link URL.
 	await supabase.auth.resetPasswordForEmail(email, {
 		redirectTo: new URL('/reset-password', event.url).toString()
 	});
@@ -145,7 +147,7 @@ export async function handleResetPassword(
 		} satisfies ResetFailure);
 	}
 
-	await supabase.auth.signOut();
+	await supabase.auth.signOut({ scope: 'local' });
 	clearTargetCookie(event.cookies);
 
 	redirect(303, '/login?reset=success');
@@ -204,7 +206,7 @@ export async function handleChangePassword(
 
 export async function handleLogout(event: Pick<RequestEvent, 'cookies' | 'fetch'>) {
 	const supabase = createSupabaseServerClient(event);
-	await supabase.auth.signOut();
+	await supabase.auth.signOut({ scope: 'local' });
 	clearTargetCookie(event.cookies);
 	redirect(303, '/login?logout=success');
 }
