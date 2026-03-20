@@ -61,4 +61,20 @@ describe('(app) layout workflow target sync', () => {
 
 		expect(get(workflowStores.activeTarget)).toBe('Sandbox');
 	});
+
+	it('clears the workflow active target when layout data has no target', async () => {
+		workflowStores.syncActiveTarget('Canton');
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: null
+			},
+			children
+		});
+
+		await expect.element(page.getByText('Workflow layout child')).toBeInTheDocument();
+		expect(get(workflowStores.activeTarget)).toBeNull();
+	});
 });
