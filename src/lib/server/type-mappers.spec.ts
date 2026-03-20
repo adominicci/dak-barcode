@@ -10,6 +10,7 @@ import type {
 } from '$lib/types';
 import {
 	mapDakLoaderInfo,
+	mapDakLoaderSession,
 	mapDstDepartmentStatusFromDrop,
 	mapDstDepartmentStatusFromDropSheet,
 	mapDstDropArea,
@@ -214,11 +215,33 @@ describe('dak record mappers', () => {
 			endedAt: null
 		});
 	});
+
+	it('preserves loader ids from start-session responses that use loader_id', () => {
+		expect(
+			mapDakLoaderSession({
+				loader_id: 88,
+				fkDropSheetID: 42,
+				fkLoaderID: 7,
+				Department: 'Wrap',
+				loader_name: 'Alex',
+				started_at: '2026-03-20T10:00:00Z'
+			})
+		).toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex',
+			startedAt: '2026-03-20T10:00:00Z',
+			endedAt: null
+		});
+	});
 });
 
 describe('shared operational and scan contracts', () => {
 	it('keeps session and request contracts aligned to the approved plan', () => {
 		expectTypeOf<LoaderInfo>().toMatchTypeOf<LoaderSession>();
+		expectTypeOf<LoaderSession['department']>().toEqualTypeOf<OperationalDepartment>();
 		expectTypeOf<StagingScanRequest>().toMatchTypeOf<{
 			scannedText: string;
 			department: OperationalDepartment;

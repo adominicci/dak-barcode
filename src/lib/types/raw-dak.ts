@@ -10,6 +10,7 @@ export type RawDakLoaderInfo = {
 
 export type RawDakLoaderSession = {
 	LoaderID?: number | null;
+	loader_id?: number | null;
 	fkDropSheetID: number;
 	fkLoaderID: number;
 	Department: string;

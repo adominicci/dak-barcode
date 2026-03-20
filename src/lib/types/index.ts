@@ -64,6 +64,8 @@ export type AuthContext = {
 	user: User | null;
 };
 
+// Scanner entry and loader sessions stay limited to the three legacy workflow categories.
+// DepartmentStatus still tracks Slit/Trim/Soffit because they gate loading readiness.
 export type OperationalDepartment = 'Roll' | 'Wrap' | 'Parts';
 
 export type Loader = {
@@ -132,7 +134,7 @@ export type LoaderSession = {
 	id: number | null;
 	dropSheetId: number;
 	loaderId: number;
-	department: string;
+	department: OperationalDepartment;
 	loaderName: string;
 	startedAt: string;
 	endedAt: string | null;

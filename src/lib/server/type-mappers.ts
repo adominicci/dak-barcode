@@ -5,7 +5,9 @@ import type {
 	LoadViewDetail,
 	LoadViewUnion,
 	Loader,
-	LoaderInfo
+	LoaderInfo,
+	LoaderSession,
+	OperationalDepartment
 } from '$lib/types';
 import type {
 	RawDstDepartmentStatusOnDrop,
@@ -16,7 +18,7 @@ import type {
 	RawDstLoadViewUnion,
 	RawDstLoader
 } from '$lib/types/raw-dst';
-import type { RawDakLoaderInfo } from '$lib/types/raw-dak';
+import type { RawDakLoaderInfo, RawDakLoaderSession } from '$lib/types/raw-dak';
 
 function nullableString(value: string | null | undefined): string | null {
 	return value ?? null;
@@ -24,6 +26,17 @@ function nullableString(value: string | null | undefined): string | null {
 
 function nullableNumber(value: number | null | undefined): number | null {
 	return value ?? null;
+}
+
+function mapOperationalDepartment(department: string): OperationalDepartment {
+	switch (department) {
+		case 'Roll':
+		case 'Wrap':
+		case 'Parts':
+			return department;
+		default:
+			throw new Error(`Unsupported operational department: ${department}`);
+	}
 }
 
 export function mapDstLoader(raw: RawDstLoader): Loader {
@@ -133,7 +146,19 @@ export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {
 		id: raw.LoaderID,
 		dropSheetId: raw.fkDropSheetID,
 		loaderId: raw.fkLoaderID,
-		department: raw.Department,
+		department: mapOperationalDepartment(raw.Department),
+		loaderName: raw.loader_name,
+		startedAt: raw.started_at,
+		endedAt: raw.ended_at ?? null
+	};
+}
+
+export function mapDakLoaderSession(raw: RawDakLoaderSession): LoaderSession {
+	return {
+		id: raw.loader_id ?? raw.LoaderID ?? null,
+		dropSheetId: raw.fkDropSheetID,
+		loaderId: raw.fkLoaderID,
+		department: mapOperationalDepartment(raw.Department),
 		loaderName: raw.loader_name,
 		startedAt: raw.started_at,
 		endedAt: raw.ended_at ?? null
