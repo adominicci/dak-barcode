@@ -245,6 +245,24 @@ describe('getAuthContext', () => {
 			}
 		});
 	});
+
+	it('fails when the current request session lookup returns an error', async () => {
+		const { event } = createRequestEventMock({
+			accessToken: 'jwt-token',
+			sessionError: new Error('network error')
+		});
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { getAuthContext } = await import('./proxy');
+
+		await expect(getAuthContext()).rejects.toMatchObject({
+			status: 401,
+			body: {
+				message: 'Access token is required to proxy backend requests.'
+			}
+		});
+	});
 });
 
 describe('fetchDst', () => {
@@ -308,7 +326,7 @@ describe('fetchDst', () => {
 	});
 
 	it('rejects absolute dst proxy URLs before sending credentials', async () => {
-		const { event, requestFetch } = createRequestEventMock();
+		const { event, requestFetch, getSession, getVerifiedUser } = createRequestEventMock();
 
 		getRequestEvent.mockReturnValue(event);
 
@@ -323,6 +341,8 @@ describe('fetchDst', () => {
 			}
 		});
 		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getVerifiedUser).not.toHaveBeenCalled();
+		expect(getSession).not.toHaveBeenCalled();
 	});
 });
 
@@ -390,7 +410,7 @@ describe('fetchDak', () => {
 	});
 
 	it('rejects absolute dak proxy URLs before sending credentials', async () => {
-		const { event, requestFetch } = createRequestEventMock();
+		const { event, requestFetch, getSession, getVerifiedUser } = createRequestEventMock();
 
 		getRequestEvent.mockReturnValue(event);
 
@@ -405,5 +425,7 @@ describe('fetchDak', () => {
 			}
 		);
 		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getVerifiedUser).not.toHaveBeenCalled();
+		expect(getSession).not.toHaveBeenCalled();
 	});
 });
