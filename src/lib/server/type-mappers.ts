@@ -201,10 +201,7 @@ function getDstCategoryName(entry: RawDstCategoryListEntry): string {
 }
 
 export function mapDstCategoryList(entries: RawDstCategoryListEntry[]): OperationalDepartment[] {
-	return entries
-		.map(getDstCategoryName)
-		.filter(isOperationalDepartment)
-		.map(mapOperationalDepartment);
+	return entries.map(getDstCategoryName).filter(isOperationalDepartment);
 }
 
 export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {
