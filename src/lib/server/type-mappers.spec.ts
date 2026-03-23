@@ -245,11 +245,15 @@ describe('dst record mappers', () => {
 	});
 
 	it('normalizes category-list payloads to the canonical departments', () => {
-		expect(mapDstCategoryList(['Roll', { category: 'Wrap' }, { Department: 'Parts' }])).toEqual([
-			'Roll',
-			'Wrap',
-			'Parts'
-		]);
+		expect(
+			mapDstCategoryList([
+				'Roll',
+				{ category: 'Wrap' },
+				{ Department: 'Parts' },
+				{ InventoryCategory: 'Slit' },
+				{ inventoryCategory: 'Trim' }
+			])
+		).toEqual(['Roll', 'Wrap', 'Parts']);
 	});
 });
 

@@ -1,3 +1,4 @@
+import { OPERATIONAL_DEPARTMENTS } from '$lib/types';
 import type {
 	DepartmentStatus,
 	DropArea,
@@ -61,6 +62,10 @@ function mapOperationalDepartment(department: string): OperationalDepartment {
 		default:
 			throw new Error(`Unsupported operational department: ${department}`);
 	}
+}
+
+function isOperationalDepartment(department: string): department is OperationalDepartment {
+	return OPERATIONAL_DEPARTMENTS.includes(department as OperationalDepartment);
 }
 
 export function mapDstLoader(raw: RawDstLoader): Loader {
@@ -187,6 +192,8 @@ function getDstCategoryName(entry: RawDstCategoryListEntry): string {
 		entry.category ??
 		entry.Department ??
 		entry.department ??
+		entry.InventoryCategory ??
+		entry.inventoryCategory ??
 		entry.Name ??
 		entry.name ??
 		''
@@ -194,7 +201,10 @@ function getDstCategoryName(entry: RawDstCategoryListEntry): string {
 }
 
 export function mapDstCategoryList(entries: RawDstCategoryListEntry[]): OperationalDepartment[] {
-	return entries.map((entry) => mapOperationalDepartment(getDstCategoryName(entry)));
+	return entries
+		.map(getDstCategoryName)
+		.filter(isOperationalDepartment)
+		.map(mapOperationalDepartment);
 }
 
 export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {

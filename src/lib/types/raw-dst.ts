@@ -102,6 +102,8 @@ export type RawDstCategoryListEntry =
 			category?: string | null;
 			Department?: string | null;
 			department?: string | null;
+			InventoryCategory?: string | null;
+			inventoryCategory?: string | null;
 			Name?: string | null;
 			name?: string | null;
 	  };
