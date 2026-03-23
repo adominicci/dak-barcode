@@ -489,6 +489,13 @@ describe('dst query schemas', () => {
 		).toBe(true);
 		expect(
 			v.safeParse(loadViewUnionInputSchema, {
+				loadNumber: '',
+				sequence: 9,
+				locationId: 1
+			}).success
+		).toBe(false);
+		expect(
+			v.safeParse(loadViewUnionInputSchema, {
 				loadNumber: 'L-100',
 				sequence: '9',
 				locationId: 1

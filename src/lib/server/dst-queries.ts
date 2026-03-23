@@ -66,7 +66,7 @@ export const loadViewDetailInputSchema = v.object({
 });
 
 export const loadViewUnionInputSchema = v.object({
-	loadNumber: v.string(),
+	loadNumber: v.pipe(v.string(), v.nonEmpty('Expected a non-empty load number')),
 	sequence: v.number(),
 	locationId: v.number()
 });
