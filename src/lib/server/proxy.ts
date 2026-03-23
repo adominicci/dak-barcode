@@ -85,9 +85,10 @@ export async function getAuthContext(): Promise<ProxyAuthContext> {
 
 export async function fetchDst(path: string, init?: RequestInit) {
 	const relativePath = requireRelativeProxyPath(path);
+	const baseUrl = requireConfiguredBaseUrl('DST_PORTAL_URL');
 	const event = getRequestEvent();
 	const { accessToken, target } = await resolveAuthContext(event);
-	const url = new URL(relativePath, requireConfiguredBaseUrl('DST_PORTAL_URL'));
+	const url = new URL(relativePath, baseUrl);
 	const headers = new Headers(init?.headers);
 
 	url.searchParams.set('db', toDstTarget(target));
@@ -101,9 +102,10 @@ export async function fetchDst(path: string, init?: RequestInit) {
 
 export async function fetchDak(path: string, init?: RequestInit) {
 	const relativePath = requireRelativeProxyPath(path);
+	const baseUrl = requireConfiguredBaseUrl('DAK_WEB_URL');
 	const event = getRequestEvent();
 	const { accessToken, target } = await resolveAuthContext(event);
-	const url = new URL(relativePath, requireConfiguredBaseUrl('DAK_WEB_URL'));
+	const url = new URL(relativePath, baseUrl);
 	const headers = new Headers(init?.headers);
 
 	headers.set('Authorization', `Bearer ${accessToken}`);

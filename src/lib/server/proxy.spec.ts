@@ -344,6 +344,26 @@ describe('fetchDst', () => {
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
 	});
+
+	it('fails when DST_PORTAL_URL is missing before auth lookups', async () => {
+		const { event, requestFetch, getSession, getVerifiedUser } = createRequestEventMock();
+
+		privateEnv.DST_PORTAL_URL = '';
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDst } = await import('./proxy');
+
+		await expect(fetchDst('/api/barcode-get/select-loading-dropsheet')).rejects.toMatchObject({
+			status: 500,
+			body: {
+				message: 'DST_PORTAL_URL is not configured.'
+			}
+		});
+		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getRequestEvent).not.toHaveBeenCalled();
+		expect(getVerifiedUser).not.toHaveBeenCalled();
+		expect(getSession).not.toHaveBeenCalled();
+	});
 });
 
 describe('fetchDak', () => {
@@ -425,6 +445,26 @@ describe('fetchDak', () => {
 			}
 		);
 		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getVerifiedUser).not.toHaveBeenCalled();
+		expect(getSession).not.toHaveBeenCalled();
+	});
+
+	it('fails when DAK_WEB_URL is missing before auth lookups', async () => {
+		const { event, requestFetch, getSession, getVerifiedUser } = createRequestEventMock();
+
+		privateEnv.DAK_WEB_URL = '';
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDak } = await import('./proxy');
+
+		await expect(fetchDak('/v1/scan/process-staging')).rejects.toMatchObject({
+			status: 500,
+			body: {
+				message: 'DAK_WEB_URL is not configured.'
+			}
+		});
+		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getRequestEvent).not.toHaveBeenCalled();
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
 	});
