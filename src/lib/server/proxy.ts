@@ -1,6 +1,7 @@
 import { getRequestEvent } from '$app/server';
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import type { User } from '@supabase/supabase-js';
 import {
 	toDakTarget,
@@ -15,6 +16,8 @@ export type ProxyAuthContext = {
 	target: FrontendTarget;
 	user: User;
 };
+
+type ProxyRequestEvent = Pick<RequestEvent, 'fetch' | 'locals'>;
 
 function requireConfiguredBaseUrl(name: 'DST_PORTAL_URL' | 'DAK_WEB_URL') {
 	const value = env[name];
@@ -34,8 +37,15 @@ function requireActiveProfile(profile: ProfileWithWarehouse | null, isActive: bo
 	return profile;
 }
 
-export async function getAuthContext(): Promise<ProxyAuthContext> {
-	const event = getRequestEvent();
+function requireRelativeProxyPath(path: string) {
+	if (path.startsWith('//') || /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(path)) {
+		error(400, 'Proxy path must be relative.');
+	}
+
+	return path;
+}
+
+async function resolveAuthContext(event: Pick<ProxyRequestEvent, 'locals'>): Promise<ProxyAuthContext> {
 	const user = await event.locals.getVerifiedUser();
 
 	if (!user) {
@@ -49,7 +59,7 @@ export async function getAuthContext(): Promise<ProxyAuthContext> {
 	const target = event.locals.authContext.target;
 
 	if (!target) {
-		error(500, 'Resolved target is required to proxy backend requests.');
+		error(403, 'Resolved target is required to proxy backend requests.');
 	}
 
 	const {
@@ -69,10 +79,17 @@ export async function getAuthContext(): Promise<ProxyAuthContext> {
 	};
 }
 
+export async function getAuthContext(): Promise<ProxyAuthContext> {
+	return resolveAuthContext(getRequestEvent());
+}
+
 export async function fetchDst(path: string, init?: RequestInit) {
 	const event = getRequestEvent();
-	const { accessToken, target } = await getAuthContext();
-	const url = new URL(path, requireConfiguredBaseUrl('DST_PORTAL_URL'));
+	const { accessToken, target } = await resolveAuthContext(event);
+	const url = new URL(
+		requireRelativeProxyPath(path),
+		requireConfiguredBaseUrl('DST_PORTAL_URL')
+	);
 	const headers = new Headers(init?.headers);
 
 	url.searchParams.set('db', toDstTarget(target));
@@ -86,8 +103,11 @@ export async function fetchDst(path: string, init?: RequestInit) {
 
 export async function fetchDak(path: string, init?: RequestInit) {
 	const event = getRequestEvent();
-	const { accessToken, target } = await getAuthContext();
-	const url = new URL(path, requireConfiguredBaseUrl('DAK_WEB_URL'));
+	const { accessToken, target } = await resolveAuthContext(event);
+	const url = new URL(
+		requireRelativeProxyPath(path),
+		requireConfiguredBaseUrl('DAK_WEB_URL')
+	);
 	const headers = new Headers(init?.headers);
 
 	headers.set('Authorization', `Bearer ${accessToken}`);

@@ -44,14 +44,14 @@ function createProfile(overrides: Partial<ProfileWithWarehouse> = {}): ProfileWi
 
 function createAuthContext(overrides: Partial<AuthContext> = {}): AuthContext {
 	const user = overrides.user ?? createUser();
-	const profile = overrides.profile ?? createProfile();
+	const profile = overrides.profile === undefined ? createProfile() : overrides.profile;
 
 	return {
 		accessState: 'operator-ready',
 		isActive: true,
 		isAdmin: false,
 		profile,
-		role: profile.userRole,
+		role: profile?.userRole ?? null,
 		target: 'Canton',
 		user,
 		...overrides
@@ -182,9 +182,49 @@ describe('getAuthContext', () => {
 		const { getAuthContext } = await import('./proxy');
 
 		await expect(getAuthContext()).rejects.toMatchObject({
-			status: 500,
+			status: 403,
 			body: {
 				message: 'Resolved target is required to proxy backend requests.'
+			}
+		});
+	});
+
+	it('fails when the current request has an inactive profile', async () => {
+		const { event } = createRequestEventMock({
+			authContext: createAuthContext({
+				isActive: false,
+				profile: createProfile({ isActive: false })
+			})
+		});
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { getAuthContext } = await import('./proxy');
+
+		await expect(getAuthContext()).rejects.toMatchObject({
+			status: 401,
+			body: {
+				message: 'Active profile is required to proxy backend requests.'
+			}
+		});
+	});
+
+	it('fails when the current request has no active profile row', async () => {
+		const { event } = createRequestEventMock({
+			authContext: createAuthContext({
+				profile: null,
+				role: null
+			})
+		});
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { getAuthContext } = await import('./proxy');
+
+		await expect(getAuthContext()).rejects.toMatchObject({
+			status: 401,
+			body: {
+				message: 'Active profile is required to proxy backend requests.'
 			}
 		});
 	});
@@ -222,6 +262,7 @@ describe('fetchDst', () => {
 			await fetchDst('/api/barcode-get/select-loading-dropsheet?dropsSheetDate=2026-03-23&db=Wrong');
 
 			expect(requestFetch).toHaveBeenCalledOnce();
+			expect(getRequestEvent).toHaveBeenCalledOnce();
 			const [input, init] = getFetchCall(requestFetch);
 			const url = new URL(String(input));
 			const headers = new Headers(init?.headers);
@@ -265,6 +306,24 @@ describe('fetchDst', () => {
 		expect(headers.get('X-Custom')).toBe('dst');
 		expect(headers.get('Authorization')).toBe('Bearer jwt-token');
 	});
+
+	it('rejects absolute dst proxy URLs before sending credentials', async () => {
+		const { event, requestFetch } = createRequestEventMock();
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDst } = await import('./proxy');
+
+		await expect(
+			fetchDst('https://legacy.example.com/api/barcode-get/select-loading-dropsheet')
+		).rejects.toMatchObject({
+			status: 400,
+			body: {
+				message: 'Proxy path must be relative.'
+			}
+		});
+		expect(requestFetch).not.toHaveBeenCalled();
+	});
 });
 
 describe('fetchDak', () => {
@@ -284,6 +343,7 @@ describe('fetchDak', () => {
 		await fetchDak('/v1/logistics/dropsheet-loader-select?fk_dropsheet_id=10');
 
 		expect(requestFetch).toHaveBeenCalledOnce();
+		expect(getRequestEvent).toHaveBeenCalledOnce();
 		const [input, init] = getFetchCall(requestFetch);
 		const url = new URL(String(input));
 		const headers = new Headers(init?.headers);
@@ -327,5 +387,23 @@ describe('fetchDak', () => {
 		expect(headers.get('X-Custom')).toBe('dak');
 		expect(headers.get('Authorization')).toBe('Bearer jwt-token');
 		expect(headers.get('X-Db')).toBe('CANTON');
+	});
+
+	it('rejects absolute dak proxy URLs before sending credentials', async () => {
+		const { event, requestFetch } = createRequestEventMock();
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDak } = await import('./proxy');
+
+		await expect(fetchDak('https://legacy.example.com/v1/scan/process-staging')).rejects.toMatchObject(
+			{
+				status: 400,
+				body: {
+					message: 'Proxy path must be relative.'
+				}
+			}
+		);
+		expect(requestFetch).not.toHaveBeenCalled();
 	});
 });
