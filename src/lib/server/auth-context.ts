@@ -60,6 +60,14 @@ type ResolveAuthContextArgs = {
 
 const AUTH_ROUTES = new Set(['/login', '/forgot-password', '/reset-password']);
 
+function normalizeRoutePath(pathname: string): string {
+	if (pathname.endsWith('/__data.json')) {
+		return pathname.slice(0, -'/__data.json'.length) || '/';
+	}
+
+	return pathname;
+}
+
 export function createAnonymousAuthContext(): AuthContext {
 	return {
 		accessState: 'anonymous',
@@ -100,10 +108,11 @@ export function getAccessRedirect({
 	pathname: string;
 	accessState: AccessState;
 }): string | null {
-	const isAuthRoute = AUTH_ROUTES.has(pathname);
-	const isLocationRoute = pathname === '/location';
-	const isInactiveRoute = pathname === '/inactive';
-	const isLogoutRoute = pathname === '/logout';
+	const routePath = normalizeRoutePath(pathname);
+	const isAuthRoute = AUTH_ROUTES.has(routePath);
+	const isLocationRoute = routePath === '/location';
+	const isInactiveRoute = routePath === '/inactive';
+	const isLogoutRoute = routePath === '/logout';
 
 	switch (accessState) {
 		case 'anonymous':

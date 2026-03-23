@@ -66,7 +66,8 @@ export type AuthContext = {
 
 // Scanner entry and loader sessions stay limited to the three legacy workflow categories.
 // DepartmentStatus still tracks Slit/Trim/Soffit because they gate loading readiness.
-export type OperationalDepartment = 'Roll' | 'Wrap' | 'Parts';
+export const OPERATIONAL_DEPARTMENTS = ['Roll', 'Wrap', 'Parts'] as const;
+export type OperationalDepartment = (typeof OPERATIONAL_DEPARTMENTS)[number];
 
 export type Loader = {
 	id: number;
@@ -151,6 +152,16 @@ export type DepartmentStatus = {
 	roll: string | null;
 	parts: string | null;
 	soffit: string | null;
+};
+
+export type StagingListItem = {
+	lpidDetail: number;
+	partListId: string;
+	partListDescription: string;
+	orderSoNumber: string;
+	quantity: number;
+	dropAreaName: string;
+	lpid: number;
 };
 
 export type StagingScanRequest = {

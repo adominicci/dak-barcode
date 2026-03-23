@@ -6,18 +6,21 @@ import type {
 	LoaderSession,
 	OperationalDepartment,
 	ScanResult,
+	StagingListItem,
 	StagingScanRequest
 } from '$lib/types';
 import {
 	mapDakLoaderInfo,
 	mapDakLoaderSession,
+	mapDstCategoryList,
 	mapDstDepartmentStatusFromDrop,
 	mapDstDepartmentStatusFromDropSheet,
 	mapDstDropArea,
 	mapDstDropSheet,
 	mapDstLoadViewDetail,
 	mapDstLoadViewUnion,
-	mapDstLoader
+	mapDstLoader,
+	mapDstStagingListItem
 } from './type-mappers';
 
 describe('dst record mappers', () => {
@@ -192,6 +195,36 @@ describe('dst record mappers', () => {
 			soffit: null
 		});
 	});
+
+	it('maps staging day rows into a stable canonical list item', () => {
+		expect(
+			mapDstStagingListItem({
+				LPIDDetail: 12,
+				PartListID: 'PL-42',
+				PartListDesc: 'Trim coil',
+				OrderSONumber: 'SO-100',
+				QtyDet: 3,
+				DropArea: 'R12',
+				LPID: 99
+			})
+		).toEqual({
+			lpidDetail: 12,
+			partListId: 'PL-42',
+			partListDescription: 'Trim coil',
+			orderSoNumber: 'SO-100',
+			quantity: 3,
+			dropAreaName: 'R12',
+			lpid: 99
+		});
+	});
+
+	it('normalizes category-list payloads to the canonical departments', () => {
+		expect(mapDstCategoryList(['Roll', { category: 'Wrap' }, { Department: 'Parts' }])).toEqual([
+			'Roll',
+			'Wrap',
+			'Parts'
+		]);
+	});
 });
 
 describe('dak record mappers', () => {
@@ -269,6 +302,15 @@ describe('shared operational and scan contracts', () => {
 		}>();
 		expectTypeOf<DepartmentStatus['scope']>().toEqualTypeOf<'drop' | 'dropsheet'>();
 		expectTypeOf<ScanResult>().toMatchTypeOf<{ outcome: string; message: string }>();
+		expectTypeOf<StagingListItem>().toMatchTypeOf<{
+			lpidDetail: number;
+			partListId: string;
+			partListDescription: string;
+			orderSoNumber: string;
+			quantity: number;
+			dropAreaName: string;
+			lpid: number;
+		}>();
 		expect(true).toBe(true);
 	});
 });

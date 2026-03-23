@@ -262,12 +262,27 @@ describe('getAccessRedirect', () => {
 			expected: null
 		},
 		{
+			pathname: '/forgot-password/__data.json',
+			accessState: 'anonymous',
+			expected: null
+		},
+		{
+			pathname: '/reset-password/__data.json',
+			accessState: 'anonymous',
+			expected: null
+		},
+		{
 			pathname: '/logout',
 			accessState: 'anonymous',
 			expected: null
 		},
 		{
 			pathname: '/login',
+			accessState: 'operator-ready',
+			expected: '/home'
+		},
+		{
+			pathname: '/forgot-password/__data.json',
 			accessState: 'operator-ready',
 			expected: '/home'
 		},

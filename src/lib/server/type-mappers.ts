@@ -7,16 +7,19 @@ import type {
 	Loader,
 	LoaderInfo,
 	LoaderSession,
-	OperationalDepartment
+	OperationalDepartment,
+	StagingListItem
 } from '$lib/types';
 import type {
+	RawDstCategoryListEntry,
 	RawDstDepartmentStatusOnDrop,
 	RawDstDepartmentStatusOnDropSheet,
 	RawDstDropArea,
 	RawDstDropSheet,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
-	RawDstLoader
+	RawDstLoader,
+	RawDstStagingListItem
 } from '$lib/types/raw-dst';
 import type { RawDakLoaderInfo, RawDakLoaderSession } from '$lib/types/raw-dak';
 
@@ -26,6 +29,14 @@ function nullableString(value: string | null | undefined): string | null {
 
 function nullableNumber(value: number | null | undefined): number | null {
 	return value ?? null;
+}
+
+function stringOrEmpty(value: string | null | undefined): string {
+	return value ?? '';
+}
+
+function numberOrZero(value: number | null | undefined): number {
+	return value ?? 0;
 }
 
 // Loader sessions should only exist for scanner-eligible departments.
@@ -141,6 +152,38 @@ export function mapDstDepartmentStatusFromDropSheet(
 		parts: raw.StatusOnLoadPartDS ?? null,
 		soffit: raw.StatusOnLoadSoffitDS ?? null
 	};
+}
+
+export function mapDstStagingListItem(raw: RawDstStagingListItem): StagingListItem {
+	return {
+		lpidDetail: numberOrZero(raw.LPIDDetail),
+		partListId: stringOrEmpty(raw.PartListID),
+		partListDescription: stringOrEmpty(raw.PartListDesc),
+		orderSoNumber: stringOrEmpty(raw.OrderSONumber),
+		quantity: numberOrZero(raw.QtyDet),
+		dropAreaName: stringOrEmpty(raw.DropArea),
+		lpid: numberOrZero(raw.LPID)
+	};
+}
+
+function getDstCategoryName(entry: RawDstCategoryListEntry): string {
+	if (typeof entry === 'string') {
+		return entry;
+	}
+
+	return (
+		entry.Category ??
+		entry.category ??
+		entry.Department ??
+		entry.department ??
+		entry.Name ??
+		entry.name ??
+		''
+	);
+}
+
+export function mapDstCategoryList(entries: RawDstCategoryListEntry[]): OperationalDepartment[] {
+	return entries.map((entry) => mapOperationalDepartment(getDstCategoryName(entry)));
 }
 
 export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {
