@@ -442,6 +442,9 @@ describe('dst query schemas', () => {
 		} = await import('./dst-queries');
 
 		expect(v.safeParse(dropSheetDateSchema, '2026-03-23').success).toBe(true);
+		expect(v.safeParse(dropSheetDateSchema, '').success).toBe(false);
+		expect(v.safeParse(dropSheetDateSchema, '2026-3-23').success).toBe(false);
+		expect(v.safeParse(dropSheetDateSchema, '2026-03-23T12:00:00Z').success).toBe(false);
 		expect(v.safeParse(dropSheetDateSchema, 42).success).toBe(false);
 		expect(v.safeParse(dropSheetIdSchema, 42).success).toBe(true);
 		expect(v.safeParse(dropSheetIdSchema, '42').success).toBe(false);

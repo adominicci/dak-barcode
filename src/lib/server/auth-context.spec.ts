@@ -287,6 +287,11 @@ describe('getAccessRedirect', () => {
 			expected: '/home'
 		},
 		{
+			pathname: '/reset-password/__data.json',
+			accessState: 'operator-ready',
+			expected: '/home'
+		},
+		{
 			pathname: '/logout',
 			accessState: 'operator-ready',
 			expected: null

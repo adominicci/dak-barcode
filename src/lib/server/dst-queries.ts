@@ -47,7 +47,11 @@ const DST_ROUTES = {
 	stagingPartsForDayRoll: '/api/barcode-get/get-staging-parts-for-day-roll'
 } as const;
 
-export const dropSheetDateSchema = v.string();
+export const dropSheetDateSchema = v.pipe(
+	v.string(),
+	v.nonEmpty('Expected a date in YYYY-MM-DD format'),
+	v.regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a date in YYYY-MM-DD format')
+);
 export const dropSheetIdSchema = v.number();
 export const dropAreaIdSchema = v.number();
 export const departmentSchema = v.picklist(OPERATIONAL_DEPARTMENTS);

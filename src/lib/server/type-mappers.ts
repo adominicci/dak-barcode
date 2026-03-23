@@ -39,6 +39,17 @@ function numberOrZero(value: number | null | undefined): number {
 	return value ?? 0;
 }
 
+function requiredNumber(
+	value: number | null | undefined,
+	errorMessage: string
+): number {
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
+		throw new Error(errorMessage);
+	}
+
+	return value;
+}
+
 // Loader sessions should only exist for scanner-eligible departments.
 // Fail fast if dak-web broadens this payload unexpectedly so the mismatch is visible.
 function mapOperationalDepartment(department: string): OperationalDepartment {
@@ -156,13 +167,13 @@ export function mapDstDepartmentStatusFromDropSheet(
 
 export function mapDstStagingListItem(raw: RawDstStagingListItem): StagingListItem {
 	return {
-		lpidDetail: numberOrZero(raw.LPIDDetail),
+		lpidDetail: requiredNumber(raw.LPIDDetail, 'mapDstStagingListItem: missing required ID fields'),
 		partListId: stringOrEmpty(raw.PartListID),
 		partListDescription: stringOrEmpty(raw.PartListDesc),
 		orderSoNumber: stringOrEmpty(raw.OrderSONumber),
 		quantity: numberOrZero(raw.QtyDet),
 		dropAreaName: stringOrEmpty(raw.DropArea),
-		lpid: numberOrZero(raw.LPID)
+		lpid: requiredNumber(raw.LPID, 'mapDstStagingListItem: missing required ID fields')
 	};
 }
 

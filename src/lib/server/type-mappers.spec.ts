@@ -218,6 +218,32 @@ describe('dst record mappers', () => {
 		});
 	});
 
+	it('fails fast when staging rows omit the required identifier fields', () => {
+		expect(() =>
+			mapDstStagingListItem({
+				LPIDDetail: null,
+				PartListID: 'PL-42',
+				PartListDesc: 'Trim coil',
+				OrderSONumber: 'SO-100',
+				QtyDet: 3,
+				DropArea: 'R12',
+				LPID: 99
+			})
+		).toThrow('mapDstStagingListItem: missing required ID fields');
+
+		expect(() =>
+			mapDstStagingListItem({
+				LPIDDetail: 12,
+				PartListID: 'PL-42',
+				PartListDesc: 'Trim coil',
+				OrderSONumber: 'SO-100',
+				QtyDet: 3,
+				DropArea: 'R12',
+				LPID: null
+			})
+		).toThrow('mapDstStagingListItem: missing required ID fields');
+	});
+
 	it('normalizes category-list payloads to the canonical departments', () => {
 		expect(mapDstCategoryList(['Roll', { category: 'Wrap' }, { Department: 'Parts' }])).toEqual([
 			'Roll',
