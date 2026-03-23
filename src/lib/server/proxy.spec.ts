@@ -341,6 +341,7 @@ describe('fetchDst', () => {
 			}
 		});
 		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getRequestEvent).not.toHaveBeenCalled();
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
 	});
@@ -445,6 +446,7 @@ describe('fetchDak', () => {
 			}
 		);
 		expect(requestFetch).not.toHaveBeenCalled();
+		expect(getRequestEvent).not.toHaveBeenCalled();
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
 	});
