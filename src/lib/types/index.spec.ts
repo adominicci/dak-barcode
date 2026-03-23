@@ -9,6 +9,7 @@ import {
 	type AuthContext,
 	type FrontendTarget,
 	type OperationalDepartment,
+	type StagingListItem,
 	type WarehouseAlias
 } from './index';
 
@@ -39,6 +40,19 @@ describe('shared target contracts', () => {
 
 	it('keeps scan-entry departments limited to the legacy scanner workflow', () => {
 		expectTypeOf<OperationalDepartment>().toEqualTypeOf<'Roll' | 'Wrap' | 'Parts'>();
+		expect(true).toBe(true);
+	});
+
+	it('exposes a canonical staging list contract for DST day views', () => {
+		expectTypeOf<StagingListItem>().toMatchTypeOf<{
+			lpidDetail: number;
+			partListId: string;
+			partListDescription: string;
+			orderSoNumber: string;
+			quantity: number;
+			dropAreaName: string;
+			lpid: number;
+		}>();
 		expect(true).toBe(true);
 	});
 });

@@ -84,3 +84,26 @@ export type RawDstDepartmentStatusOnDropSheet = {
 	StatusOnLoadPartDS?: string | null;
 	StatusOnLoadSoffitDS?: string | null;
 };
+
+export type RawDstStagingListItem = {
+	LPIDDetail?: number | null;
+	PartListID?: string | null;
+	PartListDesc?: string | null;
+	OrderSONumber?: string | null;
+	QtyDet?: number | null;
+	DropArea?: string | null;
+	LPID?: number | null;
+};
+
+export type RawDstCategoryListEntry =
+	| string
+	| {
+			Category?: string | null;
+			category?: string | null;
+			Department?: string | null;
+			department?: string | null;
+			InventoryCategory?: string | null;
+			inventoryCategory?: string | null;
+			Name?: string | null;
+			name?: string | null;
+	  };

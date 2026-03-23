@@ -1,3 +1,4 @@
+import { OPERATIONAL_DEPARTMENTS } from '$lib/types';
 import type {
 	DepartmentStatus,
 	DropArea,
@@ -7,16 +8,19 @@ import type {
 	Loader,
 	LoaderInfo,
 	LoaderSession,
-	OperationalDepartment
+	OperationalDepartment,
+	StagingListItem
 } from '$lib/types';
 import type {
+	RawDstCategoryListEntry,
 	RawDstDepartmentStatusOnDrop,
 	RawDstDepartmentStatusOnDropSheet,
 	RawDstDropArea,
 	RawDstDropSheet,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
-	RawDstLoader
+	RawDstLoader,
+	RawDstStagingListItem
 } from '$lib/types/raw-dst';
 import type { RawDakLoaderInfo, RawDakLoaderSession } from '$lib/types/raw-dak';
 
@@ -26,6 +30,25 @@ function nullableString(value: string | null | undefined): string | null {
 
 function nullableNumber(value: number | null | undefined): number | null {
 	return value ?? null;
+}
+
+function stringOrEmpty(value: string | null | undefined): string {
+	return value ?? '';
+}
+
+function numberOrZero(value: number | null | undefined): number {
+	return value ?? 0;
+}
+
+function requiredNumber(
+	value: number | null | undefined,
+	errorMessage: string
+): number {
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
+		throw new Error(errorMessage);
+	}
+
+	return value;
 }
 
 // Loader sessions should only exist for scanner-eligible departments.
@@ -39,6 +62,10 @@ function mapOperationalDepartment(department: string): OperationalDepartment {
 		default:
 			throw new Error(`Unsupported operational department: ${department}`);
 	}
+}
+
+function isOperationalDepartment(department: string): department is OperationalDepartment {
+	return OPERATIONAL_DEPARTMENTS.includes(department as OperationalDepartment);
 }
 
 export function mapDstLoader(raw: RawDstLoader): Loader {
@@ -141,6 +168,40 @@ export function mapDstDepartmentStatusFromDropSheet(
 		parts: raw.StatusOnLoadPartDS ?? null,
 		soffit: raw.StatusOnLoadSoffitDS ?? null
 	};
+}
+
+export function mapDstStagingListItem(raw: RawDstStagingListItem): StagingListItem {
+	return {
+		lpidDetail: requiredNumber(raw.LPIDDetail, 'mapDstStagingListItem: missing required ID fields'),
+		partListId: stringOrEmpty(raw.PartListID),
+		partListDescription: stringOrEmpty(raw.PartListDesc),
+		orderSoNumber: stringOrEmpty(raw.OrderSONumber),
+		quantity: numberOrZero(raw.QtyDet),
+		dropAreaName: stringOrEmpty(raw.DropArea),
+		lpid: requiredNumber(raw.LPID, 'mapDstStagingListItem: missing required ID fields')
+	};
+}
+
+function getDstCategoryName(entry: RawDstCategoryListEntry): string {
+	if (typeof entry === 'string') {
+		return entry;
+	}
+
+	return (
+		entry.Category ??
+		entry.category ??
+		entry.Department ??
+		entry.department ??
+		entry.InventoryCategory ??
+		entry.inventoryCategory ??
+		entry.Name ??
+		entry.name ??
+		''
+	);
+}
+
+export function mapDstCategoryList(entries: RawDstCategoryListEntry[]): OperationalDepartment[] {
+	return entries.map(getDstCategoryName).filter(isOperationalDepartment);
 }
 
 export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {
