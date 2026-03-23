@@ -14,8 +14,10 @@ describe('dak department status stub helpers', () => {
 	it('validates both scalar status query inputs', () => {
 		expect(v.safeParse(custDropSheetIdSchema, 55).success).toBe(true);
 		expect(v.safeParse(custDropSheetIdSchema, '55').success).toBe(false);
+		expect(v.safeParse(custDropSheetIdSchema, 0).success).toBe(false);
 		expect(v.safeParse(dropSheetIdSchema, 42).success).toBe(true);
 		expect(v.safeParse(dropSheetIdSchema, '42').success).toBe(false);
+		expect(v.safeParse(dropSheetIdSchema, -1).success).toBe(false);
 	});
 
 	it('returns the canonical drop-scoped placeholder status', async () => {

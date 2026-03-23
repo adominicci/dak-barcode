@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { OPERATIONAL_DEPARTMENTS } from '$lib/types';
 import type { LoadingScanRequest, ScanResult, StagingScanRequest } from '$lib/types';
 import type { RawDakLoadingScanRequest, RawDakStagingScanRequest } from '$lib/types/raw-dak';
 
@@ -9,7 +10,7 @@ export const DAK_LOADING_SCAN_DEPENDENCY = 'DAK-194' as const;
 
 export const stagingScanInputSchema = v.object({
 	scannedText: v.pipe(v.string(), v.nonEmpty('Expected scanned text')),
-	department: v.picklist(['Roll', 'Wrap', 'Parts']),
+	department: v.picklist(OPERATIONAL_DEPARTMENTS),
 	dropAreaId: v.number()
 });
 
@@ -51,13 +52,11 @@ function pendingScanResult(
 }
 
 export async function processDakStagingScan(input: StagingScanRequest): Promise<ScanResult> {
-	serializeDakStagingScanRequest(input);
-
+	// TODO(DAK-193): replace with a dak-web POST using serializeDakStagingScanRequest(input).
 	return pendingScanResult(DAK_STAGING_SCAN_ROUTE, DAK_STAGING_SCAN_DEPENDENCY, 'staging');
 }
 
 export async function processDakLoadingScan(input: LoadingScanRequest): Promise<ScanResult> {
-	serializeDakLoadingScanRequest(input);
-
+	// TODO(DAK-194): replace with a dak-web POST using serializeDakLoadingScanRequest(input).
 	return pendingScanResult(DAK_LOADING_SCAN_ROUTE, DAK_LOADING_SCAN_DEPENDENCY, 'loading');
 }
