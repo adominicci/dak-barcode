@@ -11,7 +11,11 @@ export const DAK_LOADING_SCAN_DEPENDENCY = 'DAK-194' as const;
 export const stagingScanInputSchema = v.object({
 	scannedText: v.pipe(v.string(), v.nonEmpty('Expected scanned text')),
 	department: v.picklist(OPERATIONAL_DEPARTMENTS),
-	dropAreaId: v.number()
+	dropAreaId: v.pipe(
+		v.number(),
+		v.integer('Expected a whole-number drop area id'),
+		v.minValue(1, 'Expected a positive drop area id')
+	)
 });
 
 export const loadingScanInputSchema = v.object({

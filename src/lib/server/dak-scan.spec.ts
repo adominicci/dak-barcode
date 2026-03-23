@@ -32,6 +32,22 @@ describe('dak scan stub helpers', () => {
 				dropAreaId: 7
 			}).success
 		).toBe(false);
+
+		expect(
+			v.safeParse(stagingScanInputSchema, {
+				scannedText: 'R123',
+				department: 'Roll',
+				dropAreaId: 0
+			}).success
+		).toBe(false);
+
+		expect(
+			v.safeParse(stagingScanInputSchema, {
+				scannedText: 'R123',
+				department: 'Roll',
+				dropAreaId: 3.7
+			}).success
+		).toBe(false);
 	});
 
 	it('validates the loading scan input shape used by the remote command', () => {
