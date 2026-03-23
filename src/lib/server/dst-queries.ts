@@ -55,7 +55,9 @@ export const dropSheetDateSchema = v.pipe(
 export const dropSheetIdSchema = v.number();
 export const dropAreaIdSchema = v.number();
 export const departmentSchema = v.picklist(OPERATIONAL_DEPARTMENTS);
-export const orderSoNumberSchema = v.nullish(v.string());
+export const orderSoNumberSchema = v.nullish(
+	v.pipe(v.string(), v.nonEmpty('Expected a non-empty SO number'))
+);
 
 export const loadViewDetailInputSchema = v.object({
 	dropSheetId: v.number(),

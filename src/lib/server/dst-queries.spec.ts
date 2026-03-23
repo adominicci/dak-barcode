@@ -454,6 +454,7 @@ describe('dst query schemas', () => {
 		expect(v.safeParse(departmentSchema, 'Soffit').success).toBe(false);
 		expect(v.safeParse(orderSoNumberSchema, undefined).success).toBe(true);
 		expect(v.safeParse(orderSoNumberSchema, null).success).toBe(true);
+		expect(v.safeParse(orderSoNumberSchema, '').success).toBe(false);
 		expect(v.safeParse(orderSoNumberSchema, 'SO-101').success).toBe(true);
 		expect(v.safeParse(orderSoNumberSchema, 101).success).toBe(false);
 	});
