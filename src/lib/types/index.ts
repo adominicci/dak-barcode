@@ -143,6 +143,16 @@ export type LoaderSession = {
 
 export type LoaderInfo = LoaderSession;
 
+export type LoaderSessionUpsertInput = {
+	dropSheetId: number;
+	loaderId: number;
+	department: OperationalDepartment;
+	loaderName: string;
+	startedAt: string;
+	id?: number | null;
+	endedAt?: string | null;
+};
+
 export type DepartmentStatus = {
 	scope: 'drop' | 'dropsheet';
 	subjectId: number;
