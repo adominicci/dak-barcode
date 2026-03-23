@@ -90,7 +90,8 @@
 			<div class="flex items-center gap-3 sm:gap-5">
 				<button
 					type="button"
-					class="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-low)] text-slate-800 transition-transform duration-200 hover:-translate-y-0.5"
+					disabled
+					class="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-low)] text-slate-500 opacity-80"
 					aria-label="Back"
 				>
 					<ArrowLeft class="size-5" />

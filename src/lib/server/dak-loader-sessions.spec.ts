@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fetchDak = vi.fn();
@@ -132,6 +133,39 @@ describe('dak loader-session helpers', () => {
 		});
 	});
 
+	it('omits nullable optional loader session fields from the upsert payload', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				loader_id: 88,
+				fkDropSheetID: 42,
+				fkLoaderID: 7,
+				Department: 'Wrap',
+				loader_name: 'Alex',
+				started_at: '2026-03-20T10:00:00Z'
+			})
+		);
+
+		const { upsertDakLoaderSession } = await import('./dak-loader-sessions');
+
+		await upsertDakLoaderSession({
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex',
+			startedAt: '2026-03-20T10:00:00Z',
+			id: null,
+			endedAt: null
+		});
+
+		expect(JSON.parse(String(getFetchCall()[1]?.body))).toEqual({
+			fkDropSheetID: 42,
+			fkLoaderID: 7,
+			Department: 'Wrap',
+			loader_name: 'Alex',
+			started_at: '2026-03-20T10:00:00Z'
+		});
+	});
+
 	it('ends a loader session on the shared upsert endpoint with LoaderID and ended_at', async () => {
 		fetchDak.mockResolvedValue(
 			jsonResponse({
@@ -197,5 +231,47 @@ describe('dak loader-session helpers', () => {
 		await expect(getDakLoadersForDropsheet(42)).rejects.toThrow(
 			'DAK route /v1/logistics/dropsheet-loader-select returned an invalid list response.'
 		);
+	});
+
+	it('keeps end-session validation stricter than the upsert schema', async () => {
+		const { loaderSessionEndInputSchema, loaderSessionUpsertInputSchema } = await import(
+			'./dak-loader-sessions'
+		);
+
+		expect(
+			v.safeParse(loaderSessionUpsertInputSchema, {
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z',
+				id: null,
+				endedAt: null
+			}).success
+		).toBe(true);
+
+		expect(
+			v.safeParse(loaderSessionEndInputSchema, {
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z',
+				id: 88,
+				endedAt: '2026-03-20T12:00:00Z'
+			}).success
+		).toBe(true);
+
+		expect(
+			v.safeParse(loaderSessionEndInputSchema, {
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z',
+				id: null,
+				endedAt: null
+			}).success
+		).toBe(false);
 	});
 });

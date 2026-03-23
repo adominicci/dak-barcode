@@ -25,4 +25,10 @@ describe('home module selector', () => {
 			'true'
 		);
 	});
+
+	it('renders the back affordance as non-interactive until navigation is wired', async () => {
+		render(HomePage);
+
+		await expect.element(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+	});
 });

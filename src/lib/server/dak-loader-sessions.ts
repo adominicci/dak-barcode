@@ -23,11 +23,7 @@ export const loaderSessionUpsertInputSchema = v.object({
 });
 
 export const loaderSessionEndInputSchema = v.object({
-	dropSheetId: v.number(),
-	loaderId: v.number(),
-	department: v.picklist(['Roll', 'Wrap', 'Parts']),
-	loaderName: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name')),
-	startedAt: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader start timestamp')),
+	...loaderSessionUpsertInputSchema.entries,
 	id: v.number(),
 	endedAt: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader end timestamp'))
 });
@@ -135,11 +131,11 @@ function toDakLoaderSessionPayload(input: LoaderSessionUpsertInput) {
 		started_at: input.startedAt
 	};
 
-	if (input.id !== undefined) {
+	if (input.id != null) {
 		payload.LoaderID = input.id;
 	}
 
-	if (input.endedAt !== undefined) {
+	if (input.endedAt != null) {
 		payload.ended_at = input.endedAt;
 	}
 
