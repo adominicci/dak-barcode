@@ -8,6 +8,7 @@ import {
 	toDakTarget,
 	type AuthContext,
 	type FrontendTarget,
+	type LoaderSessionUpsertInput,
 	type OperationalDepartment,
 	type StagingListItem,
 	type WarehouseAlias
@@ -52,6 +53,19 @@ describe('shared target contracts', () => {
 			quantity: number;
 			dropAreaName: string;
 			lpid: number;
+		}>();
+		expect(true).toBe(true);
+	});
+
+	it('exposes a canonical loader-session mutation contract for dak-web commands', () => {
+		expectTypeOf<LoaderSessionUpsertInput>().toMatchTypeOf<{
+			dropSheetId: number;
+			loaderId: number;
+			department: OperationalDepartment;
+			loaderName: string;
+			startedAt: string;
+			id?: number | null;
+			endedAt?: string | null;
 		}>();
 		expect(true).toBe(true);
 	});
