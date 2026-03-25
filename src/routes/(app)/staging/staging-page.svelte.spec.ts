@@ -91,6 +91,16 @@ describe('staging page department gate', () => {
 		render(StagingPage);
 
 		await expect.element(page.getByTestId('staging-department-gate')).toBeInTheDocument();
+		await expect
+			.element(page.getByRole('heading', { name: 'Select department' }))
+			.toBeInTheDocument();
+		await expect.element(page.getByRole('heading', { name: 'Select department' })).not.toHaveClass(
+			/font-serif/
+		);
+		await expect.element(page.getByText('Staging entry')).not.toBeInTheDocument();
+		await expect
+			.element(page.getByText(/Staging starts with a clean session every time/i))
+			.not.toBeInTheDocument();
 		await expect.element(page.getByTestId('staging-scan-input')).toBeDisabled();
 		await expect.element(page.getByTestId('staging-location-trigger')).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: 'Wrap' })).toBeInTheDocument();
