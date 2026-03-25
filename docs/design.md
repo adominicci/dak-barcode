@@ -1,75 +1,133 @@
 # Design System Document
 
-## 1. Overview & Creative North Star: "The Industrial Precisionist"
+## 1. Overview & Current Direction
 
-In the demanding environment of a logistics hub, clarity is safety. This design system departs from the cluttered, high-contrast "utility" apps of the past to embrace a North Star we call **"The Industrial Precisionist."** It utilizes the Apple-inspired aesthetic, refined depth, and premium spacing to fit the iPad landscape.
+The implemented app is still aligned with the **"Industrial Precisionist"** direction, but the live UI is more grounded and operational than the earlier write-up implied. The current product leans on bright surfaces, large radii, soft gradients, glass headers, and roomy spacing for shared iPad use.
 
-The goal is to move beyond the flat, boxed-in look seen in the reference material. Instead of a rigid grid of heavy blue headers and harsh white tables, we use **intentional asymmetry** and **tonal layering**. Elements are not just placed; they are curated on a stage. By using soft, overlapping surfaces and generous breathing room, we reduce cognitive load for warehouse operators and make high-stakes data feel manageable.
+The strongest visual patterns in the shipped screens are:
+
+- a light `#faf9fe` page canvas with subtle blue atmospheric blur
+- glass or translucent headers for app chrome
+- large white cards sitting inside tinted grouping panels
+- uppercase utility labels paired with bold operational headings
+- restrained status color used for progress, chips, and completion states
+
+Intentional asymmetry still matters, especially on Home, Account, and Target selection, but the overall app shell is currently more consistent and structured than editorial.
 
 ---
 
-## 2. Colors
+## 2. Colors & Live Tokens
 
-The color palette is anchored in a sophisticated range of cool grays and deep blues, designed to feel authoritative yet calm.
+The current implementation is driven by the token set in `src/app.css`.
 
-### The "No-Line" Rule
+### Core surfaces
 
-**Explicit Instruction:** Do not use 1px solid borders to section off content. In an industrial context, borders create visual noise. Boundaries should be defined through background color shifts and depth.
+- `--surface-page`: `#faf9fe`
+- `--surface-low`: `#f4f3f8`
+- `--surface-container`: `#eeedf3`
+- `--surface-container-high`: `#e9e7ed`
+- `--surface-high`: `#e3e2e7`
+- `--surface-card`: `#ffffff`
 
-### Surface Hierarchy & Nesting
+### Core brand and text
 
-Treat the iPad screen as a physical stack of materials.
+- `--primary`: `#0058bc`
+- gradient accent end: `#0070eb`
+- `--text-strong`: `#1a1b1f`
+- `--text-muted`: `#414755`
+- `--text-subtle`: `#717786`
 
-- **Base Layer:** `surface` (`#faf9fe`) for the foundation.
-- **Sectional Layer:** `surface-container-low` (`#f4f3f8`) for large groupings or sidebars.
-- **Interactive/Card Layer:** `surface-container-lowest` (`#ffffff`) for the most important data cards.
+### Border guidance: use the soft-line rule
 
-### The "Glass & Gradient" Rule
+The app does **not** use hard borders as its primary layout system, but the live implementation does allow subtle hairlines when they improve clarity.
 
-Use **Glassmorphism** for floating modals or persistent navigation bars. Apply a semi-transparent surface with a `backdrop-blur` of 20px. For primary CTAs, replace flat blue with a subtle linear gradient transitioning from `primary` (`#0058bc`) to `primary-container` (`#0070eb`) at 135 degrees.
+Use soft borders or rings for:
+
+- glass headers with a faint bottom edge
+- compact progress strips
+- auth and recovery inputs that need explicit affordance
+- dashed utility treatments such as the Home page utility card
+
+Do not fall back to visible borders for every card, table, or panel. Tonal separation should still do most of the work.
+
+### Glass & gradient
+
+These patterns are live and should remain consistent:
+
+- glass headers use a white translucent surface with `backdrop-blur: 20px`
+- primary actions use a `135deg` blue gradient from `#0058bc` to `#0070eb`
+- blue glow should stay soft and diffused rather than neon
 
 ---
 
 ## 3. Typography
 
-The system uses **Inter** as a high-performance alternative to SF Pro for cross-platform rendering while keeping the overall feel precise and modern.
+The current font system is split into a practical operational stack and a restrained editorial accent:
 
-- **Display & Headline Scales:** Use large display styles for key operational metrics or primary screens.
-- **Title Scales:** Use dark-on-light section headers instead of full-width saturated bars.
-- **Body & Labels:** Use softer gray text for metadata and supporting copy to keep hierarchy clear without harsh contrast.
+- `Inter` is the default sans for app UI, labels, tables, buttons, and operational headings
+- `Newsreader Variable` is the serif accent used selectively for auth and account hero headings
+- `font-display` currently resolves to `Inter`, not serif
 
----
+### Type behavior in the shipped UI
 
-## 4. Elevation & Depth
+- page and module headings are compact, bold, and sans-first
+- utility labels are small, uppercase, and wide-tracked
+- supporting copy uses softened gray instead of high-contrast black
+- serif display should stay reserved for lower-density moments such as auth and account surfaces
 
-We achieve hierarchy through **tonal layering** rather than structural lines.
-
-- **Layering Principle:** Place bright cards on slightly darker sections for a soft lift.
-- **Ambient Shadows:** Use diffused shadows with broad blur and low opacity for floating elements.
-- **Ghost Border Fallback:** If a container must be defined, use a very soft outline rather than a hard line.
-- **Glassmorphism:** Use it for the top navigation bar so content can move underneath without losing place.
+Do not introduce serif styling into dense operational tables, scan tools, or list-heavy workflows.
 
 ---
 
-## 5. Components
+## 4. Elevation, Radius & Structure
+
+The current hierarchy comes from tonal layering first, then shadow, then occasional soft edge definition.
+
+### Radius system in use
+
+- auth cards and auth controls: `8px`
+- standard controls: `8px`
+- primary cards: `24px`
+- major panels and grouped work surfaces: `32px`
+- pills, avatars, and utility chips: full radius
+
+### Depth rules
+
+- white cards sit on top of lavender-gray grouping surfaces
+- shadows are broad and low-contrast
+- glass treatments are used in headers and select high-emphasis account or blocked-state surfaces
+- inset emphasis is acceptable on form controls, especially in auth flows
+
+---
+
+## 5. Component Patterns
 
 ### Buttons
 
-- **Primary:** Gradient-filled, extra-large radius, white text.
-- **Secondary:** Soft surface background with primary-colored text and no border.
-- **Tertiary:** Transparent background with primary-colored text for low-emphasis actions.
+- **Primary:** blue gradient, white text, soft blue shadow
+- **Secondary:** filled surface treatment, often pill-shaped, with muted or primary text
+- **Utility or destructive:** tinted surface background, sometimes with a dashed or rose treatment instead of a formal outline
 
-### Input Fields
+Rounded-full CTAs are common in the authenticated shell. Rounded-lg buttons are also used in auth and recovery forms.
 
-Avoid thin-lined boxes. Prefer elevated or tonal backgrounds with focus states driven by color shift and a bottom emphasis rather than a full rectangular border.
+### Inputs
 
-### Cards & Lists
+The implementation currently uses two valid input treatments:
 
-Do not use divider lines between warehouse records. Use spacing, alternating subtle tints, and pill-style status chips for separation and emphasis.
+- operational pages: filled tonal fields with no visible border
+- auth and recovery flows: softer bordered inputs with light backgrounds and blue focus emphasis
 
-### Industrial "Action Bar"
+Both are acceptable when chosen intentionally for context.
 
-A persistent glassmorphic bar at the bottom of the iPad landscape view can house high-priority actions such as scan entry or flow completion.
+### Cards & lists
+
+- list rows should read as cards or grouped blocks, not spreadsheet rows
+- spacing and chips should separate records before dividers do
+- utility cards may use a dashed border when the affordance is intentionally different from the main flow
+
+### App chrome
+
+The current app standard is a fixed glass top header for authenticated routes. A persistent bottom action bar is **not** part of the live implementation yet and should be treated as a future workflow pattern, not a present default.
 
 ---
 
@@ -77,12 +135,14 @@ A persistent glassmorphic bar at the bottom of the iPad landscape view can house
 
 ### Do
 
-- Use white space as a structural element.
-- Use subtle tinting for active states and contextual emphasis.
-- Optimize for touch with targets at least 44x44pt.
+- use white space and tinted grouping panels as primary structure
+- keep touch targets generous for shared iPad use
+- use uppercase micro-labels to clarify context without heavy bars
+- keep gradients, shadows, and glass effects soft and controlled
 
 ### Don't
 
-- Do not use high-contrast borders as layout scaffolding.
-- Do not recreate the legacy full-width heavy blue header bars.
-- Do not use pure black text; keep type slightly softened for a more premium editorial feel.
+- do not recreate legacy full-width saturated blue headers
+- do not use hard borders as default scaffolding for every surface
+- do not use pure black text
+- do not overuse serif display outside hero or account-style moments

@@ -25,6 +25,8 @@ type ChangePasswordFailure = {
 	message: string;
 };
 
+const FIXED_EMAIL_DOMAIN = '@dakotasteelandtrim.com';
+
 type ProfilesQuery = {
 	select: (selection: string) => {
 		eq: (column: 'id', value: string) => {
@@ -44,6 +46,28 @@ type WarehousesQuery = {
 function getString(formData: FormData, name: string) {
 	const value = formData.get(name);
 	return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeFixedDomainEmail(value: string) {
+	const normalizedValue = value.trim().toLowerCase();
+
+	if (!normalizedValue) {
+		return '';
+	}
+
+	return normalizedValue.endsWith(FIXED_EMAIL_DOMAIN)
+		? normalizedValue
+		: `${normalizedValue.replace(/@.*$/, '')}${FIXED_EMAIL_DOMAIN}`;
+}
+
+function getFixedDomainEmail(formData: FormData) {
+	const username = normalizeFixedDomainEmail(getString(formData, 'username'));
+
+	if (username) {
+		return username;
+	}
+
+	return normalizeFixedDomainEmail(getString(formData, 'email'));
 }
 
 function clearTargetCookie(cookies: Cookies) {
@@ -121,7 +145,7 @@ function getAuthRedirect(accessState: AccessState) {
 
 export async function handleLogin(event: Pick<RequestEvent, 'request' | 'cookies' | 'fetch'>) {
 	const formData = await event.request.formData();
-	const email = getString(formData, 'email').toLowerCase();
+	const email = getFixedDomainEmail(formData);
 	const password = getString(formData, 'password');
 
 	if (!email || !password) {
@@ -158,7 +182,7 @@ export async function handleForgotPassword(
 	event: Pick<RequestEvent, 'request' | 'cookies' | 'fetch' | 'url'>
 ) {
 	const formData = await event.request.formData();
-	const email = getString(formData, 'email').toLowerCase();
+	const email = getFixedDomainEmail(formData);
 
 	if (!email) {
 		return fail(400, {

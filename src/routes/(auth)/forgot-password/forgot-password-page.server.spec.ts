@@ -100,4 +100,57 @@ describe('forgot-password actions', () => {
 			}
 		);
 	});
+
+	it('reconstructs the fixed-domain email from the submitted username when the hidden email is blank', async () => {
+		const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error: null }));
+		createSupabaseServerClient.mockReturnValue({
+			auth: { resetPasswordForEmail }
+		});
+
+		const event = createRequestEvent(
+			new URLSearchParams({ email: '', username: 'andresd' })
+		);
+		const { actions } = await import('./+page.server');
+
+		await expect(actions.default(event as never)).rejects.toMatchObject({
+			status: 303,
+			location:
+				'/reset-password?email=andresd%40dakotasteelandtrim.com&sent=1'
+		});
+
+		expect(resetPasswordForEmail).toHaveBeenCalledWith(
+			'andresd@dakotasteelandtrim.com',
+			{
+				redirectTo: 'https://example.com/reset-password'
+			}
+		);
+	});
+
+	it('prefers the submitted username over a stale hidden email value', async () => {
+		const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error: null }));
+		createSupabaseServerClient.mockReturnValue({
+			auth: { resetPasswordForEmail }
+		});
+
+		const event = createRequestEvent(
+			new URLSearchParams({
+				email: 'staleuser@dakotasteelandtrim.com',
+				username: 'andresd'
+			})
+		);
+		const { actions } = await import('./+page.server');
+
+		await expect(actions.default(event as never)).rejects.toMatchObject({
+			status: 303,
+			location:
+				'/reset-password?email=andresd%40dakotasteelandtrim.com&sent=1'
+		});
+
+		expect(resetPasswordForEmail).toHaveBeenCalledWith(
+			'andresd@dakotasteelandtrim.com',
+			{
+				redirectTo: 'https://example.com/reset-password'
+			}
+		);
+	});
 });
