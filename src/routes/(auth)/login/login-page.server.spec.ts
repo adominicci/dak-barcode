@@ -284,4 +284,31 @@ describe('login actions', () => {
 			password: '123456'
 		});
 	});
+
+	it('prefers the submitted username over a stale hidden email value', async () => {
+		const signInWithPassword = vi.fn(async () => ({ data: {}, error: null }));
+		createSupabaseServerClient.mockReturnValue({
+			auth: { signInWithPassword }
+		});
+		resolveAuthContext.mockResolvedValue(createAuthContext());
+
+		const event = createRequestEvent(
+			new URLSearchParams({
+				email: 'staleuser@dakotasteelandtrim.com',
+				username: 'andresd',
+				password: '12345678'
+			})
+		);
+		const { actions } = await import('./+page.server');
+
+		await expect(actions.default(event as never)).rejects.toMatchObject({
+			status: 303,
+			location: '/home'
+		});
+
+		expect(signInWithPassword).toHaveBeenCalledWith({
+			email: 'andresd@dakotasteelandtrim.com',
+			password: '12345678'
+		});
+	});
 });

@@ -61,13 +61,13 @@ function normalizeFixedDomainEmail(value: string) {
 }
 
 function getFixedDomainEmail(formData: FormData) {
-	const email = normalizeFixedDomainEmail(getString(formData, 'email'));
+	const username = normalizeFixedDomainEmail(getString(formData, 'username'));
 
-	if (email) {
-		return email;
+	if (username) {
+		return username;
 	}
 
-	return normalizeFixedDomainEmail(getString(formData, 'username'));
+	return normalizeFixedDomainEmail(getString(formData, 'email'));
 }
 
 function clearTargetCookie(cookies: Cookies) {

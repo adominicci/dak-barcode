@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { LoaderCircle, MapPin, TriangleAlert, X } from '@lucide/svelte';
 	import { getDropArea, getDropAreasByDepartment } from '$lib/drop-areas.remote';
 	import type { DropArea } from '$lib/types';
@@ -22,20 +22,42 @@
 	let lookupError = $state<string | null>(null);
 	let isResolvingLookup = $state(false);
 	let lookupInput: HTMLInputElement | null = null;
+	let activeLookupRequestToken = $state(0);
 
 	const dropAreasQuery = $derived(getDropAreasByDepartment(department));
+	const departmentSupportKey = {
+		Wrap: 'supportsWrap',
+		Roll: 'supportsRoll',
+		Parts: 'supportsParts'
+	} as const satisfies Record<NonNullable<WorkflowDepartment>, keyof DropArea>;
 
 	onMount(() => {
 		lookupInput?.focus();
 	});
 
+	onDestroy(() => {
+		invalidateLookupRequests();
+	});
+
+	function invalidateLookupRequests() {
+		activeLookupRequestToken += 1;
+	}
+
 	function commitSelection(dropArea: DropArea) {
+		invalidateLookupRequests();
+		isResolvingLookup = false;
 		lookupError = null;
 		lookupValue = '';
 		onSelect({
 			dropAreaId: dropArea.id,
 			dropAreaLabel: dropArea.name
 		});
+	}
+
+	function handleClose() {
+		invalidateLookupRequests();
+		isResolvingLookup = false;
+		onClose();
 	}
 
 	async function handleLookupSubmit(event?: SubmitEvent) {
@@ -55,20 +77,37 @@
 
 		lookupError = null;
 		isResolvingLookup = true;
+		const lookupRequestToken = activeLookupRequestToken + 1;
+		activeLookupRequestToken = lookupRequestToken;
 
 		try {
 			const dropArea = await getDropArea(parsedDropAreaId);
+			if (activeLookupRequestToken !== lookupRequestToken) {
+				return;
+			}
+
 			if (!dropArea) {
 				lookupError = 'Location is not valid.';
 				return;
 			}
 
+			if (!dropArea[departmentSupportKey[department]]) {
+				lookupError = 'This location does not support the selected department.';
+				return;
+			}
+
 			commitSelection(dropArea);
 		} catch (error) {
+			if (activeLookupRequestToken !== lookupRequestToken) {
+				return;
+			}
+
 			lookupError =
 				error instanceof Error ? error.message : 'Unable to resolve this location right now.';
 		} finally {
-			isResolvingLookup = false;
+			if (activeLookupRequestToken === lookupRequestToken) {
+				isResolvingLookup = false;
+			}
 		}
 	}
 </script>
@@ -88,7 +127,7 @@
 				<button
 					type="button"
 					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900"
-					onclick={onClose}
+					onclick={handleClose}
 					aria-label="Close location selector"
 				>
 					<X class="size-5" />

@@ -156,18 +156,40 @@ describe('staging page department gate', () => {
 			)
 		);
 		getDropArea.mockImplementation(async (dropAreaId) =>
-			dropAreaId === 42
+			dropAreaId === 41
 				? {
-						id: 42,
-						name: 'W13',
+						id: 41,
+						name: 'W12',
 						supportsWrap: true,
-						supportsParts: true,
+						supportsParts: false,
 						supportsRoll: false,
 						supportsLoading: false,
 						supportsDriverLocation: false,
 						firstCharacter: 'W'
 					}
-				: null
+				: dropAreaId === 42
+					? {
+							id: 42,
+							name: 'W13',
+							supportsWrap: true,
+							supportsParts: true,
+							supportsRoll: false,
+							supportsLoading: false,
+							supportsDriverLocation: false,
+							firstCharacter: 'W'
+						}
+					: dropAreaId === 51
+						? {
+								id: 51,
+								name: 'R12',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'R'
+							}
+						: null
 		);
 	});
 
@@ -405,6 +427,22 @@ describe('staging page department gate', () => {
 		expect(get(workflowStores.currentDropArea)).toBeNull();
 	});
 
+	it('rejects numeric lookup when the location does not support the selected department', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByLabelText('Scan new location').fill('51');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(51);
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect
+			.element(page.getByText('This location does not support the selected department.'))
+			.toBeInTheDocument();
+		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
+
 	it('rejects partially numeric lookup input before attempting a drop-area lookup', async () => {
 		render(StagingPage);
 
@@ -417,5 +455,50 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
 		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
+
+	it('ignores a late numeric lookup response after a newer card selection closes the modal', async () => {
+		let resolveLookup: ((value: DropArea | null) => void) | null = null;
+		getDropArea.mockReturnValueOnce(
+			new Promise<DropArea | null>((resolve) => {
+				resolveLookup = resolve;
+			})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByLabelText('Scan new location').fill('42');
+		await page.getByRole('button', { name: 'Set location' }).click();
+		await page.getByRole('button', { name: /W12/i }).click();
+
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 41,
+			dropAreaLabel: 'W12'
+		});
+
+		const lookupResolver = resolveLookup as ((value: DropArea | null) => void) | null;
+		if (!lookupResolver) {
+			throw new Error('Expected lookup resolver to be available.');
+		}
+
+		lookupResolver({
+			id: 42,
+			name: 'W13',
+			supportsWrap: true,
+			supportsParts: true,
+			supportsRoll: false,
+			supportsLoading: false,
+			supportsDriverLocation: false,
+			firstCharacter: 'W'
+		});
+
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W12');
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 41,
+			dropAreaLabel: 'W12'
+		});
 	});
 });
