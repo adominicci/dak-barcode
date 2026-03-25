@@ -75,9 +75,9 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="staging-location-modal-title"
-		class="w-full max-w-5xl rounded-[2rem] bg-white/96 p-6 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80"
+		class="max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
 	>
-		<div class="rounded-[1.75rem] bg-surface-container-low p-6 sm:p-8">
+		<div class="flex max-h-full flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
 			<div class="flex items-start justify-between gap-4">
 				<div class="space-y-3">
 					<p class="ui-label">Staging location</p>
@@ -103,9 +103,9 @@
 				</button>
 			</div>
 
-			<div class="mt-8 grid gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+			<div class="mt-6 grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
 				<form
-					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]"
+					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)] xl:self-start"
 					onsubmit={handleLookupSubmit}
 				>
 					<div class="flex items-center gap-3">
@@ -152,7 +152,7 @@
 					{/if}
 				</form>
 
-				<div class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
+				<div class="flex min-h-0 flex-col rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
 					<div class="flex items-center justify-between gap-3">
 						<div>
 							<p class="ui-label text-xs">Available drop areas</p>
@@ -165,7 +165,10 @@
 						</span>
 					</div>
 
-					<div class="mt-5">
+					<div
+						data-testid="staging-location-list-scroll-region"
+						class="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
+					>
 						{#if dropAreasQuery.error}
 							<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 								<TriangleAlert class="mt-0.5 size-4 shrink-0" />
@@ -182,7 +185,7 @@
 								<p class="text-sm font-medium">No locations are available for this department yet.</p>
 							</div>
 						{:else}
-							<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+							<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 								{#each dropAreasQuery.current as dropArea (dropArea.id)}
 									<button
 										type="button"

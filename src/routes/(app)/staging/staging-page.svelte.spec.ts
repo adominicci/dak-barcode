@@ -336,6 +336,18 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
 	});
 
+	it('renders the location modal as a compact dialog with a scrollable drop-area list', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-4xl/);
+		await expect
+			.element(page.getByTestId('staging-location-list-scroll-region'))
+			.toHaveClass(/overflow-y-auto/);
+	});
+
 	it('stores the selected drop area and closes the modal after a card selection', async () => {
 		render(StagingPage);
 
