@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { actions } from './+page.server';
+import { actions, load } from './+page.server';
 import { TARGET_COOKIE_NAME } from '$lib/server/auth-context';
 import type { AuthContext } from '$lib/auth/types';
 
@@ -22,6 +22,49 @@ function createAdminContext(accessState: AuthContext['accessState'] = 'admin-nee
 		user: null
 	};
 }
+
+function createOperatorContext(): AuthContext {
+	return {
+		accessState: 'operator-ready',
+		isActive: true,
+		isAdmin: false,
+		profile: {
+			id: 'user-1',
+			email: 'loader@dakotasteelandtrim.com',
+			displayName: 'Loader One',
+			userRole: 'loading',
+			isActive: true,
+			warehouseId: 1,
+			warehouse: { alias: 'Canton' }
+		},
+		role: 'loading',
+		target: 'Canton',
+		user: null
+	};
+}
+
+describe('location load', () => {
+	it('redirects non-admin users home before rendering the selector', async () => {
+		await expect(
+			load({
+				locals: { authContext: createOperatorContext() }
+			} as never)
+		).rejects.toMatchObject({
+			status: 303,
+			location: '/home'
+		});
+	});
+
+	it('returns the current target for admin sessions reopening the selector', async () => {
+		await expect(
+			load({
+				locals: { authContext: createAdminContext('admin-ready') }
+			} as never)
+		).resolves.toEqual({
+			currentTarget: 'Canton'
+		});
+	});
+});
 
 describe('location actions', () => {
 	it.each(['Canton', 'Freeport', 'Sandbox'] as const)(
