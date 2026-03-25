@@ -43,4 +43,22 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-department-trigger')).toHaveTextContent('Roll');
 		await expect.element(page.getByTestId('staging-scan-input')).not.toBeDisabled();
 	});
+
+	it('closes the gate when the current department is re-selected', async () => {
+		render(StagingPage);
+		const gate = page.getByTestId('staging-department-gate');
+
+		await gate.getByRole('button', { name: /^Roll/ }).click();
+		await expect.element(page.getByTestId('staging-department-gate')).not.toBeInTheDocument();
+
+		await page.getByTestId('staging-department-trigger').click();
+		await expect.element(page.getByTestId('staging-department-gate')).toBeInTheDocument();
+
+		await page.getByTestId('staging-department-gate').getByRole('button', { name: /^Roll/ }).click();
+
+		await expect.element(page.getByTestId('staging-department-gate')).not.toBeInTheDocument();
+		expect(get(workflowStores.selectedDepartment)).toBe('Roll');
+		await expect.element(page.getByTestId('staging-scan-input')).not.toBeDisabled();
+		await expect.element(page.getByTestId('staging-location-trigger')).not.toBeDisabled();
+	});
 });

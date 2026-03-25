@@ -20,6 +20,7 @@
 
 	function handleDepartmentSelect(department: NonNullable<WorkflowDepartment>) {
 		workflowStores.setSelectedDepartment(department);
+		isDepartmentGateOpen = false;
 	}
 </script>
 
