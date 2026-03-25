@@ -6,9 +6,15 @@ import {
 } from '$lib/server/auth-context';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => ({
-	currentTarget: locals.authContext.target
-});
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!locals.authContext.isAdmin) {
+		redirect(303, '/home');
+	}
+
+	return {
+		currentTarget: locals.authContext.target
+	};
+};
 
 export const actions: Actions = {
 	default: async ({ request, cookies, locals }) => {

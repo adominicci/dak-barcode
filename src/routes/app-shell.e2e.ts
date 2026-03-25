@@ -30,7 +30,17 @@ for (const path of ['/login', '/forgot-password']) {
 	});
 }
 
-for (const path of ['/home', '/location', '/inactive', '/account']) {
+for (const path of [
+	'/home',
+	'/staging',
+	'/location',
+	'/inactive',
+	'/account',
+	'/loaders',
+	'/dropsheets',
+	'/loading',
+	'/select-category/42'
+]) {
 	test(`redirects anonymous traffic from ${path} to /login`, async ({ page }) => {
 		await page.goto(path);
 

@@ -48,6 +48,7 @@
 	--surface-page: #faf9fe;
 	--surface-low: #f4f3f8;
 	--surface-container: #eeedf3;
+	--surface-container-high: #e9e7ed;
 	--surface-high: #e3e2e7;
 	--surface-card: #ffffff;
 	--text-strong: #1a1b1f;
@@ -127,6 +128,15 @@
 	--color-card: var(--card);
 	--color-foreground: var(--foreground);
 	--color-background: var(--background);
+	--color-surface-container-lowest: #ffffff;
+	--color-surface-container-low: var(--surface-low);
+	--color-surface-container: var(--surface-container);
+	--color-surface-container-high: var(--surface-container-high);
+	--color-surface-container-highest: var(--surface-high);
+	--color-on-surface: var(--text-strong);
+	--color-on-surface-variant: var(--text-muted);
+	--color-outline: var(--text-subtle);
+	--color-outline-variant: var(--border);
 	--radius-sm: calc(var(--radius) * 0.6);
 	--radius-md: calc(var(--radius) * 0.8);
 	--radius-lg: var(--radius);
@@ -195,11 +205,21 @@
 	}
 
 	.ui-label {
-		color: var(--text-subtle);
-		font-size: 0.78rem;
+		color: var(--text-muted);
+		font-size: 13px;
 		font-weight: 700;
-		letter-spacing: 0.22em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
+	}
+
+	.glass-header {
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+	}
+
+	.industrial-gradient {
+		background: linear-gradient(135deg, var(--primary) 0%, #0070eb 100%);
 	}
 }
 
