@@ -22,6 +22,7 @@
 	let lookupError = $state<string | null>(null);
 	let isResolvingLookup = $state(false);
 	let lookupInput: HTMLInputElement | null = null;
+	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
 
 	const dropAreasQuery = $derived(getDropAreasByDepartment(department));
@@ -58,6 +59,53 @@
 		invalidateLookupRequests();
 		isResolvingLookup = false;
 		onClose();
+	}
+
+	function getFocusableElements() {
+		if (!modalElement) {
+			return [];
+		}
+
+		return Array.from(
+			modalElement.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+			)
+		).filter((element) => !element.hasAttribute('hidden') && element.tabIndex !== -1);
+	}
+
+	function handleModalKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			handleClose();
+			return;
+		}
+
+		if (event.key !== 'Tab') {
+			return;
+		}
+
+		const focusableElements = getFocusableElements();
+		if (focusableElements.length === 0) {
+			return;
+		}
+
+		const firstFocusableElement = focusableElements[0];
+		const lastFocusableElement = focusableElements[focusableElements.length - 1];
+		const activeElement = document.activeElement;
+
+		if (event.shiftKey) {
+			if (activeElement === firstFocusableElement) {
+				event.preventDefault();
+				lastFocusableElement?.focus();
+			}
+
+			return;
+		}
+
+		if (activeElement === lastFocusableElement) {
+			event.preventDefault();
+			firstFocusableElement?.focus();
+		}
 	}
 
 	async function handleLookupSubmit(event?: SubmitEvent) {
@@ -120,7 +168,10 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label="Staging location selector"
+		tabindex="-1"
+		bind:this={modalElement}
 		class="max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		onkeydown={handleModalKeydown}
 	>
 		<div class="flex max-h-full flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
 			<div class="flex justify-end">

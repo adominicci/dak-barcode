@@ -358,6 +358,22 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
 	});
 
+	it('closes the location modal when Escape is pressed', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+
+		const modal = document.querySelector('[data-testid="staging-location-modal"]');
+		if (!(modal instanceof HTMLElement)) {
+			throw new Error('Expected staging location modal element.');
+		}
+
+		modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+	});
+
 	it('renders the location modal with a simplified scanner strip and a dense scrollable grid', async () => {
 		render(StagingPage);
 
@@ -379,6 +395,38 @@ describe('staging page department gate', () => {
 			.not.toHaveTextContent('Drop area ID');
 		await expect.element(page.getByText(/Drop area ID/i)).not.toBeInTheDocument();
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
+	});
+
+	it('keeps Tab focus trapped inside the location modal', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+
+		const closeButton = document.querySelector(
+			'[aria-label="Close location selector"]'
+		);
+		const lastTile = Array.from(
+			document.querySelectorAll('[data-testid="staging-location-modal-grid"] button')
+		).at(-1);
+		const modal = document.querySelector('[data-testid="staging-location-modal"]');
+		if (
+			!(closeButton instanceof HTMLElement) ||
+			!(lastTile instanceof HTMLElement) ||
+			!(modal instanceof HTMLElement)
+		) {
+			throw new Error('Expected modal focus targets.');
+		}
+
+		lastTile.focus();
+		modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+		expect(document.activeElement).toBe(closeButton);
+
+		closeButton.focus();
+		modal.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })
+		);
+		expect(document.activeElement).toBe(lastTile);
 	});
 
 	it('stores the selected drop area and closes the modal after a card selection', async () => {
