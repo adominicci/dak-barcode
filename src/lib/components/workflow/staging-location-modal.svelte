@@ -41,7 +41,13 @@
 	async function handleLookupSubmit(event?: SubmitEvent) {
 		event?.preventDefault();
 
-		const parsedDropAreaId = Number.parseInt(lookupValue.trim(), 10);
+		const trimmedLookupValue = lookupValue.trim();
+		if (!/^\d+$/.test(trimmedLookupValue)) {
+			lookupError = 'Location is not valid.';
+			return;
+		}
+
+		const parsedDropAreaId = Number.parseInt(trimmedLookupValue, 10);
 		if (!Number.isInteger(parsedDropAreaId) || parsedDropAreaId <= 0) {
 			lookupError = 'Location is not valid.';
 			return;

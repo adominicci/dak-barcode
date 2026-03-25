@@ -404,4 +404,18 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
 		expect(get(workflowStores.currentDropArea)).toBeNull();
 	});
+
+	it('rejects partially numeric lookup input before attempting a drop-area lookup', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByLabelText('Scan new location').fill('42A');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).not.toHaveBeenCalled();
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
+		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
 });
