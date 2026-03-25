@@ -2,33 +2,54 @@
 	import { onMount } from 'svelte';
 	import { ScanBarcode, ChevronDown, MapPin } from '@lucide/svelte';
 	import DepartmentSelectionModal from '$lib/components/workflow/department-selection-modal.svelte';
+	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import StagingListPanel from '$lib/components/workflow/staging-list-panel.svelte';
 	import { createStagingListController } from '$lib/workflow/staging-list-controller.svelte';
-	import { workflowStores, type WorkflowDepartment } from '$lib/workflow/stores';
+	import {
+		workflowStores,
+		type WorkflowDepartment,
+		type WorkflowDropAreaSelection
+	} from '$lib/workflow/stores';
 
 	let selectedDepartment = $state<WorkflowDepartment>(null);
+	let currentDropArea = $state<WorkflowDropAreaSelection>(null);
 	let isDepartmentGateOpen = $state(true);
+	let isLocationModalOpen = $state(false);
 	let stagingListController = $state<ReturnType<typeof createStagingListController> | null>(null);
 
 	onMount(() => {
 		workflowStores.prepareForStagingEntry();
 		stagingListController = createStagingListController();
 
-		const unsubscribe = workflowStores.selectedDepartment.subscribe((department) => {
+		const unsubscribeDepartment = workflowStores.selectedDepartment.subscribe((department) => {
 			selectedDepartment = department;
 			isDepartmentGateOpen = department === null;
 		});
+		const unsubscribeDropArea = workflowStores.currentDropArea.subscribe((dropArea) => {
+			currentDropArea = dropArea;
+		});
 
 		return () => {
-			unsubscribe();
+			unsubscribeDepartment();
+			unsubscribeDropArea();
 			stagingListController?.destroy();
 			stagingListController = null;
 		};
 	});
 
 	function handleDepartmentSelect(department: NonNullable<WorkflowDepartment>) {
+		if (selectedDepartment !== department) {
+			workflowStores.clearCurrentDropArea();
+		}
+
 		workflowStores.setSelectedDepartment(department);
 		isDepartmentGateOpen = false;
+		isLocationModalOpen = false;
+	}
+
+	function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
+		workflowStores.setCurrentDropArea(dropArea);
+		isLocationModalOpen = false;
 	}
 </script>
 
@@ -55,7 +76,10 @@
 				data-testid="staging-department-trigger"
 				type="button"
 				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors"
-				onclick={() => (isDepartmentGateOpen = true)}
+				onclick={() => {
+					isLocationModalOpen = false;
+					isDepartmentGateOpen = true;
+				}}
 			>
 				<span>{selectedDepartment ?? 'Select Department'}</span>
 				<ChevronDown class="size-5 text-on-surface-variant" />
@@ -68,8 +92,9 @@
 				type="button"
 				disabled={isDepartmentGateOpen}
 				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+				onclick={() => (isLocationModalOpen = true)}
 			>
-				<span>Select Location</span>
+				<span>{currentDropArea?.dropAreaLabel ?? 'Select Location'}</span>
 				<MapPin class="size-5 text-on-surface-variant" />
 			</button>
 		</div>
@@ -85,4 +110,12 @@
 
 {#if isDepartmentGateOpen}
 	<DepartmentSelectionModal onSelect={handleDepartmentSelect} />
+{/if}
+
+{#if isLocationModalOpen && selectedDepartment}
+	<StagingLocationModal
+		department={selectedDepartment}
+		onClose={() => (isLocationModalOpen = false)}
+		onSelect={handleLocationSelect}
+	/>
 {/if}

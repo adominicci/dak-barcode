@@ -70,7 +70,7 @@
 				</div>
 
 				<div class="space-y-3">
-					{#each items as item (item.lpid)}
+					{#each items as item (`${item.lpid}-${item.lpidDetail}`)}
 						{@const isAssigned = item.dropAreaName.trim().length > 0}
 						<div
 							data-testid={`staging-list-row-${item.lpid}`}

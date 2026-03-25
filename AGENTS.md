@@ -60,6 +60,21 @@ Important folders:
 
 This repo does **not** own the new `dak-web` scan endpoints. Backend work happens in a separate FastAPI repository and is tracked here only as an external dependency.
 
+### Current implementation snapshot
+
+Keep these status notes in mind so you do not treat scaffolded flows as completed:
+
+- Implemented now:
+  - auth shell and account flows (`login`, `logout`, `forgot-password`, `reset-password`, `change password`, inactive gate)
+  - profile-based routing plus admin target selection and operator warehouse resolution
+  - authenticated shell pages for `Home`, `Location`, `Account`, `Add Loader`, `Dropsheets`, and `Select Category`
+  - staging list read models and the department gate UI
+- Still scaffolded or dependency-blocked:
+  - staging scan submission and location assignment are not wired end-to-end yet
+  - the loading route currently receives the handoff payload but the live scan workflow is not implemented yet
+  - `dak-web` scan POST integration remains pending for staging (`DAK-193`) and loading (`DAK-194`)
+  - `Will Call` remains intentionally disabled
+
 ---
 
 ## Working Agreements
