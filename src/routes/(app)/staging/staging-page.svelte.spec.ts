@@ -273,6 +273,38 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByText('Unassigned')).toBeInTheDocument();
 	});
 
+	it('renders staging rows even when the backend returns duplicate lpid values', async () => {
+		getStagingPartsForDay.mockReturnValueOnce(
+			createStagingQuery([
+				{
+					lpidDetail: 30,
+					partListId: 'PART-300',
+					partListDescription: 'Wrap crate A',
+					orderSoNumber: 'SO-300',
+					quantity: 2,
+					dropAreaName: '',
+					lpid: 345029
+				},
+				{
+					lpidDetail: 31,
+					partListId: 'PART-301',
+					partListDescription: 'Wrap crate B',
+					orderSoNumber: 'SO-301',
+					quantity: 5,
+					dropAreaName: 'Bay 2',
+					lpid: 345029
+				}
+			])
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+
+		await expect.element(page.getByText('Wrap crate A')).toBeInTheDocument();
+		await expect.element(page.getByText('Wrap crate B')).toBeInTheDocument();
+	});
+
 	it('renders empty and error states from the active query', async () => {
 		getStagingPartsForDay.mockReturnValueOnce(createStagingQuery([]));
 		getStagingPartsForDayRoll.mockReturnValueOnce(
