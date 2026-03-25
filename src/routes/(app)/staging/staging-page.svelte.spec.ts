@@ -358,6 +358,19 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
 	});
 
+	it('closes the location modal when reopening the department selector', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+
+		await page.getByTestId('staging-department-trigger').click();
+
+		await expect.element(page.getByTestId('staging-department-gate')).toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+	});
+
 	it('closes the location modal when Escape is pressed', async () => {
 		render(StagingPage);
 

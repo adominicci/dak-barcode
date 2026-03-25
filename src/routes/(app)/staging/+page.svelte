@@ -76,7 +76,10 @@
 				data-testid="staging-department-trigger"
 				type="button"
 				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors"
-				onclick={() => (isDepartmentGateOpen = true)}
+				onclick={() => {
+					isLocationModalOpen = false;
+					isDepartmentGateOpen = true;
+				}}
 			>
 				<span>{selectedDepartment ?? 'Select Department'}</span>
 				<ChevronDown class="size-5 text-on-surface-variant" />
