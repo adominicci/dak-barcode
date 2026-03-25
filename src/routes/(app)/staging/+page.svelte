@@ -1,21 +1,29 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ScanBarcode, ChevronDown, MapPin, Info } from '@lucide/svelte';
+	import { ScanBarcode, ChevronDown, MapPin } from '@lucide/svelte';
 	import DepartmentSelectionModal from '$lib/components/workflow/department-selection-modal.svelte';
+	import StagingListPanel from '$lib/components/workflow/staging-list-panel.svelte';
+	import { createStagingListController } from '$lib/workflow/staging-list-controller.svelte';
 	import { workflowStores, type WorkflowDepartment } from '$lib/workflow/stores';
 
 	let selectedDepartment = $state<WorkflowDepartment>(null);
 	let isDepartmentGateOpen = $state(true);
+	let stagingListController = $state<ReturnType<typeof createStagingListController> | null>(null);
 
 	onMount(() => {
 		workflowStores.prepareForStagingEntry();
+		stagingListController = createStagingListController();
 
 		const unsubscribe = workflowStores.selectedDepartment.subscribe((department) => {
 			selectedDepartment = department;
 			isDepartmentGateOpen = department === null;
 		});
 
-		return unsubscribe;
+		return () => {
+			unsubscribe();
+			stagingListController?.destroy();
+			stagingListController = null;
+		};
 	});
 
 	function handleDepartmentSelect(department: NonNullable<WorkflowDepartment>) {
@@ -67,32 +75,12 @@
 		</div>
 	</section>
 
-	<!-- Data panel with table (reference: staging-strict-v4) -->
-	<div class="bg-surface-container-low rounded-[2rem] p-8 min-h-[400px] flex flex-col">
-		<!-- Context indicator -->
-		<div class="flex items-center gap-3 mb-8 text-on-surface-variant/60">
-			<Info class="size-5" />
-			<span class="text-lg font-medium">No Location</span>
-		</div>
-
-		<!-- Table -->
-		<div class="flex-grow">
-			<!-- Table header -->
-			<div class="grid grid-cols-5 px-6 py-4 text-[13px] font-bold tracking-widest uppercase text-on-surface-variant/70">
-				<div>Part Number</div>
-				<div>Description</div>
-				<div class="text-center">Quantity</div>
-				<div>Order Number</div>
-				<div>Location</div>
-			</div>
-
-			<!-- Empty state -->
-			<div class="flex flex-col items-center justify-center py-16 text-on-surface-variant/50">
-				<ScanBarcode class="size-10 mb-4" />
-				<p class="text-lg font-medium">Scan a barcode to begin staging items</p>
-			</div>
-		</div>
-	</div>
+	<StagingListPanel
+		department={selectedDepartment}
+		items={stagingListController?.activeItems ?? []}
+		loading={stagingListController?.activeLoading ?? false}
+		error={stagingListController?.activeError ?? null}
+	/>
 </div>
 
 {#if isDepartmentGateOpen}
