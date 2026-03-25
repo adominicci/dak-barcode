@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	import { CircleAlert, KeyRound, ShieldCheck } from '@lucide/svelte';
+	import { CircleAlert, KeyRound, LogOut, ShieldCheck } from '@lucide/svelte';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -147,4 +147,17 @@
 			</div>
 		</Card.Content>
 	</Card.Root>
+
+	<div class="xl:col-span-2 flex justify-end">
+		<form method="POST" action="/logout">
+			<Button
+				type="submit"
+				variant="outline"
+				class="h-11 rounded-full border-transparent bg-rose-50 px-5 text-sm font-semibold text-rose-700 hover:bg-rose-100"
+			>
+				<LogOut class="size-4" />
+				Sign out
+			</Button>
+		</form>
+	</div>
 </section>

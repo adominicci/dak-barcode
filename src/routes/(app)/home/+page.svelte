@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import {
 		ArrowLeft,
 		CalendarDays,
@@ -10,23 +10,29 @@
 		Truck,
 		UserRoundPlus
 	} from '@lucide/svelte';
+	import type { PageProps } from './$types';
 
 	type IconComponent = typeof Grid2x2;
+	type HomeActionHref = '/staging' | '/dropsheets' | '/loaders';
 
 	type HomeCard = {
 		name: string;
 		detail: string;
 		icon: IconComponent;
+		href: HomeActionHref | null;
 		testId: string;
 		variant: 'default' | 'utility';
 		disabled?: boolean;
 	};
+
+	let { data }: PageProps = $props();
 
 	const actions: HomeCard[] = [
 		{
 			name: 'Staging',
 			detail: 'Organize outgoing inventory',
 			icon: Grid2x2,
+			href: '/staging',
 			testId: 'home-card-staging',
 			variant: 'default'
 		},
@@ -34,6 +40,7 @@
 			name: 'Loading',
 			detail: 'Scan items onto trailers',
 			icon: Truck,
+			href: '/dropsheets',
 			testId: 'home-card-loading',
 			variant: 'default'
 		},
@@ -41,6 +48,7 @@
 			name: 'Will Call',
 			detail: 'Customer pickups and direct load',
 			icon: MapPin,
+			href: null,
 			testId: 'home-card-will-call',
 			variant: 'default',
 			disabled: true
@@ -49,6 +57,7 @@
 			name: 'Add Loader',
 			detail: 'Assign personnel to bay',
 			icon: UserRoundPlus,
+			href: '/loaders',
 			testId: 'home-card-add-loader',
 			variant: 'utility'
 		}
@@ -62,129 +71,133 @@
 
 	function getUserInitials(displayName: string | null | undefined, userEmail: string | null | undefined) {
 		const source = displayName?.trim() || userEmail?.split('@')[0]?.replace(/[._-]+/g, ' ') || 'DST User';
-		const parts = source
-			.split(/\s+/)
-			.map((part) => part.trim())
-			.filter(Boolean);
-
-		if (parts.length === 0) {
-			return 'DU';
-		}
-
-		return parts
-			.slice(0, 2)
-			.map((part) => part[0]?.toUpperCase() ?? '')
-			.join('');
+		const parts = source.split(/\s+/).map((p) => p.trim()).filter(Boolean);
+		if (parts.length === 0) return 'DU';
+		return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 	}
 </script>
 
-<section class="relative min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(0,88,188,0.09),transparent_34%),linear-gradient(180deg,#fbfbff_0%,#f7f6fb_45%,#f5f3fa_100%)] px-4 pb-16 pt-4 sm:px-6 lg:px-8">
-	<div class="pointer-events-none absolute inset-x-0 top-[-12rem] h-[28rem] bg-[radial-gradient(circle,rgba(0,112,235,0.10)_0%,rgba(0,112,235,0)_70%)] blur-3xl"></div>
-	<div class="pointer-events-none absolute bottom-[-8rem] right-[-6rem] h-[20rem] w-[20rem] rounded-full bg-[rgba(0,88,188,0.06)] blur-3xl"></div>
+<section class="relative min-h-dvh overflow-hidden bg-surface px-4 pb-16 pt-4 sm:px-6 lg:px-8">
+	<!-- Decorative background blurs matching reference -->
+	<div class="pointer-events-none fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] z-[-1]"></div>
+	<div class="pointer-events-none fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-primary/5 blur-[100px] z-[-1]"></div>
 
-	<div class="relative mx-auto flex min-h-dvh w-full max-w-[118rem] flex-col">
+	<div class="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col">
+		<!-- Glass header matching module-selector reference -->
 		<header
 			data-testid="home-topbar"
-			class="flex flex-wrap items-center justify-between gap-4 rounded-[1.9rem] border border-white/80 bg-white/86 px-5 py-4 shadow-[0_20px_70px_-42px_rgba(18,37,68,0.38)] backdrop-blur-xl"
+			class="glass-header flex items-center justify-between rounded-2xl border-b border-slate-100 px-6 py-4 shadow-sm"
 		>
-			<div class="flex items-center gap-3 sm:gap-5">
+			<div class="flex items-center gap-4">
 				<button
 					type="button"
 					disabled
-					class="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-low)] text-slate-500 opacity-80"
+					class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low text-slate-500"
 					aria-label="Back"
 				>
 					<ArrowLeft class="size-5" />
 				</button>
-				<div class="space-y-1">
-					<p class="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-						Operations home
-					</p>
-					<h1
-						data-testid="home-title"
-						class="text-[1.45rem] font-semibold tracking-[-0.03em] text-slate-950 sm:text-[1.7rem]"
-					>
-						Stage &amp; Load Module
-					</h1>
-				</div>
+				<h1
+					data-testid="home-title"
+					class="text-xl font-bold text-slate-900 tracking-tight"
+				>
+					Stage &amp; Load Module
+				</h1>
 			</div>
 
-			<div class="flex flex-wrap items-center justify-end gap-3 text-sm text-slate-600">
-				<div class="hidden items-center gap-2 rounded-full bg-[var(--surface-low)] px-4 py-2.5 sm:flex">
-					<CalendarDays class="size-4 text-[#0058bc]" />
-					<span class="font-medium">{homeDateLabel}</span>
+			<div class="flex items-center gap-4">
+				<div
+					data-testid="home-active-target"
+					class="hidden sm:flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2"
+				>
+					<MapPin class="size-4 text-primary" />
+					<span class="text-sm font-semibold text-slate-900">
+						{data.activeTarget ?? 'Target required'}
+					</span>
 				</div>
-				<div class="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] text-sm font-semibold text-white shadow-[0_18px_40px_-22px_rgba(0,88,188,0.72)]">
-					{getUserInitials(page.data?.displayName, page.data?.userEmail)}
+				<div class="hidden md:flex items-center gap-2 text-slate-500 font-medium">
+					<CalendarDays class="size-4" />
+					<span class="text-sm">{homeDateLabel}</span>
+				</div>
+				{#if data.isAdmin}
+					<a
+						href={resolve('/location')}
+						class="hidden sm:inline-flex h-10 items-center justify-center rounded-full bg-surface-container-low px-4 text-sm font-semibold text-slate-700 transition hover:bg-surface-container"
+					>
+						Change target
+					</a>
+				{/if}
+				<div class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md">
+					{getUserInitials(data.displayName, data.userEmail)}
 				</div>
 			</div>
 		</header>
 
-		<div class="flex flex-1 items-center justify-center py-12 sm:py-16">
+		<!-- Centered card grid matching module-selector reference -->
+		<div class="flex flex-1 items-center justify-center py-12">
 			<div
 				data-testid="home-card-grid"
-				class="grid w-full max-w-6xl gap-6 md:grid-cols-2 xl:gap-7"
+				class="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
 			>
 				{#each actions as action (action.name)}
 					{@const Icon = action.icon}
-					<button
-						data-testid={action.testId}
-						type="button"
-						disabled={action.disabled}
-						aria-disabled={action.disabled ? 'true' : undefined}
-						class={[
-							'group relative flex min-h-[12.75rem] items-center justify-between gap-6 overflow-hidden rounded-[2rem] px-7 py-7 text-left transition duration-300',
-							action.variant === 'utility'
-								? 'border-2 border-dashed border-[#98bcf0] bg-[rgba(0,88,188,0.08)] shadow-[0_24px_65px_-50px_rgba(0,88,188,0.42)] hover:border-[#78a7e6] hover:bg-[rgba(0,88,188,0.12)]'
-								: action.disabled
-									? 'border border-white/90 bg-white/82 text-slate-700 opacity-85 shadow-[0_26px_80px_-52px_rgba(16,35,62,0.24)]'
-									: 'border border-white/90 bg-white/94 text-slate-900 shadow-[0_30px_85px_-54px_rgba(16,35,62,0.26)] hover:-translate-y-0.5 hover:shadow-[0_34px_90px_-50px_rgba(16,35,62,0.30)]'
-						]}
-					>
-						<div class="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.22),rgba(255,255,255,0))]"></div>
-						<div class="relative flex items-center gap-6">
-							<div
-								class={[
-									'flex h-16 w-16 items-center justify-center rounded-[1.35rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]',
-									action.variant === 'utility'
-										? 'bg-[linear-gradient(135deg,#0058bc_0%,#0a74eb_100%)] text-white'
-										: 'bg-[rgba(0,88,188,0.06)] text-[#0058bc]'
-								]}
-							>
-								<Icon class="size-7" />
-							</div>
-							<div class="space-y-2">
-								<h2
-									class={[
-										'text-[1.95rem] font-semibold tracking-[-0.05em]',
-										action.variant === 'utility' ? 'text-[#0058bc]' : 'text-current'
-									]}
-								>
-									{action.name}
-								</h2>
-								<p
-									class={[
-										'text-base leading-7',
-										action.variant === 'utility'
-											? 'text-[#5087cf]'
-											: action.disabled
-												? 'text-slate-500'
-												: 'text-slate-600'
-									]}
-								>
-									{action.detail}
-								</p>
-							</div>
-						</div>
+					{@const isUtility = action.variant === 'utility'}
+					{@const isDisabled = action.disabled}
 
-						<div class="relative flex items-center justify-center">
-							{#if action.variant === 'utility'}
-								<Plus class="size-8 text-[#7ca8e7]" />
-							{:else}
-								<ChevronRight class="size-8 text-slate-300" />
-							{/if}
-						</div>
-					</button>
+					{#if isDisabled}
+						<button
+							data-testid={action.testId}
+							type="button"
+							disabled
+							aria-disabled="true"
+							class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 opacity-85 cursor-not-allowed"
+						>
+							<div class="flex items-center gap-6">
+								<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+									<Icon class="size-7" />
+								</div>
+								<div class="text-left">
+									<span class="block text-2xl font-bold tracking-tight text-on-surface">{action.name}</span>
+									<span class="text-on-surface-variant text-sm font-medium">{action.detail}</span>
+								</div>
+							</div>
+							<ChevronRight class="size-6 text-slate-300" />
+						</button>
+					{:else if isUtility}
+						<a
+							data-testid={action.testId}
+							href={resolve(action.href as HomeActionHref)}
+							class="group w-full bg-primary/5 border-2 border-dashed border-primary/20 p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-primary/10 hover:border-primary/40 active:scale-95"
+						>
+							<div class="flex items-center gap-6">
+								<div class="w-16 h-16 rounded-2xl industrial-gradient flex items-center justify-center text-white">
+									<Icon class="size-7" />
+								</div>
+								<div class="text-left">
+									<span class="block text-2xl font-bold tracking-tight text-primary">{action.name}</span>
+									<span class="text-primary/60 text-sm font-medium">{action.detail}</span>
+								</div>
+							</div>
+							<Plus class="size-6 text-primary/40" />
+						</a>
+					{:else}
+						<a
+							data-testid={action.testId}
+							href={resolve(action.href as HomeActionHref)}
+							class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 active:scale-95"
+						>
+							<div class="flex items-center gap-6">
+								<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+									<Icon class="size-7" />
+								</div>
+								<div class="text-left">
+									<span class="block text-2xl font-bold tracking-tight text-on-surface">{action.name}</span>
+									<span class="text-on-surface-variant text-sm font-medium">{action.detail}</span>
+								</div>
+							</div>
+							<ChevronRight class="size-6 text-slate-300 group-hover:text-primary transition-colors" />
+						</a>
+					{/if}
 				{/each}
 			</div>
 		</div>

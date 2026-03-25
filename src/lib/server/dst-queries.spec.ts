@@ -51,6 +51,24 @@ describe('dst query helpers', () => {
 		expect(getFetchCall()[0]).toBe('/api/barcode-get/get-loaders');
 	});
 
+	it('inserts a loader through the legacy insert-loader endpoint with the canonical body', async () => {
+		fetchDst.mockResolvedValue(jsonResponse({}));
+
+		const { insertDstLoader } = await import('./dst-queries');
+
+		await expect(insertDstLoader('Loader One')).resolves.toBeUndefined();
+
+		const [path, init] = getFetchCall();
+		const headers = new Headers(init?.headers);
+
+		expect(path).toBe('/api/barcode-update/insert-loader');
+		expect(init?.method).toBe('POST');
+		expect(headers.get('Content-Type')).toBe('application/json');
+		expect(JSON.parse(String(init?.body))).toEqual({
+			Loader: 'Loader One'
+		});
+	});
+
 	it('loads dropsheets with the legacy query parameter and stable camelCase output', async () => {
 		fetchDst.mockResolvedValue(
 			jsonResponse([

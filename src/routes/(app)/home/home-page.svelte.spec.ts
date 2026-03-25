@@ -3,9 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import HomePage from './+page.svelte';
 
+const baseData = {
+	activeTarget: 'Canton' as const,
+	displayName: 'Loader One',
+	isAdmin: false,
+	userEmail: 'loader@dakotasteelandtrim.com',
+	userRole: 'loading' as const
+};
+
 describe('home module selector', () => {
 	it('renders the screenshot-style home chrome and two-column module surface', async () => {
-		render(HomePage);
+		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByTestId('home-topbar')).toBeInTheDocument();
 		await expect.element(page.getByTestId('home-title')).toHaveTextContent('Stage & Load Module');
@@ -17,7 +25,7 @@ describe('home module selector', () => {
 	});
 
 	it('keeps the Add Loader utility treatment and the disabled Will Call state', async () => {
-		render(HomePage);
+		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByTestId('home-card-add-loader')).toHaveClass(/border-dashed/);
 		await expect.element(page.getByTestId('home-card-will-call')).toHaveAttribute(
@@ -26,9 +34,48 @@ describe('home module selector', () => {
 		);
 	});
 
-	it('renders the back affordance as non-interactive until navigation is wired', async () => {
-		render(HomePage);
+	it('shows the resolved target and workflow destinations on the home surface', async () => {
+		render(HomePage, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Freeport'
+			}
+		});
+
+		await expect.element(page.getByTestId('home-active-target')).toHaveTextContent('Freeport');
+		await expect.element(page.getByTestId('home-card-staging')).toHaveAttribute('href', '/staging');
+		await expect.element(page.getByTestId('home-card-loading')).toHaveAttribute(
+			'href',
+			'/dropsheets'
+		);
+		await expect.element(page.getByTestId('home-card-add-loader')).toHaveAttribute(
+			'href',
+			'/loaders'
+		);
+	});
+
+	it('shows admins a direct path back to the target selector', async () => {
+		render(HomePage, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Sandbox',
+				isAdmin: true,
+				userRole: 'admin'
+			}
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Change target' })).toHaveAttribute(
+			'href',
+			'/location'
+		);
+	});
+
+	it('keeps the back affordance disabled for now and hides the target link for operators', async () => {
+		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+		await expect.element(page.getByRole('link', { name: 'Change target' })).not.toBeInTheDocument();
 	});
 });

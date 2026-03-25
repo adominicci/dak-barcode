@@ -34,6 +34,7 @@ import { fetchDst } from './proxy';
 
 const DST_ROUTES = {
 	loaders: '/api/barcode-get/get-loaders',
+	insertLoader: '/api/barcode-update/insert-loader',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
 	dropArea: '/api/barcode-get/get-droparea',
@@ -55,6 +56,7 @@ export const dropSheetDateSchema = v.pipe(
 export const dropSheetIdSchema = v.number();
 export const dropAreaIdSchema = v.number();
 export const departmentSchema = v.picklist(OPERATIONAL_DEPARTMENTS);
+export const loaderNameSchema = v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name'));
 export const orderSoNumberSchema = v.nullish(
 	v.pipe(v.string(), v.nonEmpty('Expected a non-empty SO number'))
 );
@@ -193,6 +195,15 @@ export async function getDstLoaders(): Promise<Loader[]> {
 	const body = await readDstJson(DST_ROUTES.loaders);
 
 	return expectListResponse<RawDstLoader>(body, DST_ROUTES.loaders).map(mapDstLoader);
+}
+
+export async function insertDstLoader(loaderName: string): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.insertLoader,
+		jsonInit({
+			Loader: loaderName
+		})
+	);
 }
 
 export async function getDstDropsheets(dropSheetDate: string): Promise<DropSheet[]> {
