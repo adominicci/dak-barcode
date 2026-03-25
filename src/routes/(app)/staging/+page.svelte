@@ -1,9 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { ScanBarcode, ChevronDown, MapPin } from '@lucide/svelte';
+	import { onMount, tick } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { ScanBarcode, ChevronDown, MapPin, TriangleAlert } from '@lucide/svelte';
 	import DepartmentSelectionModal from '$lib/components/workflow/department-selection-modal.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import StagingListPanel from '$lib/components/workflow/staging-list-panel.svelte';
+	import { processStagingScan } from '$lib/scan.remote';
+	import { createStagingScanController } from '$lib/workflow/staging-scan-controller';
 	import { createStagingListController } from '$lib/workflow/staging-list-controller.svelte';
 	import {
 		workflowStores,
@@ -16,14 +19,28 @@
 	let isDepartmentGateOpen = $state(true);
 	let isLocationModalOpen = $state(false);
 	let stagingListController = $state<ReturnType<typeof createStagingListController> | null>(null);
+	let stagingScanController = $state<ReturnType<typeof createStagingScanController> | null>(null);
+	let scanInputValue = $state('');
+	let scanError = $state<string | null>(null);
+	let scanInputElement = $state<HTMLInputElement | null>(null);
 
 	onMount(() => {
 		workflowStores.prepareForStagingEntry();
 		stagingListController = createStagingListController();
+		stagingScanController = createStagingScanController({
+			processScan: processStagingScan,
+			refreshActiveList: async () => {
+				await stagingListController?.refreshActiveList();
+			}
+		});
 
 		const unsubscribeDepartment = workflowStores.selectedDepartment.subscribe((department) => {
 			selectedDepartment = department;
 			isDepartmentGateOpen = department === null;
+			if (department) {
+				scanError = null;
+				void focusScanInput();
+			}
 		});
 		const unsubscribeDropArea = workflowStores.currentDropArea.subscribe((dropArea) => {
 			currentDropArea = dropArea;
@@ -34,8 +51,81 @@
 			unsubscribeDropArea();
 			stagingListController?.destroy();
 			stagingListController = null;
+			stagingScanController = null;
 		};
 	});
+
+	async function focusScanInput() {
+		if (isDepartmentGateOpen) {
+			return;
+		}
+
+		await tick();
+		scanInputElement?.focus();
+	}
+
+	function clearScanInput() {
+		scanInputValue = '';
+		workflowStores.clearScannedText();
+	}
+
+	async function applyScanAction(
+		action: ReturnType<NonNullable<typeof stagingScanController>['submitScan']> extends Promise<infer T>
+			? T
+			: never
+	) {
+		scanError = action.kind === 'error' ? action.message : null;
+
+		if (action.kind === 'location-updated') {
+			workflowStores.setCurrentDropArea(action.dropArea);
+		}
+
+		if (action.clearCurrentDropArea) {
+			workflowStores.clearCurrentDropArea();
+		}
+
+		if (action.showSuccessToast) {
+			toast.success(action.message);
+		}
+
+		isLocationModalOpen = action.openLocationModal;
+
+		if (!action.openLocationModal) {
+			await focusScanInput();
+		}
+	}
+
+	async function submitScan(rawValue: string) {
+		if (!selectedDepartment || !stagingScanController) {
+			return;
+		}
+
+		const scannedText = rawValue.trim();
+		clearScanInput();
+
+		if (scannedText.length === 0) {
+			scanError = null;
+			await focusScanInput();
+			return;
+		}
+
+		workflowStores.setScannedText(scannedText);
+		const action = await stagingScanController.submitScan({
+			scannedText,
+			department: selectedDepartment,
+			dropAreaId: currentDropArea?.dropAreaId ?? null
+		});
+		await applyScanAction(action);
+	}
+
+	async function handleScanKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter') {
+			return;
+		}
+
+		event.preventDefault();
+		await submitScan(scanInputValue);
+	}
 
 	function handleDepartmentSelect(department: NonNullable<WorkflowDepartment>) {
 		if (selectedDepartment !== department) {
@@ -45,11 +135,33 @@
 		workflowStores.setSelectedDepartment(department);
 		isDepartmentGateOpen = false;
 		isLocationModalOpen = false;
+		scanError = null;
+		void focusScanInput();
 	}
 
-	function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
+	async function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
 		workflowStores.setCurrentDropArea(dropArea);
 		isLocationModalOpen = false;
+		scanError = null;
+
+		if (selectedDepartment && stagingScanController?.hasPendingScan()) {
+			const action = await stagingScanController.retryPendingScan({
+				department: selectedDepartment,
+				dropAreaId: dropArea.dropAreaId
+			});
+			if (action) {
+				await applyScanAction(action);
+				return;
+			}
+		}
+
+		await focusScanInput();
+	}
+
+	async function handleLocationModalClose() {
+		stagingScanController?.cancelPendingScan();
+		isLocationModalOpen = false;
+		await focusScanInput();
 	}
 </script>
 
@@ -64,11 +176,23 @@
 					id="scan-input"
 					data-testid="staging-scan-input"
 					type="text"
+					bind:value={scanInputValue}
+					bind:this={scanInputElement}
 					placeholder="Scan or type item barcode..."
 					disabled={isDepartmentGateOpen}
+					onkeydown={handleScanKeydown}
 					class="w-full h-16 pl-14 pr-6 bg-surface-container-highest border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-lg placeholder:text-on-surface-variant/50"
 				/>
 			</div>
+			{#if scanError}
+				<div
+					data-testid="staging-scan-error"
+					class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+				>
+					<TriangleAlert class="mt-0.5 size-4 shrink-0" />
+					<p>{scanError}</p>
+				</div>
+			{/if}
 		</div>
 		<div class="lg:col-span-3 space-y-2">
 			<p class="ui-label text-xs px-1">Department</p>
@@ -77,6 +201,8 @@
 				type="button"
 				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors"
 				onclick={() => {
+					stagingScanController?.cancelPendingScan();
+					scanError = null;
 					isLocationModalOpen = false;
 					isDepartmentGateOpen = true;
 				}}
@@ -115,7 +241,7 @@
 {#if isLocationModalOpen && selectedDepartment}
 	<StagingLocationModal
 		department={selectedDepartment}
-		onClose={() => (isLocationModalOpen = false)}
+		onClose={handleLocationModalClose}
 		onSelect={handleLocationSelect}
 	/>
 {/if}

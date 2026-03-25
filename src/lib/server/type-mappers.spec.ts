@@ -321,17 +321,26 @@ describe('shared operational and scan contracts', () => {
 		expectTypeOf<StagingScanRequest>().toMatchTypeOf<{
 			scannedText: string;
 			department: OperationalDepartment;
-			dropAreaId: number;
+			dropAreaId?: number | null;
 		}>();
 		expectTypeOf<LoadingScanRequest>().toMatchTypeOf<{
 			scannedText: string;
 			department: OperationalDepartment;
-			dropAreaId: number;
+			dropAreaId?: number | null;
 			loadNumber: string;
 			loaderName: string;
 		}>();
 		expectTypeOf<DepartmentStatus['scope']>().toEqualTypeOf<'drop' | 'dropsheet'>();
-		expectTypeOf<ScanResult>().toMatchTypeOf<{ outcome: string; message: string }>();
+		expectTypeOf<ScanResult>().toMatchTypeOf<{
+			scanType: 'location' | 'pallet' | 'single_label' | null;
+			status: string;
+			message: string;
+			needsLocation: boolean;
+			dropArea: {
+				id: number;
+				label: string;
+			} | null;
+		}>();
 		expectTypeOf<StagingListItem>().toMatchTypeOf<{
 			lpidDetail: number;
 			partListId: string;
