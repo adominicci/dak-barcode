@@ -38,17 +38,12 @@
 		class="w-full max-w-3xl rounded-[2rem] bg-white/96 p-6 shadow-[0_36px_120px_-48px_rgba(15,23,42,0.45)] ring-1 ring-white/80"
 	>
 		<div class="rounded-[1.75rem] bg-surface-container-low p-6 sm:p-8">
-			<p class="ui-label">Staging entry</p>
 			<h2
 				id="staging-department-gate-title"
-				class="mt-3 font-serif text-3xl tracking-[-0.03em] text-slate-950 sm:text-4xl"
+				class="text-3xl font-sans font-bold tracking-tight text-slate-950 sm:text-4xl"
 			>
-				Choose the staging department before scanning.
+				Select department
 			</h2>
-			<p class="mt-3 max-w-2xl text-sm leading-6 text-on-surface-variant sm:text-base">
-				Staging starts with a clean session every time. Pick the department now so the page can
-				lock into the right workflow without introducing a loader step.
-			</p>
 
 			<div class="mt-8 grid gap-4">
 				{#each departmentOptions as option (option.value)}
