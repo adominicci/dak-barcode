@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
+import type { DropArea } from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
 type StagingQueryState = {
@@ -19,14 +20,29 @@ type StagingQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
-const { getStagingPartsForDay, getStagingPartsForDayRoll } = vi.hoisted(() => ({
+type DropAreaListQueryState = {
+	current: DropArea[] | null;
+	loading: boolean;
+	error: Error | null;
+	refresh: ReturnType<typeof vi.fn>;
+};
+
+const { getStagingPartsForDay, getStagingPartsForDayRoll, getDropAreasByDepartment, getDropArea } =
+	vi.hoisted(() => ({
 	getStagingPartsForDay: vi.fn<() => StagingQueryState>(),
-	getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>()
-}));
+	getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>(),
+	getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => DropAreaListQueryState>(),
+	getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>()
+	}));
 
 vi.mock('$lib/staging.remote', () => ({
 	getStagingPartsForDay,
 	getStagingPartsForDayRoll
+}));
+
+vi.mock('$lib/drop-areas.remote', () => ({
+	getDropAreasByDepartment,
+	getDropArea
 }));
 
 import StagingPage from './+page.svelte';
@@ -44,12 +60,27 @@ function createStagingQuery(
 	};
 }
 
+function createDropAreaListQuery(
+	current: NonNullable<DropAreaListQueryState['current']>,
+	overrides: Partial<DropAreaListQueryState> = {}
+): DropAreaListQueryState {
+	return {
+		current,
+		loading: false,
+		error: null,
+		refresh: vi.fn(),
+		...overrides
+	};
+}
+
 describe('staging page department gate', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
 		getStagingPartsForDay.mockReset();
 		getStagingPartsForDayRoll.mockReset();
+		getDropAreasByDepartment.mockReset();
+		getDropArea.mockReset();
 		getStagingPartsForDay.mockReturnValue(
 			createStagingQuery([
 				{
@@ -84,6 +115,59 @@ describe('staging page department gate', () => {
 					lpid: 202
 				}
 			])
+		);
+		getDropAreasByDepartment.mockImplementation((department) =>
+			createDropAreaListQuery(
+				department === 'Roll'
+					? [
+							{
+								id: 51,
+								name: 'R12',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'R'
+							}
+						]
+					: [
+							{
+								id: 41,
+								name: 'W12',
+								supportsWrap: true,
+								supportsParts: false,
+								supportsRoll: false,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'W'
+							},
+							{
+								id: 42,
+								name: 'W13',
+								supportsWrap: true,
+								supportsParts: true,
+								supportsRoll: false,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'W'
+							}
+						]
+			)
+		);
+		getDropArea.mockImplementation(async (dropAreaId) =>
+			dropAreaId === 42
+				? {
+						id: 42,
+						name: 'W13',
+						supportsWrap: true,
+						supportsParts: true,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'W'
+					}
+				: null
 		);
 	});
 
@@ -205,5 +289,64 @@ describe('staging page department gate', () => {
 		await page.getByTestId('staging-department-trigger').click();
 		await page.getByTestId('staging-department-gate').getByRole('button', { name: 'Roll' }).click();
 		await expect.element(page.getByText('Roll staging is unavailable.')).toBeInTheDocument();
+	});
+
+	it('opens the location modal for the selected department and loads matching drop areas', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
+		await expect.element(page.getByRole('heading', { name: 'Select location' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /W12/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
+	});
+
+	it('stores the selected drop area and closes the modal after a card selection', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByRole('button', { name: /W13/i }).click();
+
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 42,
+			dropAreaLabel: 'W13'
+		});
+	});
+
+	it('accepts numeric lookup input in the location modal and updates the current location', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByLabelText('Scan new location').fill('42');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(42);
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 42,
+			dropAreaLabel: 'W13'
+		});
+	});
+
+	it('keeps the location modal open and shows an error when numeric lookup is invalid', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByLabelText('Scan new location').fill('999');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(999);
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
+		expect(get(workflowStores.currentDropArea)).toBeNull();
 	});
 });
