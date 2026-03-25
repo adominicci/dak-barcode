@@ -13,6 +13,10 @@ function isDateValue(value: string | null | undefined): value is string {
 	return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-export const load: PageServerLoad = async ({ url }) => ({
-	selectedDate: isDateValue(url.searchParams.get('date')) ? url.searchParams.get('date') : getTodayDateValue()
-});
+export const load: PageServerLoad = async ({ url }) => {
+	const dateParam = url.searchParams.get('date');
+
+	return {
+		selectedDate: isDateValue(dateParam) ? dateParam : getTodayDateValue()
+	};
+};

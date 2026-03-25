@@ -158,6 +158,6 @@ describe('select-category page', () => {
 			loaderId: 7,
 			loaderName: 'Alex'
 		});
-		expect(goto).toHaveBeenCalledWith('/loading?dropsheetId=42&locationId=2&loaderId=88');
+		expect(goto).toHaveBeenCalledWith('/loading?dropsheetId=42&locationId=2&loaderSessionId=88');
 	});
 });

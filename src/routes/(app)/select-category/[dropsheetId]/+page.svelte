@@ -109,7 +109,7 @@
 
 			await goto(
 				resolve(
-					`/loading?dropsheetId=${data.dropSheetId}&locationId=${locationId}&loaderId=${session.id ?? selectedLoader.id}`
+					`/loading?dropsheetId=${data.dropSheetId}&locationId=${locationId}&loaderSessionId=${session.id}`
 				)
 			);
 		} catch (error) {

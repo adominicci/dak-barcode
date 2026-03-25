@@ -5,7 +5,7 @@
 	const loadingContext = $derived({
 		dropsheetId: page.url.searchParams.get('dropsheetId'),
 		locationId: page.url.searchParams.get('locationId'),
-		loaderId: page.url.searchParams.get('loaderId')
+		loaderSessionId: page.url.searchParams.get('loaderSessionId')
 	});
 </script>
 
@@ -47,7 +47,7 @@
 			<div class="bg-white rounded-2xl p-6 shadow-sm">
 				<p class="ui-label text-xs">Loader session</p>
 				<p class="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-					{loadingContext.loaderId ?? '---'}
+					{loadingContext.loaderSessionId ?? '---'}
 				</p>
 			</div>
 		</div>

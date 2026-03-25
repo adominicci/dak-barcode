@@ -20,19 +20,10 @@
 		year: 'numeric'
 	});
 
-	function getTodayDateValue() {
-		const now = new Date();
-		const year = now.getFullYear();
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const day = String(now.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
-	}
-
 	let { data }: PageProps = $props();
-	let selectedDate = $derived(data.selectedDate ?? getTodayDateValue());
+	let selectedDate = $derived(data.selectedDate);
 	let dropsheetsQuery = $derived(getDropsheets(selectedDate));
 	let dropsheets = $derived(dropsheetsQuery.current ?? []);
-	let dropsheetDateForm = $state<HTMLFormElement | null>(null);
 
 	function formatLoadedAt(timestamp: string | null) {
 		if (!timestamp) return 'Not started';
@@ -47,7 +38,6 @@
 <!-- Date picker (moved from layout) -->
 <div class="flex items-center justify-between gap-4 mb-8">
 	<form
-		bind:this={dropsheetDateForm}
 		method="GET"
 		action={resolve('/dropsheets')}
 		class="flex items-center gap-3 rounded-full bg-surface-container-low px-4 py-2.5"
@@ -59,7 +49,7 @@
 			aria-label="Load date"
 			type="date"
 			value={selectedDate}
-			onchange={() => dropsheetDateForm?.requestSubmit()}
+			onchange={(event) => (event.currentTarget as HTMLInputElement).form?.requestSubmit()}
 			class="bg-transparent text-sm font-semibold text-slate-900 outline-none"
 		/>
 	</form>

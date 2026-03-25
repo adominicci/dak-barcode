@@ -9,6 +9,7 @@
 	let { data }: PageProps = $props();
 	let loaderName = $state('');
 	let statusMessage = $state<string | null>(null);
+	let statusTone = $state<'success' | 'error' | null>(null);
 	let isSubmitting = $state(false);
 
 	const loadersQuery = getLoaders();
@@ -20,19 +21,23 @@
 		const trimmed = loaderName.trim();
 
 		if (!trimmed) {
+			statusTone = 'error';
 			statusMessage = 'Enter a loader name before inserting it.';
 			return;
 		}
 
 		statusMessage = null;
+		statusTone = null;
 		isSubmitting = true;
 
 		try {
 			await createLoader(trimmed);
 			await loadersQuery.refresh();
 			loaderName = '';
+			statusTone = 'success';
 			statusMessage = `${trimmed} is now active and selectable.`;
 		} catch (error) {
+			statusTone = 'error';
 			statusMessage = error instanceof Error ? error.message : 'Unable to insert loader.';
 		} finally {
 			isSubmitting = false;
@@ -125,7 +130,11 @@
 				</div>
 
 				{#if statusMessage}
-					<div class="rounded-2xl bg-primary/5 px-4 py-4 text-sm text-slate-700">
+					<div
+						class={`rounded-2xl px-4 py-4 text-sm ${
+							statusTone === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-primary/5 text-slate-700'
+						}`}
+					>
 						{statusMessage}
 					</div>
 				{/if}

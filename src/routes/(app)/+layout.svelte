@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ArrowLeft, MapPin } from '@lucide/svelte';
+	import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { workflowStores } from '$lib/workflow/stores';
 	import type { LayoutProps } from './$types';
 
@@ -67,6 +68,17 @@
 					>
 						{getUserInitials(data.displayName, data.userEmail)}
 					</a>
+					<form method="POST" action="/logout">
+						<Button
+							type="submit"
+							variant="outline"
+							size="sm"
+							class="h-10 rounded-full border-transparent bg-[rgba(139,36,54,0.08)] px-4 text-sm font-semibold text-[#8b2436] hover:bg-[rgba(139,36,54,0.14)]"
+						>
+							<LogOut class="size-4" />
+							Sign out
+						</Button>
+					</form>
 				</div>
 			</div>
 		</header>
