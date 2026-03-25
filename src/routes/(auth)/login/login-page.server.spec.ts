@@ -257,4 +257,31 @@ describe('login actions', () => {
 		});
 		expect(resolveAuthContext).not.toHaveBeenCalled();
 	});
+
+	it('reconstructs the fixed-domain email from the submitted username when the hidden email is blank', async () => {
+		const signInWithPassword = vi.fn(async () => ({ data: {}, error: null }));
+		createSupabaseServerClient.mockReturnValue({
+			auth: { signInWithPassword }
+		});
+		resolveAuthContext.mockResolvedValue(createAuthContext());
+
+		const event = createRequestEvent(
+			new URLSearchParams({
+				email: '',
+				username: 'andresd',
+				password: '123456'
+			})
+		);
+		const { actions } = await import('./+page.server');
+
+		await expect(actions.default(event as never)).rejects.toMatchObject({
+			status: 303,
+			location: '/home'
+		});
+
+		expect(signInWithPassword).toHaveBeenCalledWith({
+			email: 'andresd@dakotasteelandtrim.com',
+			password: '123456'
+		});
+	});
 });

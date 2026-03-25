@@ -38,6 +38,7 @@
 			id={id}
 			class="h-full flex-1 border-0 bg-transparent px-4 text-[0.98rem] shadow-none focus-visible:ring-0"
 			type="text"
+			name="username"
 			autocomplete="username"
 			{placeholder}
 			value={normalizedUsername}
