@@ -27,7 +27,7 @@
 	<div class="flex items-center gap-3 mb-8 text-on-surface-variant/60">
 		<div class="size-2.5 rounded-full bg-primary/60"></div>
 		<span class="text-lg font-medium">
-			{department ? `${department} staging view` : 'No Location'}
+			{department ? `${department} staging view` : 'No department selected'}
 		</span>
 	</div>
 

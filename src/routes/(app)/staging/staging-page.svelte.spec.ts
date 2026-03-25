@@ -94,6 +94,8 @@ describe('staging page department gate', () => {
 		await expect
 			.element(page.getByRole('heading', { name: 'Select department' }))
 			.toBeInTheDocument();
+		await expect.element(page.getByText('No department selected')).toBeInTheDocument();
+		await expect.element(page.getByText('No Location')).not.toBeInTheDocument();
 		await expect.element(page.getByRole('heading', { name: 'Select department' })).not.toHaveClass(
 			/font-serif/
 		);
