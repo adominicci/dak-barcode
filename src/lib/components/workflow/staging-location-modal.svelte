@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { LoaderCircle, MapPin, ScanSearch, TriangleAlert, X } from '@lucide/svelte';
+	import { LoaderCircle, MapPin, TriangleAlert, X } from '@lucide/svelte';
 	import { getDropArea, getDropAreasByDepartment } from '$lib/drop-areas.remote';
 	import type { DropArea } from '$lib/types';
 	import type {
@@ -74,25 +74,11 @@
 		data-testid="staging-location-modal"
 		role="dialog"
 		aria-modal="true"
-		aria-labelledby="staging-location-modal-title"
-		class="max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		aria-label="Staging location selector"
+		class="max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
 	>
 		<div class="flex max-h-full flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
-			<div class="flex items-start justify-between gap-4">
-				<div class="space-y-3">
-					<p class="ui-label">Staging location</p>
-					<h2
-						id="staging-location-modal-title"
-						class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl"
-					>
-						Select location
-					</h2>
-					<p class="max-w-2xl text-sm leading-7 text-on-surface-variant">
-						Choose a valid {department} drop area or scan the numeric location to keep staging
-						moving without leaving the page.
-					</p>
-				</div>
-
+			<div class="flex justify-end">
 				<button
 					type="button"
 					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900"
@@ -103,46 +89,38 @@
 				</button>
 			</div>
 
-			<div class="mt-6 grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+			<div class="mt-4 flex min-h-0 flex-1 flex-col gap-5">
 				<form
-					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)] xl:self-start"
+					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]"
 					onsubmit={handleLookupSubmit}
 				>
-					<div class="flex items-center gap-3">
-						<div class="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-primary/8 text-primary">
-							<ScanSearch class="size-5" />
+					<div class="flex flex-col gap-4 lg:flex-row lg:items-end">
+						<div class="flex-1 space-y-2.5">
+							<label class="ui-label px-1 text-xs" for="staging-location-lookup">Scan new location</label>
+							<input
+								id="staging-location-lookup"
+								bind:value={lookupValue}
+								bind:this={lookupInput}
+								inputmode="numeric"
+								placeholder="Enter location ID"
+								class="h-16 w-full rounded-2xl border-none bg-surface-container-highest px-5 text-lg text-slate-950 outline-none ring-0 transition placeholder:text-on-surface-variant/55 focus:bg-white focus:ring-2 focus:ring-primary"
+							/>
 						</div>
-						<div>
-							<p class="ui-label text-xs">Scanner lookup</p>
-							<p class="text-lg font-semibold tracking-tight text-slate-950">Resolve by number</p>
-						</div>
-					</div>
 
-					<div class="mt-5 space-y-2.5">
-						<label class="ui-label text-xs px-1" for="staging-location-lookup">Scan new location</label>
-						<input
-							id="staging-location-lookup"
-							bind:value={lookupValue}
-							bind:this={lookupInput}
-							inputmode="numeric"
-							placeholder="Enter location ID"
-							class="h-16 w-full rounded-2xl border-none bg-surface-container-highest px-5 text-lg text-slate-950 outline-none ring-0 transition placeholder:text-on-surface-variant/55 focus:bg-white focus:ring-2 focus:ring-primary"
-						/>
+						<button
+							type="submit"
+							disabled={isResolvingLookup}
+							class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border-0 bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-6 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto lg:min-w-44"
+						>
+							{#if isResolvingLookup}
+								<LoaderCircle class="size-4 animate-spin" />
+								Checking location...
+							{:else}
+								<MapPin class="size-4" />
+								Set location
+							{/if}
+						</button>
 					</div>
-
-					<button
-						type="submit"
-						disabled={isResolvingLookup}
-						class="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border-0 bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70"
-					>
-						{#if isResolvingLookup}
-							<LoaderCircle class="size-4 animate-spin" />
-							Checking location...
-						{:else}
-							<MapPin class="size-4" />
-							Set location
-						{/if}
-					</button>
 
 					{#if lookupError}
 						<div class="mt-4 flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
@@ -152,19 +130,7 @@
 					{/if}
 				</form>
 
-				<div class="flex min-h-0 flex-col rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
-					<div class="flex items-center justify-between gap-3">
-						<div>
-							<p class="ui-label text-xs">Available drop areas</p>
-							<p class="text-lg font-semibold tracking-tight text-slate-950">
-								{department} locations
-							</p>
-						</div>
-						<span class="ui-pill px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
-							{department}
-						</span>
-					</div>
-
+				<div class="flex min-h-0 flex-1 flex-col rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
 					<div
 						data-testid="staging-location-list-scroll-region"
 						class="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
@@ -185,7 +151,10 @@
 								<p class="text-sm font-medium">No locations are available for this department yet.</p>
 							</div>
 						{:else}
-							<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							<div
+								data-testid="staging-location-modal-grid"
+								class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+							>
 								{#each dropAreasQuery.current as dropArea (dropArea.id)}
 									<button
 										type="button"
@@ -202,9 +171,6 @@
 										</div>
 										<p class="mt-4 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
 											{dropArea.name}
-										</p>
-										<p class="mt-1 text-sm text-on-surface-variant">
-											Drop area ID {dropArea.id}
 										</p>
 									</button>
 								{/each}

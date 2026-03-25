@@ -331,21 +331,32 @@ describe('staging page department gate', () => {
 
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
-		await expect.element(page.getByRole('heading', { name: 'Select location' })).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
 	});
 
-	it('renders the location modal as a compact dialog with a scrollable drop-area list', async () => {
+	it('renders the location modal with a simplified scanner strip and a dense scrollable grid', async () => {
 		render(StagingPage);
 
 		await page.getByRole('button', { name: 'Wrap' }).click();
 		await page.getByTestId('staging-location-trigger').click();
 
-		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-4xl/);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-h-\[calc\(100dvh-2rem\)\]/);
+		await expect
+			.element(page.getByTestId('staging-location-modal-grid'))
+			.toHaveClass(/xl:grid-cols-5/);
 		await expect
 			.element(page.getByTestId('staging-location-list-scroll-region'))
 			.toHaveClass(/overflow-y-auto/);
+		await expect
+			.element(page.getByTestId('staging-location-modal'))
+			.not.toHaveTextContent('Resolve by number');
+		await expect
+			.element(page.getByTestId('staging-location-modal'))
+			.not.toHaveTextContent('Drop area ID');
+		await expect.element(page.getByText(/Drop area ID/i)).not.toBeInTheDocument();
+		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 	});
 
 	it('stores the selected drop area and closes the modal after a card selection', async () => {
