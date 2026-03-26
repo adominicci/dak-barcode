@@ -136,11 +136,21 @@ function hasUsableLoaderSession(record: Record<string, unknown>) {
 	);
 }
 
+function isMinimalLoaderSessionResponse(record: Record<string, unknown>) {
+	return (
+		!isFiniteNumber(record.fkDropSheetID) &&
+		!isFiniteNumber(record.fkLoaderID) &&
+		!isNonEmptyString(record.Department) &&
+		!isNonEmptyString(record.loader_name) &&
+		!isNonEmptyString(record.started_at)
+	);
+}
+
 function toMinimalLoaderSessionResponse(
 	body: unknown,
 	input: LoaderSessionUpsertInput
 ): RawDakLoaderSession | null {
-	if (!isRecord(body)) {
+	if (!isRecord(body) || !isMinimalLoaderSessionResponse(body)) {
 		return null;
 	}
 

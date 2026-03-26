@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getDstLoaders } from '$lib/server/dst-queries';
+import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
 import type { PageServerLoad } from './$types';
 
 function parseDropSheetId(value: string): number {
@@ -30,16 +31,6 @@ function parseLoadNumber(
 	return String(dropSheetId);
 }
 
-function parseDropWeight(value: string | null | undefined): number | null {
-	if (!value) {
-		return null;
-	}
-
-	const parsed = Number.parseFloat(value);
-
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
 export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
 	const loaders = (await getDstLoaders()).filter((loader) => loader.isActive);
@@ -48,7 +39,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		url.searchParams.get('deliveryNumber'),
 		dropSheetId
 	);
-	const dropWeight = parseDropWeight(url.searchParams.get('dropWeight'));
+	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
 
 	return {
 		dropSheetId,

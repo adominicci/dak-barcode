@@ -23,7 +23,7 @@ function parsePositiveInteger(value: string | null): number | null {
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function parsePositiveNumber(value: string | null): number | null {
+export function parsePositiveNumber(value: string | null): number | null {
 	if (!value) {
 		return null;
 	}

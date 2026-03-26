@@ -250,6 +250,34 @@ describe('loading page', () => {
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeEnabled();
 	});
 
+	it('hides the empty SO-number placeholder while the label list is still loading', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([], {
+				loading: true
+			})
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('Loading label list...')).toBeInTheDocument();
+		await expect.element(page.getByText('No SO numbers available')).not.toBeInTheDocument();
+	});
+
+	it('shows the need-pick summary only once for the active drop', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		const needPickLabels = Array.from(document.querySelectorAll('*')).filter(
+			(element) => element.textContent?.trim() === 'Need pick'
+		);
+
+		expect(needPickLabels).toHaveLength(1);
+	});
+
 	it('moves between drops, refreshes the selected detail, and clamps navigation at the last drop', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');

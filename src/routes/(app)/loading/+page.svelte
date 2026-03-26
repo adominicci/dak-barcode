@@ -87,6 +87,8 @@
 			: null
 	);
 	const dropLabels = $derived(dropLabelsQuery?.current ?? []);
+	const isLoadingDropLabels = $derived((dropLabelsQuery?.loading ?? false) && dropLabels.length === 0);
+	const showSoNumberSummary = $derived(!dropLabelsQuery?.error && !isLoadingDropLabels);
 	const soNumbers = $derived(
 		Array.from(
 			new Set(
@@ -343,12 +345,6 @@
 										{loaderInfo.id}
 									</p>
 								</div>
-								<div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-									<p class="ui-label text-xs">Need pick</p>
-									<p class="mt-2 text-lg font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.needPickCount}
-									</p>
-								</div>
 							</div>
 						</div>
 					</div>
@@ -466,25 +462,27 @@
 						</div>
 					</div>
 
-					<div class="mt-6 flex flex-wrap gap-2">
-						{#if soNumbers.length > 0}
-							{#each soNumbers as orderSoNumber (orderSoNumber)}
-								<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-700">
-									{orderSoNumber}
+					{#if showSoNumberSummary}
+						<div class="mt-6 flex flex-wrap gap-2">
+							{#if soNumbers.length > 0}
+								{#each soNumbers as orderSoNumber (orderSoNumber)}
+									<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-700">
+										{orderSoNumber}
+									</span>
+								{/each}
+							{:else}
+								<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-500">
+									No SO numbers available
 								</span>
-							{/each}
-						{:else}
-							<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-500">
-								No SO numbers available
-							</span>
-						{/if}
-					</div>
+							{/if}
+						</div>
+					{/if}
 
 					{#if dropLabelsQuery?.error}
 						<div class="mt-6 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 							{dropLabelsQuery.error.message}
 						</div>
-					{:else if dropLabelsQuery?.loading && dropLabels.length === 0}
+					{:else if isLoadingDropLabels}
 						<div class="mt-6 rounded-2xl bg-surface-container-low px-4 py-8 text-center text-sm text-slate-600">
 							Loading label list...
 						</div>
