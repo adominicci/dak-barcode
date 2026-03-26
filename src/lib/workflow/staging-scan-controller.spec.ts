@@ -53,6 +53,43 @@ describe('createStagingScanController', () => {
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
+	it('treats failed location scans as errors even when the backend echoes a drop area', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				scanType: 'location',
+				status: 'invalid-location',
+				message: 'Location is not valid.',
+				dropArea: {
+					id: 41,
+					label: 'W12'
+				}
+			})
+		);
+		const refreshActiveList = vi.fn();
+		const controller = createStagingScanController({
+			processScan,
+			refreshActiveList
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: '41',
+				department: 'Wrap',
+				dropAreaId: null
+			})
+		).resolves.toEqual({
+			kind: 'error',
+			message: 'Location is not valid.',
+			dropArea: null,
+			openLocationModal: false,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(refreshActiveList).not.toHaveBeenCalled();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
 	it('refreshes successful pallet scans and clears the active location for Roll', async () => {
 		const processScan = vi.fn().mockResolvedValue(
 			createScanResult({
@@ -226,5 +263,42 @@ describe('createStagingScanController', () => {
 				dropAreaId: 41
 			})
 		).resolves.toBeNull();
+	});
+
+	it('ignores a late needs-location response after the pending scan is cancelled', async () => {
+		let resolveScan: ((result: ScanResult) => void) | null = null;
+		const controller = createStagingScanController({
+			processScan: vi.fn(
+				() =>
+					new Promise<ScanResult>((resolve) => {
+						resolveScan = resolve;
+					})
+			),
+			refreshActiveList: vi.fn()
+		});
+
+		const submission = controller.submitScan({
+			scannedText: 'LP-100',
+			department: 'Wrap',
+			dropAreaId: null
+		});
+
+		expect(controller.cancelPendingScan()).toBe(false);
+
+		const scanResolver = resolveScan as ((result: ScanResult) => void) | null;
+		if (!scanResolver) {
+			throw new Error('Expected scan resolver to be captured.');
+		}
+
+		scanResolver(
+			createScanResult({
+				status: 'needs-location',
+				message: 'Location is required before staging.',
+				needsLocation: true
+			})
+		);
+
+		await expect(submission).resolves.toBeNull();
+		expect(controller.hasPendingScan()).toBe(false);
 	});
 });

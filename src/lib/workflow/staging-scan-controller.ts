@@ -49,12 +49,23 @@ export function createStagingScanController({
 	refreshActiveList
 }: CreateStagingScanControllerOptions) {
 	let pendingScan: Pick<StagingScanRequest, 'scannedText'> | null = null;
+	let pendingScanVersion = 0;
+
+	function invalidatePendingScan() {
+		pendingScan = null;
+		pendingScanVersion += 1;
+	}
 
 	async function resolveScan(
 		input: StagingScanRequest,
 		{ clearPendingOnResult }: ResolveScanOptions
-	): Promise<StagingScanAction> {
+	): Promise<StagingScanAction | null> {
+		const requestVersion = pendingScanVersion;
 		const result = await processScan(input);
+
+		if (requestVersion !== pendingScanVersion) {
+			return null;
+		}
 
 		if (result.needsLocation || result.status === 'needs-location') {
 			pendingScan = { scannedText: input.scannedText };
@@ -68,7 +79,7 @@ export function createStagingScanController({
 			};
 		}
 
-		if (result.scanType === 'location' && result.dropArea) {
+		if (result.status === 'success' && result.scanType === 'location' && result.dropArea) {
 			return {
 				kind: 'location-updated',
 				message: result.message,
@@ -84,7 +95,7 @@ export function createStagingScanController({
 
 		if (result.status === 'success') {
 			if (clearPendingOnResult) {
-				pendingScan = null;
+				invalidatePendingScan();
 			}
 
 			await refreshActiveList();
@@ -99,7 +110,7 @@ export function createStagingScanController({
 		}
 
 		if (clearPendingOnResult) {
-			pendingScan = null;
+			invalidatePendingScan();
 		}
 
 		return {
@@ -135,7 +146,7 @@ export function createStagingScanController({
 		},
 		cancelPendingScan() {
 			const hadPendingScan = pendingScan !== null;
-			pendingScan = null;
+			invalidatePendingScan();
 			return hadPendingScan;
 		}
 	};

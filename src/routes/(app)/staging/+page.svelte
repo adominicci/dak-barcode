@@ -79,6 +79,11 @@
 			? T
 			: never
 	) {
+		if (!action) {
+			await focusScanInput();
+			return;
+		}
+
 		scanError =
 			action.kind === 'error'
 				? action.message
@@ -124,6 +129,7 @@
 			}
 			return action !== null;
 		} catch {
+			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
 			await focusScanInput();
 			return false;
@@ -157,10 +163,11 @@
 			);
 			await applyScanAction(action);
 
-			if (action.kind === 'location-updated') {
+			if (action?.kind === 'location-updated') {
 				await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
 			}
 		} catch {
+			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
 			await focusScanInput();
 		}
@@ -200,6 +207,10 @@
 	}
 
 	async function handleLocationModalClose() {
+		if (stagingScanController?.cancelPendingScan()) {
+			scanError = null;
+		}
+
 		isLocationModalOpen = false;
 		await focusScanInput();
 	}

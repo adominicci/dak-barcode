@@ -663,6 +663,51 @@ describe('staging page department gate', () => {
 		await expect.element(scanInput).toHaveFocus();
 	});
 
+	it('cancels the pending label when the manual location modal is dismissed', async () => {
+		processStagingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					status: 'needs-location',
+					message: 'Location is required before staging.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'W13'
+					}
+				})
+			);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Parts' }).click();
+		await submitMainScan('LP-100');
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByRole('button', { name: 'Close location selector' }).click();
+		await submitMainScan('42');
+
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(2);
+		});
+
+		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: '42',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+	});
+
 	it('renders inline scan errors and keeps the scan input ready for recovery', async () => {
 		processStagingScan.mockResolvedValueOnce(
 			createScanResult({
