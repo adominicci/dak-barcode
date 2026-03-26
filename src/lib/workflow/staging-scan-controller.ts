@@ -22,7 +22,7 @@ export type StagingScanAction =
 			kind: 'needs-location';
 			message: string;
 			dropArea: null;
-			openLocationModal: true;
+			openLocationModal: false;
 			clearCurrentDropArea: false;
 			showSuccessToast: false;
 	  }
@@ -40,13 +40,20 @@ type CreateStagingScanControllerOptions = {
 	refreshActiveList: () => Promise<unknown>;
 };
 
+type ResolveScanOptions = {
+	clearPendingOnResult: boolean;
+};
+
 export function createStagingScanController({
 	processScan,
 	refreshActiveList
 }: CreateStagingScanControllerOptions) {
 	let pendingScan: Pick<StagingScanRequest, 'scannedText'> | null = null;
 
-	async function resolveScan(input: StagingScanRequest): Promise<StagingScanAction> {
+	async function resolveScan(
+		input: StagingScanRequest,
+		{ clearPendingOnResult }: ResolveScanOptions
+	): Promise<StagingScanAction> {
 		const result = await processScan(input);
 
 		if (result.needsLocation || result.status === 'needs-location') {
@@ -55,13 +62,11 @@ export function createStagingScanController({
 				kind: 'needs-location',
 				message: result.message,
 				dropArea: null,
-				openLocationModal: true,
+				openLocationModal: false,
 				clearCurrentDropArea: false,
 				showSuccessToast: false
 			};
 		}
-
-		pendingScan = null;
 
 		if (result.scanType === 'location' && result.dropArea) {
 			return {
@@ -78,6 +83,10 @@ export function createStagingScanController({
 		}
 
 		if (result.status === 'success') {
+			if (clearPendingOnResult) {
+				pendingScan = null;
+			}
+
 			await refreshActiveList();
 			return {
 				kind: 'success',
@@ -87,6 +96,10 @@ export function createStagingScanController({
 				clearCurrentDropArea: input.department === 'Roll' && result.scanType !== 'location',
 				showSuccessToast: true
 			};
+		}
+
+		if (clearPendingOnResult) {
+			pendingScan = null;
 		}
 
 		return {
@@ -101,7 +114,7 @@ export function createStagingScanController({
 
 	return {
 		submitScan(input: StagingScanRequest) {
-			return resolveScan(input);
+			return resolveScan(input, { clearPendingOnResult: false });
 		},
 		async retryPendingScan({
 			department,
@@ -115,7 +128,7 @@ export function createStagingScanController({
 				scannedText: pendingScan.scannedText,
 				department,
 				dropAreaId
-			});
+			}, { clearPendingOnResult: true });
 		},
 		hasPendingScan() {
 			return pendingScan !== null;

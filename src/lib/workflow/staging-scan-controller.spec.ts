@@ -85,17 +85,16 @@ describe('createStagingScanController', () => {
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
-	it('stores a pending scan on needs-location and retries it after location selection', async () => {
+	it('stores a pending scan on needs-location without opening the manual selector', async () => {
 		const processScan = vi
 			.fn()
-			.mockResolvedValueOnce(
+			.mockResolvedValue(
 				createScanResult({
 					status: 'needs-location',
 					message: 'Location is required before staging.',
 					needsLocation: true
 				})
-			)
-			.mockResolvedValueOnce(createScanResult());
+			);
 		const refreshActiveList = vi.fn().mockResolvedValue(undefined);
 		const controller = createStagingScanController({
 			processScan,
@@ -112,7 +111,66 @@ describe('createStagingScanController', () => {
 			kind: 'needs-location',
 			message: 'Location is required before staging.',
 			dropArea: null,
-			openLocationModal: true,
+			openLocationModal: false,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(controller.hasPendingScan()).toBe(true);
+		expect(refreshActiveList).not.toHaveBeenCalled();
+	});
+
+	it('keeps a pending scan until a numeric location scan succeeds, then retries the original scan', async () => {
+		const processScan = vi
+			.fn()
+			.mockResolvedValueOnce(
+				createScanResult({
+					status: 'needs-location',
+					message: 'Location is required before staging.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'W13'
+					}
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+		const refreshActiveList = vi.fn().mockResolvedValue(undefined);
+		const controller = createStagingScanController({
+			processScan,
+			refreshActiveList
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-100',
+				department: 'Parts',
+				dropAreaId: null
+			})
+		).resolves.toMatchObject({
+			kind: 'needs-location'
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: '42',
+				department: 'Parts',
+				dropAreaId: null
+			})
+		).resolves.toEqual({
+			kind: 'location-updated',
+			message: 'Location updated.',
+			dropArea: {
+				dropAreaId: 42,
+				dropAreaLabel: 'W13'
+			},
+			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
@@ -133,7 +191,7 @@ describe('createStagingScanController', () => {
 			showSuccessToast: true
 		});
 
-		expect(processScan).toHaveBeenNthCalledWith(2, {
+		expect(processScan).toHaveBeenNthCalledWith(3, {
 			scannedText: 'LP-100',
 			department: 'Parts',
 			dropAreaId: 42

@@ -6,6 +6,7 @@
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import StagingListPanel from '$lib/components/workflow/staging-list-panel.svelte';
 	import { processStagingScan } from '$lib/scan.remote';
+	import { withTimeout } from '$lib/workflow/async-timeout';
 	import { createStagingScanController } from '$lib/workflow/staging-scan-controller';
 	import { createStagingListController } from '$lib/workflow/staging-list-controller.svelte';
 	import {
@@ -23,6 +24,10 @@
 	let scanInputValue = $state('');
 	let scanError = $state<string | null>(null);
 	let scanInputElement = $state<HTMLInputElement | null>(null);
+
+	const STAGING_SCAN_TIMEOUT_MS = 8000;
+	const STAGING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
+	const STAGING_LOCATION_REQUIRED_MESSAGE = 'Please scan a location first';
 
 	onMount(() => {
 		workflowStores.prepareForStagingEntry();
@@ -74,7 +79,12 @@
 			? T
 			: never
 	) {
-		scanError = action.kind === 'error' ? action.message : null;
+		scanError =
+			action.kind === 'error'
+				? action.message
+				: action.kind === 'needs-location'
+					? STAGING_LOCATION_REQUIRED_MESSAGE
+					: null;
 
 		if (action.kind === 'location-updated') {
 			workflowStores.setCurrentDropArea(action.dropArea);
@@ -95,6 +105,31 @@
 		}
 	}
 
+	async function retryPendingScanWithDropArea(dropAreaId: number) {
+		if (!selectedDepartment || !stagingScanController?.hasPendingScan()) {
+			return false;
+		}
+
+		try {
+			const action = await withTimeout(
+				stagingScanController.retryPendingScan({
+					department: selectedDepartment,
+					dropAreaId
+				}),
+				STAGING_SCAN_TIMEOUT_MS,
+				STAGING_SCAN_TIMEOUT_MESSAGE
+			);
+			if (action) {
+				await applyScanAction(action);
+			}
+			return action !== null;
+		} catch {
+			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
+			await focusScanInput();
+			return false;
+		}
+	}
+
 	async function submitScan(rawValue: string) {
 		if (!selectedDepartment || !stagingScanController) {
 			return;
@@ -110,12 +145,25 @@
 		}
 
 		workflowStores.setScannedText(scannedText);
-		const action = await stagingScanController.submitScan({
-			scannedText,
-			department: selectedDepartment,
-			dropAreaId: currentDropArea?.dropAreaId ?? null
-		});
-		await applyScanAction(action);
+		try {
+			const action = await withTimeout(
+				stagingScanController.submitScan({
+					scannedText,
+					department: selectedDepartment,
+					dropAreaId: currentDropArea?.dropAreaId ?? null
+				}),
+				STAGING_SCAN_TIMEOUT_MS,
+				STAGING_SCAN_TIMEOUT_MESSAGE
+			);
+			await applyScanAction(action);
+
+			if (action.kind === 'location-updated') {
+				await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
+			}
+		} catch {
+			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
+			await focusScanInput();
+		}
 	}
 
 	async function handleScanKeydown(event: KeyboardEvent) {
@@ -144,22 +192,14 @@
 		isLocationModalOpen = false;
 		scanError = null;
 
-		if (selectedDepartment && stagingScanController?.hasPendingScan()) {
-			const action = await stagingScanController.retryPendingScan({
-				department: selectedDepartment,
-				dropAreaId: dropArea.dropAreaId
-			});
-			if (action) {
-				await applyScanAction(action);
-				return;
-			}
+		if (await retryPendingScanWithDropArea(dropArea.dropAreaId)) {
+			return;
 		}
 
 		await focusScanInput();
 	}
 
 	async function handleLocationModalClose() {
-		stagingScanController?.cancelPendingScan();
 		isLocationModalOpen = false;
 		await focusScanInput();
 	}

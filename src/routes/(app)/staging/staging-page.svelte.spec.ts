@@ -47,6 +47,10 @@ const {
 	>()
 }));
 
+const { withTimeout } = vi.hoisted(() => ({
+	withTimeout: vi.fn(async <T>(promise: Promise<T>) => promise)
+}));
+
 vi.mock('$lib/staging.remote', () => ({
 	getStagingPartsForDay,
 	getStagingPartsForDayRoll
@@ -59,6 +63,10 @@ vi.mock('$lib/drop-areas.remote', () => ({
 
 vi.mock('$lib/scan.remote', () => ({
 	processStagingScan
+}));
+
+vi.mock('$lib/workflow/async-timeout', () => ({
+	withTimeout
 }));
 
 import StagingPage from './+page.svelte';
@@ -93,6 +101,8 @@ describe('staging page department gate', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
+		withTimeout.mockReset();
+		withTimeout.mockImplementation(async <T>(promise: Promise<T>) => promise);
 		getStagingPartsForDay.mockReset();
 		getStagingPartsForDayRoll.mockReset();
 		getDropAreasByDepartment.mockReset();
@@ -596,13 +606,23 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W12');
 	});
 
-	it('opens the location modal for needs-location results and retries the pending scan after selection', async () => {
+	it('keeps the main scan input active when a label needs a location and retries after a numeric location scan', async () => {
 		processStagingScan
 			.mockResolvedValueOnce(
 				createScanResult({
 					status: 'needs-location',
 					message: 'Location is required before staging.',
 					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'W13'
+					}
 				})
 			)
 			.mockResolvedValueOnce(createScanResult());
@@ -612,8 +632,16 @@ describe('staging page department gate', () => {
 		await page.getByRole('button', { name: 'Parts' }).click();
 		const scanInput = await submitMainScan('LP-100');
 
-		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-		await page.getByRole('button', { name: /W13/i }).click();
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'Please scan a location first'
+		);
+		await expect.element(scanInput).toHaveFocus();
+
+		await submitMainScan('42');
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(3);
+		});
 
 		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
 			scannedText: 'LP-100',
@@ -621,6 +649,11 @@ describe('staging page department gate', () => {
 			dropAreaId: null
 		});
 		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: '42',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(3, {
 			scannedText: 'LP-100',
 			department: 'Parts',
 			dropAreaId: 42
@@ -646,6 +679,37 @@ describe('staging page department gate', () => {
 
 		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
 			'Location is not valid.'
+		);
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('renders an inline fallback error when the staging scan command rejects', async () => {
+		processStagingScan.mockRejectedValueOnce(new Error('Failed to execute remote function'));
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = await submitMainScan('LP-404');
+
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'We could not process that scan right now.'
+		);
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('renders an inline fallback error when the staging scan times out', async () => {
+		withTimeout.mockRejectedValueOnce(new Error('We could not process that scan right now.'));
+		processStagingScan.mockReturnValueOnce(new Promise<ScanResult>(() => {}));
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = await submitMainScan('LP-405');
+
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'We could not process that scan right now.'
 		);
 		await expect.element(scanInput).toHaveValue('');
 		await expect.element(scanInput).toHaveFocus();
