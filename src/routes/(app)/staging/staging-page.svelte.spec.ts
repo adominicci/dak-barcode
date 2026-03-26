@@ -237,6 +237,7 @@ describe('staging page department gate', () => {
 			status: 'success',
 			message: 'Label staged.',
 			needsLocation: false,
+			needPick: null,
 			dropArea: null,
 			...overrides
 		};

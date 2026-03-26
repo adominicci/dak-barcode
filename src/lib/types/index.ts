@@ -218,6 +218,7 @@ export type ScanResult = {
 	status: ScanStatus;
 	message: string;
 	needsLocation: boolean;
+	needPick: number | null;
 	dropArea: ScanDropAreaSummary | null;
 };
 
