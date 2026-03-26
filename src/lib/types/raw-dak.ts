@@ -66,6 +66,8 @@ export type RawDakScanResult = {
 	scanType?: string | null;
 	status?: string | null;
 	message?: string | null;
+	need_pick?: number | null;
+	needPick?: number | null;
 	needs_location?: boolean | null;
 	needsLocation?: boolean | null;
 	drop_area?: RawDakScanDropArea | null;

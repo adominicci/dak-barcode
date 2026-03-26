@@ -14,14 +14,18 @@
 		TriangleAlert,
 		UserRound
 	} from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
 	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
+	import { processLoadingScan } from '$lib/scan.remote';
 	import {
 		createLoadingDropNavigationState,
 		moveLoadingDropSelection
 	} from '$lib/workflow/loading-drop-navigation';
+	import { withTimeout } from '$lib/workflow/async-timeout';
+	import { createLoadingScanController } from '$lib/workflow/loading-scan-controller';
 	import { getLoadingUnionKey } from '$lib/workflow/loading-union-key';
 	import {
 		buildEndLoaderSessionInput,
@@ -29,7 +33,10 @@
 		parseLoadingEntryContext,
 		toNavigationHref
 	} from '$lib/workflow/loading-lifecycle';
-	import { workflowStores } from '$lib/workflow/stores';
+	import {
+		workflowStores,
+		type WorkflowDropAreaSelection
+	} from '$lib/workflow/stores';
 
 	const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
 		month: 'short',
@@ -43,6 +50,9 @@
 		minimumFractionDigits: 1
 	});
 
+	const LOADING_SCAN_TIMEOUT_MS = 8000;
+	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
+
 	const selectedDepartment = get(workflowStores.selectedDepartment);
 	const currentLoader = get(workflowStores.currentLoader);
 
@@ -51,6 +61,14 @@
 	let isEndingSession = $state(false);
 	let lifecycleError = $state<string | null>(null);
 	let selectedDropIndex = $state(0);
+	let currentDropArea = $state<WorkflowDropAreaSelection>(null);
+	let loadingScanController = $state<ReturnType<typeof createLoadingScanController> | null>(null);
+	let scanInputValue = $state('');
+	let scanError = $state<string | null>(null);
+	let scanPrompt = $state<string | null>(null);
+	let scanInputElement = $state<HTMLInputElement | null>(null);
+	let isScanning = $state(false);
+	let pendingTimedOutScan = $state<Promise<unknown> | null>(null);
 
 	const loadingEntry = $derived(parseLoadingEntryContext(page.url));
 	const hasWorkflowContext = hasLoadingWorkflowContext({
@@ -100,14 +118,35 @@
 		)
 	);
 
+	$effect(() => {
+		if (!isScanning && pendingTimedOutScan === null) {
+			void focusScanInput();
+		}
+	});
+
 	onMount(() => {
 		if (redirectHandled || !shouldRedirectHome) {
-			return;
+			loadingScanController = createLoadingScanController({
+				processScan: processLoadingScan,
+				refreshActiveDropData
+			});
 		}
 
-		redirectHandled = true;
-		allowNavigation = true;
-		void goto(resolve('/home'), { replaceState: true });
+		if (!redirectHandled && shouldRedirectHome) {
+			redirectHandled = true;
+			allowNavigation = true;
+			void goto(resolve('/home'), { replaceState: true });
+		}
+
+		const unsubscribeDropArea = workflowStores.currentDropArea.subscribe((dropArea) => {
+			currentDropArea = dropArea;
+		});
+
+		return () => {
+			unsubscribeDropArea();
+			loadingScanController?.cancelPendingScan();
+			loadingScanController = null;
+		};
 	});
 
 	beforeNavigate((navigation) => {
@@ -169,7 +208,202 @@
 		return `${WEIGHT_FORMATTER.format(weight)} lbs`;
 	}
 
+	async function focusScanInput() {
+		if (shouldRedirectHome || loaderInfo === null || selectedDropDetail === null) {
+			return;
+		}
+
+		await tick();
+		scanInputElement?.focus();
+	}
+
+	function clearScanInput() {
+		scanInputValue = '';
+		workflowStores.clearScannedText();
+	}
+
+	async function refreshActiveDropData() {
+		if (selectedDropDetail === null || dropDetailsQuery === null) {
+			return;
+		}
+
+		const activeUnionQuery = getLoadViewUnion({
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: selectedDropDetail.locationId
+		});
+
+		await Promise.all([dropDetailsQuery.refresh(), activeUnionQuery.refresh()]);
+	}
+
+	async function applyScanAction(
+		action: ReturnType<NonNullable<typeof loadingScanController>['submitScan']> extends Promise<infer T>
+			? T
+			: never
+	) {
+		if (!action) {
+			await focusScanInput();
+			return;
+		}
+
+		scanError = action.kind === 'error' ? action.message : null;
+		scanPrompt = action.kind === 'needs-location' ? action.message : null;
+
+		if (action.kind === 'location-updated') {
+			workflowStores.setCurrentDropArea(action.dropArea);
+			scanPrompt = null;
+		}
+
+		if (action.clearCurrentDropArea) {
+			workflowStores.clearCurrentDropArea();
+		}
+
+		if (action.showSuccessToast) {
+			scanError = null;
+			scanPrompt = null;
+			toast.success(action.message);
+		}
+
+		if (!isScanning && pendingTimedOutScan === null) {
+			await focusScanInput();
+		}
+	}
+
+	function monitorTimedOutScanSettlement(
+		scanPromise: ReturnType<NonNullable<typeof loadingScanController>['submitScan']>
+	) {
+		pendingTimedOutScan = (async () => {
+			try {
+				const action = await scanPromise;
+				await applyScanAction(action);
+
+				if (action?.kind === 'location-updated' && loadingScanController?.hasPendingScan()) {
+					await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
+				}
+			} catch {
+				// Keep the timeout fallback in place if the request also fails.
+			} finally {
+				pendingTimedOutScan = null;
+			}
+		})();
+	}
+
+	async function retryPendingScanWithDropArea(dropAreaId: number) {
+		if (!loadingScanController || !loaderInfo || selectedDropDetail === null) {
+			return false;
+		}
+
+		const retryPromise = loadingScanController.retryPendingScan({
+			department: loaderInfo.department,
+			dropAreaId,
+			loadNumber: selectedDropDetail.loadNumber,
+			loaderName: loaderInfo.loaderName
+		});
+
+		try {
+			const action = await withTimeout(
+				retryPromise,
+				LOADING_SCAN_TIMEOUT_MS,
+				LOADING_SCAN_TIMEOUT_MESSAGE
+			);
+			if (action) {
+				await applyScanAction(action);
+			}
+			return action !== null;
+		} catch (error) {
+			scanPrompt = null;
+			scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
+
+			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
+				monitorTimedOutScanSettlement(retryPromise);
+			} else {
+				loadingScanController.cancelPendingScan();
+				await focusScanInput();
+			}
+			return false;
+		}
+	}
+
+	async function submitScan(rawValue: string) {
+		if (
+			!loadingScanController ||
+			!loaderInfo ||
+			selectedDropDetail === null ||
+			isScanning ||
+			pendingTimedOutScan !== null
+		) {
+			return;
+		}
+
+		const scannedText = rawValue.trim();
+		clearScanInput();
+
+		if (scannedText.length === 0) {
+			scanError = null;
+			scanPrompt = null;
+			await focusScanInput();
+			return;
+		}
+
+		workflowStores.setScannedText(scannedText);
+		isScanning = true;
+		let shouldRefocusAfterScan = false;
+		const scanPromise = loadingScanController.submitScan({
+			scannedText,
+			department: loaderInfo.department,
+			dropAreaId: currentDropArea?.dropAreaId ?? null,
+			loadNumber: selectedDropDetail.loadNumber,
+			loaderName: loaderInfo.loaderName
+		});
+
+		try {
+			const action = await withTimeout(
+				scanPromise,
+				LOADING_SCAN_TIMEOUT_MS,
+				LOADING_SCAN_TIMEOUT_MESSAGE
+			);
+			await applyScanAction(action);
+			shouldRefocusAfterScan = true;
+
+			if (action?.kind === 'location-updated' && loadingScanController.hasPendingScan()) {
+				shouldRefocusAfterScan = !(await retryPendingScanWithDropArea(action.dropArea.dropAreaId));
+			}
+		} catch (error) {
+			scanPrompt = null;
+			scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
+
+			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
+				monitorTimedOutScanSettlement(scanPromise);
+				shouldRefocusAfterScan = false;
+			} else {
+				loadingScanController.cancelPendingScan();
+				shouldRefocusAfterScan = true;
+			}
+		} finally {
+			isScanning = false;
+		}
+
+		if (shouldRefocusAfterScan) {
+			await focusScanInput();
+		}
+	}
+
+	async function handleScanKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter') {
+			return;
+		}
+
+		event.preventDefault();
+		await submitScan(scanInputValue);
+	}
+
 	function moveToDrop(direction: 'previous' | 'next') {
+		if (loadingScanController?.cancelPendingScan()) {
+			scanPrompt = null;
+		}
+
+		scanPrompt = null;
+		scanError = null;
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,
 			totalDrops: dropNavigation.totalDrops,
@@ -189,7 +423,7 @@
 		<div>
 			<h2 class="text-3xl font-bold tracking-tight text-slate-950">Loading</h2>
 			<p class="mt-2 text-sm text-on-surface-variant">
-				Drop navigation and per-drop label detail are ready. Live scan submission stays queued for the next milestone.
+				Keep the scanner flowing: update driver locations, load labels, and refresh the active drop without leaving this screen.
 			</p>
 		</div>
 
@@ -455,9 +689,82 @@
 								<ScanBarcode class="size-5" />
 							</div>
 							<div>
-								<p class="text-sm font-semibold text-slate-900">Scanner-ready shell</p>
+								<p class="text-sm font-semibold text-slate-900">Scanner ready</p>
 								<p class="text-xs text-slate-600">
-									{isEndingSession ? 'Ending loader session before exit...' : 'Input and submission arrive in DAK-207 and later loading issues.'}
+									{currentDropArea?.dropAreaLabel
+										? `Driver location ${currentDropArea.dropAreaLabel}`
+										: 'Scan a driver location or label to keep loading.'}
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
+						<div class="space-y-2">
+							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
+							<div class="relative">
+								<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
+								<input
+									id="loading-scan-input"
+									data-testid="loading-scan-input"
+									type="text"
+									bind:value={scanInputValue}
+									bind:this={scanInputElement}
+									placeholder={currentDropArea?.dropAreaLabel
+										? 'Scan or type loading barcode...'
+										: 'Scan a driver location or loading barcode...'}
+									disabled={isScanning || pendingTimedOutScan !== null}
+									onkeydown={handleScanKeydown}
+									class="h-16 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-lg transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
+								/>
+							</div>
+							{#if scanError}
+								<div
+									class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+								>
+									<TriangleAlert class="mt-0.5 size-4 shrink-0" />
+									<p>{scanError}</p>
+								</div>
+							{:else if scanPrompt}
+								<div
+									class="flex gap-3 rounded-2xl bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
+								>
+									<TriangleAlert class="mt-0.5 size-4 shrink-0" />
+									<p>{scanPrompt}</p>
+								</div>
+							{/if}
+						</div>
+
+						<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+							<div class="rounded-[1.5rem] bg-surface-container-low px-4 py-4">
+								<p class="ui-label text-xs">Driver location</p>
+								<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
+									{currentDropArea?.dropAreaLabel ?? 'Waiting for scan'}
+								</p>
+								<p class="mt-1 text-xs text-slate-500">
+									{loaderInfo.department === 'Roll'
+										? 'Roll clears after each successful label or pallet scan.'
+										: 'Location stays active until you scan a new one.'}
+								</p>
+							</div>
+
+							<div class="rounded-[1.5rem] bg-surface-container-low px-4 py-4">
+								<p class="ui-label text-xs">Scan state</p>
+								<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
+									{pendingTimedOutScan !== null
+										? 'Retrying'
+										: isScanning
+											? 'Processing'
+											: scanPrompt
+												? 'Need location'
+												: 'Ready'}
+								</p>
+								<p class="mt-1 text-xs text-slate-500">
+									{pendingTimedOutScan !== null
+										? 'The last request timed out but the page is still monitoring it.'
+										: scanPrompt
+											? 'Scan a numeric driver location next to retry the pending label.'
+											: 'Press Enter from the scanner to submit immediately.'}
 								</p>
 							</div>
 						</div>

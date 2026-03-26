@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ScanResult } from '$lib/types';
-import { createStagingScanController } from './staging-scan-controller';
+import { createLoadingScanController } from './loading-scan-controller';
 
 function createScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
 	return {
 		scanType: 'single_label',
 		status: 'success',
-		message: 'Label staged.',
+		message: 'Label loaded.',
 		needsLocation: false,
 		needPick: null,
 		dropArea: null,
@@ -14,43 +14,44 @@ function createScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
 	};
 }
 
-describe('createStagingScanController', () => {
-	it('maps a location scan into a drop-area update without refreshing the active list', async () => {
+describe('createLoadingScanController', () => {
+	it('maps a location scan into a drop-area update without refreshing the active drop data', async () => {
 		const processScan = vi.fn().mockResolvedValue(
 			createScanResult({
 				scanType: 'location',
 				message: 'Location updated.',
 				dropArea: {
 					id: 41,
-					label: 'W12'
+					label: 'D12'
 				}
 			})
 		);
-		const refreshActiveList = vi.fn();
-		const controller = createStagingScanController({
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: '41',
 				department: 'Wrap',
-				dropAreaId: null
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'location-updated',
 			message: 'Location updated.',
 			dropArea: {
 				dropAreaId: 41,
-				dropAreaLabel: 'W12'
+				dropAreaLabel: 'D12'
 			},
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
 
-		expect(refreshActiveList).not.toHaveBeenCalled();
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
@@ -62,32 +63,33 @@ describe('createStagingScanController', () => {
 				message: 'Location is not valid.',
 				dropArea: {
 					id: 41,
-					label: 'W12'
+					label: 'D12'
 				}
 			})
 		);
-		const refreshActiveList = vi.fn();
-		const controller = createStagingScanController({
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: '41',
 				department: 'Wrap',
-				dropAreaId: null
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'error',
 			message: 'Location is not valid.',
 			dropArea: null,
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
 
-		expect(refreshActiveList).not.toHaveBeenCalled();
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
@@ -95,99 +97,100 @@ describe('createStagingScanController', () => {
 		const processScan = vi.fn().mockResolvedValue(
 			createScanResult({
 				scanType: 'pallet',
-				message: 'Pallet staged.'
+				message: 'Pallet loaded.'
 			})
 		);
-		const refreshActiveList = vi.fn().mockResolvedValue(undefined);
-		const controller = createStagingScanController({
+		const refreshActiveDropData = vi.fn().mockResolvedValue(undefined);
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: 'PALLET-1',
 				department: 'Roll',
-				dropAreaId: 51
+				dropAreaId: 51,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'success',
-			message: 'Pallet staged.',
+			message: 'Pallet loaded.',
 			dropArea: null,
-			openLocationModal: false,
 			clearCurrentDropArea: true,
 			showSuccessToast: true
 		});
 
-		expect(refreshActiveList).toHaveBeenCalledOnce();
+		expect(refreshActiveDropData).toHaveBeenCalledOnce();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
-	it('returns success even when refreshing the active list fails after a successful scan', async () => {
+	it('returns success even when refreshing the active drop data fails after a successful scan', async () => {
 		const processScan = vi.fn().mockResolvedValue(
 			createScanResult({
 				scanType: 'single_label',
-				message: 'Label staged.'
+				message: 'Label loaded.'
 			})
 		);
-		const refreshActiveList = vi.fn().mockRejectedValue(new Error('Refresh failed.'));
-		const controller = createStagingScanController({
+		const refreshActiveDropData = vi.fn().mockRejectedValue(new Error('Refresh failed.'));
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: 'LP-200',
 				department: 'Wrap',
-				dropAreaId: 41
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'success',
-			message: 'Label staged.',
+			message: 'Label loaded.',
 			dropArea: null,
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: true
 		});
 
-		expect(refreshActiveList).toHaveBeenCalledOnce();
+		expect(refreshActiveDropData).toHaveBeenCalledOnce();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
-	it('stores a pending scan on needs-location without opening the manual selector', async () => {
-		const processScan = vi
-			.fn()
-			.mockResolvedValue(
-				createScanResult({
-					status: 'needs-location',
-					message: 'Location is required before staging.',
-					needsLocation: true
-				})
-			);
-		const refreshActiveList = vi.fn().mockResolvedValue(undefined);
-		const controller = createStagingScanController({
+	it('stores a pending scan on needs-location without opening the future modal flow', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				status: 'needs-location',
+				message: 'Scan a driver location next.',
+				needsLocation: true
+			})
+		);
+		const refreshActiveDropData = vi.fn().mockResolvedValue(undefined);
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: 'LP-100',
 				department: 'Parts',
-				dropAreaId: null
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'needs-location',
-			message: 'Location is required before staging.',
+			message: 'Scan a driver location next.',
 			dropArea: null,
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
 
 		expect(controller.hasPendingScan()).toBe(true);
-		expect(refreshActiveList).not.toHaveBeenCalled();
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
 	});
 
 	it('keeps a pending scan until a numeric location scan succeeds, then retries the original scan', async () => {
@@ -196,7 +199,7 @@ describe('createStagingScanController', () => {
 			.mockResolvedValueOnce(
 				createScanResult({
 					status: 'needs-location',
-					message: 'Location is required before staging.',
+					message: 'Scan a driver location next.',
 					needsLocation: true
 				})
 			)
@@ -206,22 +209,24 @@ describe('createStagingScanController', () => {
 					message: 'Location updated.',
 					dropArea: {
 						id: 42,
-						label: 'W13'
+						label: 'D13'
 					}
 				})
 			)
 			.mockResolvedValueOnce(createScanResult());
-		const refreshActiveList = vi.fn().mockResolvedValue(undefined);
-		const controller = createStagingScanController({
+		const refreshActiveDropData = vi.fn().mockResolvedValue(undefined);
+		const controller = createLoadingScanController({
 			processScan,
-			refreshActiveList
+			refreshActiveDropData
 		});
 
 		await expect(
 			controller.submitScan({
 				scannedText: 'LP-100',
 				department: 'Parts',
-				dropAreaId: null
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toMatchObject({
 			kind: 'needs-location'
@@ -231,16 +236,17 @@ describe('createStagingScanController', () => {
 			controller.submitScan({
 				scannedText: '42',
 				department: 'Parts',
-				dropAreaId: null
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'location-updated',
 			message: 'Location updated.',
 			dropArea: {
 				dropAreaId: 42,
-				dropAreaLabel: 'W13'
+				dropAreaLabel: 'D13'
 			},
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
@@ -250,13 +256,14 @@ describe('createStagingScanController', () => {
 		await expect(
 			controller.retryPendingScan({
 				department: 'Parts',
-				dropAreaId: 42
+				dropAreaId: 42,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toEqual({
 			kind: 'success',
-			message: 'Label staged.',
+			message: 'Label loaded.',
 			dropArea: null,
-			openLocationModal: false,
 			clearCurrentDropArea: false,
 			showSuccessToast: true
 		});
@@ -264,27 +271,31 @@ describe('createStagingScanController', () => {
 		expect(processScan).toHaveBeenNthCalledWith(3, {
 			scannedText: 'LP-100',
 			department: 'Parts',
-			dropAreaId: 42
+			dropAreaId: 42,
+			loadNumber: 'L-100',
+			loaderName: 'Alex'
 		});
-		expect(refreshActiveList).toHaveBeenCalledOnce();
+		expect(refreshActiveDropData).toHaveBeenCalledOnce();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
-	it('cancels a pending scan when the location modal is dismissed', async () => {
-		const controller = createStagingScanController({
+	it('cancels a pending scan when the active drop changes', async () => {
+		const controller = createLoadingScanController({
 			processScan: vi.fn().mockResolvedValue(
 				createScanResult({
 					status: 'needs-location',
 					needsLocation: true
 				})
 			),
-			refreshActiveList: vi.fn()
+			refreshActiveDropData: vi.fn()
 		});
 
 		await controller.submitScan({
 			scannedText: 'LP-100',
 			department: 'Wrap',
-			dropAreaId: null
+			dropAreaId: null,
+			loadNumber: 'L-100',
+			loaderName: 'Alex'
 		});
 
 		expect(controller.hasPendingScan()).toBe(true);
@@ -293,45 +304,10 @@ describe('createStagingScanController', () => {
 		await expect(
 			controller.retryPendingScan({
 				department: 'Wrap',
-				dropAreaId: 41
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
 			})
 		).resolves.toBeNull();
-	});
-
-	it('ignores a late needs-location response after the pending scan is cancelled', async () => {
-		let resolveScan: ((result: ScanResult) => void) | null = null;
-		const controller = createStagingScanController({
-			processScan: vi.fn(
-				() =>
-					new Promise<ScanResult>((resolve) => {
-						resolveScan = resolve;
-					})
-			),
-			refreshActiveList: vi.fn()
-		});
-
-		const submission = controller.submitScan({
-			scannedText: 'LP-100',
-			department: 'Wrap',
-			dropAreaId: null
-		});
-
-		expect(controller.cancelPendingScan()).toBe(false);
-
-		const scanResolver = resolveScan as ((result: ScanResult) => void) | null;
-		if (!scanResolver) {
-			throw new Error('Expected scan resolver to be captured.');
-		}
-
-		scanResolver(
-			createScanResult({
-				status: 'needs-location',
-				message: 'Location is required before staging.',
-				needsLocation: true
-			})
-		);
-
-		await expect(submission).resolves.toBeNull();
-		expect(controller.hasPendingScan()).toBe(false);
 	});
 });

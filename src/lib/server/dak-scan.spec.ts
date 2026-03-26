@@ -178,6 +178,7 @@ describe('dak scan stub helpers', () => {
 			status: 'success',
 			message: 'Location updated.',
 			needsLocation: false,
+			needPick: null,
 			dropArea: {
 				id: 41,
 				label: 'W12'
@@ -215,6 +216,7 @@ describe('dak scan stub helpers', () => {
 			status: 'api-error',
 			message: 'Backend exploded',
 			needsLocation: false,
+			needPick: null,
 			dropArea: null
 		});
 	});
@@ -238,19 +240,21 @@ describe('dak scan stub helpers', () => {
 			message:
 				'The dak-web staging scan endpoint returned an invalid response payload.',
 			needsLocation: false,
+			needPick: null,
 			dropArea: null
 		});
 	});
 
-	it('returns a descriptive pending-backend result for loading scans', async () => {
-		const expected: ScanResult = {
-			scanType: null,
-			status: 'api-error',
-			message:
-				'The dak-web loading scan endpoint /v1/scan/process-loading is not available yet. Backend delivery is still pending on DAK-194.',
-			needsLocation: false,
-			dropArea: null
-		};
+	it('posts loading scans through the shared dak proxy and normalizes loading-specific fields', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				scan_type: 'single_label',
+				status: 'success',
+				message: 'Label loaded.',
+				needs_location: false,
+				need_pick: 6
+			})
+		);
 
 		await expect(
 			processDakLoadingScan({
@@ -260,7 +264,55 @@ describe('dak scan stub helpers', () => {
 				loadNumber: 'L-100',
 				loaderName: 'Alex'
 			})
-		).resolves.toEqual(expected);
+		).resolves.toEqual({
+			scanType: 'single_label',
+			status: 'success',
+			message: 'Label loaded.',
+			needsLocation: false,
+			dropArea: null,
+			needPick: 6
+		});
+
+		expect(fetchDak).toHaveBeenCalledOnce();
+		const [path, init] = fetchDak.mock.calls[0] as [string, RequestInit | undefined];
+		const headers = new Headers(init?.headers);
+
+		expect(path).toBe('/v1/scan/process-loading');
+		expect(init?.method).toBe('POST');
+		expect(headers.get('Content-Type')).toBe('application/json');
+		expect(JSON.parse(String(init?.body))).toEqual({
+			scanned_text: 'LP-100',
+			department: 'Wrap',
+			drop_area_id: 9,
+			load_number: 'L-100',
+			loader_name: 'Alex'
+		});
+	});
+
+	it('normalizes malformed loading payloads into an api error result', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				status: 'success'
+			})
+		);
+
+		await expect(
+			processDakLoadingScan({
+				scannedText: 'LP-100',
+				department: 'Wrap',
+				dropAreaId: 9,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			scanType: null,
+			status: 'api-error',
+			message:
+				'The dak-web loading scan endpoint returned an invalid response payload.',
+			needsLocation: false,
+			dropArea: null,
+			needPick: null
+		});
 	});
 
 	it('keeps the scan endpoint constants aligned with the backend dependency tickets', () => {

@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { LoadViewDetail, LoadViewUnion, LoaderInfo } from '$lib/types';
+import type { LoadViewDetail, LoadViewUnion, LoaderInfo, ScanResult } from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
 type RemoteQueryState<T> = {
@@ -25,6 +25,8 @@ const {
 	getLoadViewDetailAll,
 	getLoadViewUnion,
 	endLoaderSession,
+	processLoadingScan,
+	toastSuccess,
 	pageState,
 	navigationSpy
 } = vi.hoisted(() => {
@@ -48,6 +50,8 @@ const {
 			(input: { loadNumber: string; sequence: number; locationId: number }) => RemoteQueryState<LoadViewUnion[]>
 		>(),
 		endLoaderSession: vi.fn(),
+		processLoadingScan: vi.fn(),
+		toastSuccess: vi.fn(),
 		pageState,
 		navigationSpy
 	};
@@ -72,6 +76,16 @@ vi.mock('$lib/loader-session.remote', () => ({
 vi.mock('$lib/load-view.remote', () => ({
 	getLoadViewDetailAll,
 	getLoadViewUnion
+}));
+
+vi.mock('$lib/scan.remote', () => ({
+	processLoadingScan
+}));
+
+vi.mock('svelte-sonner', () => ({
+	toast: {
+		success: toastSuccess
+	}
 }));
 
 import LoadingPage from './+page.svelte';
@@ -152,6 +166,38 @@ function createUnionLabel(overrides: Partial<LoadViewUnion> = {}): LoadViewUnion
 	};
 }
 
+function createScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
+	return {
+		scanType: 'single_label',
+		status: 'success',
+		message: 'Label loaded.',
+		needsLocation: false,
+		needPick: null,
+		dropArea: null,
+		...overrides
+	};
+}
+
+async function submitMainScan(value: string) {
+	const scanInput = page.getByTestId('loading-scan-input');
+	await scanInput.fill(value);
+
+	const inputElement = document.querySelector('[data-testid="loading-scan-input"]');
+	if (!(inputElement instanceof HTMLInputElement)) {
+		throw new Error('Expected loading scan input element.');
+	}
+
+	inputElement.dispatchEvent(
+		new KeyboardEvent('keydown', {
+			key: 'Enter',
+			bubbles: true,
+			cancelable: true
+		})
+	);
+
+	return inputElement;
+}
+
 describe('loading page', () => {
 	beforeEach(() => {
 		goto.mockReset();
@@ -159,6 +205,8 @@ describe('loading page', () => {
 		getLoadViewDetailAll.mockReset();
 		getLoadViewUnion.mockReset();
 		endLoaderSession.mockReset();
+		processLoadingScan.mockReset();
+		toastSuccess.mockReset();
 		navigationSpy.callback = null;
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
@@ -209,6 +257,7 @@ describe('loading page', () => {
 						]
 			)
 		);
+		processLoadingScan.mockResolvedValue(createScanResult());
 	});
 
 	it('loads loader info from the category handoff and renders the resolved loading context', async () => {
@@ -297,6 +346,196 @@ describe('loading page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeEnabled();
+	});
+
+	it('submits loading scans on Enter with the active drop context, refreshes data, and clears the input', async () => {
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail()], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledWith({
+				scannedText: 'LP-100',
+				department: 'Wrap',
+				dropAreaId: null,
+				loadNumber: 'L-042',
+				loaderName: 'Alex'
+			});
+		});
+		await vi.waitFor(() => {
+			expect(detailRefresh).toHaveBeenCalledOnce();
+			expect(unionRefresh).toHaveBeenCalledOnce();
+		});
+		await vi.waitFor(() => {
+			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		});
+		expect(inputElement.value).toBe('');
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('updates the in-memory drop area for successful location scans without refreshing detail queries', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: 'location',
+				message: 'Location updated.',
+				dropArea: {
+					id: 41,
+					label: 'D12'
+				}
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('41');
+
+		await vi.waitFor(() => {
+			expect(get(workflowStores.currentDropArea)).toEqual({
+				dropAreaId: 41,
+				dropAreaLabel: 'D12'
+			});
+		});
+		expect(toastSuccess).not.toHaveBeenCalled();
+	});
+
+	it('shows an inline scanner-safe error when the backend blocks the current drop', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'department-blocked',
+				message: 'This drop is not completed!'
+			})
+		);
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('This drop is not completed!')).toBeInTheDocument();
+		expect(inputElement.value).toBe('');
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('bridges needs-location by prompting for a numeric scan next and retrying automatically after a valid location', async () => {
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail()], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'needs-location',
+					message: 'Scan a driver location next.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 41,
+						label: 'D12'
+					}
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByText('Scan a driver location next.')).toBeInTheDocument();
+
+		await submitMainScan('41');
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(3);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(3, {
+			scannedText: 'LP-100',
+			department: 'Wrap',
+			dropAreaId: 41,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		await vi.waitFor(() => {
+			expect(detailRefresh).toHaveBeenCalledOnce();
+			expect(unionRefresh).toHaveBeenCalledOnce();
+		});
+		expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+	});
+
+	it('cancels a pending needs-location retry when the operator changes drops', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'needs-location',
+					message: 'Scan a driver location next.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'D13'
+					}
+				})
+			);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByText('Scan a driver location next.')).toBeInTheDocument();
+
+		await page.getByRole('button', { name: /Next drop/i }).click();
+		await submitMainScan('42');
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: '42',
+			department: 'Wrap',
+			dropAreaId: null,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
 	});
 
 	it('redirects to home when the loading entry params are invalid', async () => {
