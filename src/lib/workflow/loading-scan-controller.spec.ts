@@ -83,7 +83,79 @@ describe('createLoadingScanController', () => {
 			})
 		).resolves.toEqual({
 			kind: 'error',
+			title: 'Invalid Location',
 			message: 'Location is not valid.',
+			errorKind: 'business',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
+	it('maps does-not-belong scans into a not-found loading error with the legacy meaning', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				status: 'does-not-belong',
+				message: "Label doesn't belong to this drop!"
+			})
+		);
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
+			processScan,
+			refreshActiveDropData
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-404',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			kind: 'error',
+			title: 'Not Found',
+			message: "Label doesn't belong to this drop!",
+			errorKind: 'business',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
+	it('maps api-error scans into a diagnosable loading error', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				status: 'api-error',
+				message: '500: dak-web unavailable'
+			})
+		);
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
+			processScan,
+			refreshActiveDropData
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-500',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			kind: 'error',
+			title: 'API Error',
+			message: '500: dak-web unavailable',
+			errorKind: 'api',
 			dropArea: null,
 			clearCurrentDropArea: false,
 			showSuccessToast: false

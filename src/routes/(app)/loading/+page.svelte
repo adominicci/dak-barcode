@@ -38,6 +38,7 @@
 		workflowStores,
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
+	import type { LoadingScanRequest } from '$lib/types';
 
 	const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
 		month: 'short',
@@ -54,6 +55,23 @@
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
 
+	type LoadingRetryState =
+		| {
+				mode: 'direct';
+				request: LoadingScanRequest;
+		  }
+		| {
+				mode: 'pending';
+				dropAreaId: number;
+		  };
+
+	type LoadingScanErrorState = {
+		title: string;
+		message: string;
+		errorKind: 'business' | 'api' | 'transport';
+		retryState: LoadingRetryState | null;
+	};
+
 	const selectedDepartment = get(workflowStores.selectedDepartment);
 	const currentLoader = get(workflowStores.currentLoader);
 
@@ -65,7 +83,7 @@
 	let currentDropArea = $state<WorkflowDropAreaSelection>(null);
 	let loadingScanController = $state<ReturnType<typeof createLoadingScanController> | null>(null);
 	let scanInputValue = $state('');
-	let scanError = $state<string | null>(null);
+	let scanError = $state<LoadingScanErrorState | null>(null);
 	let scanPrompt = $state<string | null>(null);
 	let isLocationModalOpen = $state(false);
 	let scanInputElement = $state<HTMLInputElement | null>(null);
@@ -230,6 +248,19 @@
 		workflowStores.clearScannedText();
 	}
 
+	function clearScanError() {
+		scanError = null;
+	}
+
+	function setTransportError(message: string, retryState: LoadingRetryState | null) {
+		scanError = {
+			title: 'Connection issue',
+			message,
+			errorKind: 'transport',
+			retryState
+		};
+	}
+
 	async function refreshActiveDropData() {
 		if (selectedDropDetail === null || dropDetailsQuery === null) {
 			return;
@@ -254,7 +285,15 @@
 			return;
 		}
 
-		scanError = action.kind === 'error' ? action.message : null;
+		scanError =
+			action.kind === 'error'
+				? {
+						title: action.title,
+						message: action.message,
+						errorKind: action.errorKind,
+						retryState: null
+					}
+				: null;
 		scanPrompt = action.kind === 'needs-location' ? action.message : null;
 		isLocationModalOpen = action.kind === 'needs-location';
 
@@ -268,7 +307,7 @@
 		}
 
 		if (action.showSuccessToast) {
-			scanError = null;
+			clearScanError();
 			scanPrompt = null;
 			toast.success(action.message);
 		}
@@ -323,15 +362,64 @@
 			scanPrompt = null;
 
 			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
-				scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
+				setTransportError(LOADING_SCAN_TIMEOUT_MESSAGE, null);
 				monitorTimedOutScanSettlement(retryPromise);
 			} else {
-				scanError =
-					error instanceof Error ? error.message : 'The loading scan request failed.';
-				loadingScanController.cancelPendingScan();
+				setTransportError(
+					error instanceof Error ? error.message : 'The loading scan request failed.',
+					{
+						mode: 'pending',
+						dropAreaId
+					}
+				);
 				await focusScanInput();
 			}
 			return false;
+		}
+	}
+
+	async function executeDirectScan(request: LoadingScanRequest) {
+		if (!loadingScanController) {
+			return;
+		}
+
+		workflowStores.setScannedText(request.scannedText);
+		let shouldRefocusAfterScan = false;
+		const scanPromise = loadingScanController.submitScan(request);
+
+		try {
+			const action = await withTimeout(
+				scanPromise,
+				LOADING_SCAN_TIMEOUT_MS,
+				LOADING_SCAN_TIMEOUT_MESSAGE
+			);
+			await applyScanAction(action);
+			shouldRefocusAfterScan = true;
+
+			if (action?.kind === 'location-updated' && loadingScanController.hasPendingScan()) {
+				shouldRefocusAfterScan = !(await retryPendingScanWithDropArea(action.dropArea.dropAreaId));
+			}
+		} catch (error) {
+			scanPrompt = null;
+
+			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
+				setTransportError(LOADING_SCAN_TIMEOUT_MESSAGE, null);
+				monitorTimedOutScanSettlement(scanPromise);
+				shouldRefocusAfterScan = false;
+			} else {
+				setTransportError(
+					error instanceof Error ? error.message : 'The loading scan request failed.',
+					{
+						mode: 'direct',
+						request
+					}
+				);
+				shouldRefocusAfterScan = true;
+			}
+		}
+
+		if (shouldRefocusAfterScan) {
+			await focusScanInput();
 		}
 	}
 
@@ -351,54 +439,25 @@
 		clearScanInput();
 
 		if (scannedText.length === 0) {
-			scanError = null;
+			clearScanError();
 			scanPrompt = null;
 			await focusScanInput();
 			return;
 		}
 
-		workflowStores.setScannedText(scannedText);
 		isScanning = true;
-		let shouldRefocusAfterScan = false;
-		const scanPromise = loadingScanController.submitScan({
+		const request: LoadingScanRequest = {
 			scannedText,
 			department: loaderInfo.department,
 			dropAreaId: currentDropArea?.dropAreaId ?? null,
 			loadNumber: selectedDropDetail.loadNumber,
 			loaderName: loaderInfo.loaderName
-		});
+		};
 
 		try {
-			const action = await withTimeout(
-				scanPromise,
-				LOADING_SCAN_TIMEOUT_MS,
-				LOADING_SCAN_TIMEOUT_MESSAGE
-			);
-			await applyScanAction(action);
-			shouldRefocusAfterScan = true;
-
-			if (action?.kind === 'location-updated' && loadingScanController.hasPendingScan()) {
-				shouldRefocusAfterScan = !(await retryPendingScanWithDropArea(action.dropArea.dropAreaId));
-			}
-		} catch (error) {
-			scanPrompt = null;
-
-			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
-				scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
-				monitorTimedOutScanSettlement(scanPromise);
-				shouldRefocusAfterScan = false;
-			} else {
-				scanError =
-					error instanceof Error ? error.message : 'The loading scan request failed.';
-				loadingScanController.cancelPendingScan();
-				shouldRefocusAfterScan = true;
-			}
+			await executeDirectScan(request);
 		} finally {
 			isScanning = false;
-		}
-
-		if (shouldRefocusAfterScan) {
-			await focusScanInput();
 		}
 	}
 
@@ -416,7 +475,7 @@
 			scanPrompt = null;
 		}
 
-		scanError = null;
+		clearScanError();
 		isLocationModalOpen = false;
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,
@@ -427,7 +486,7 @@
 
 	async function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
 		workflowStores.setCurrentDropArea(dropArea);
-		scanError = null;
+		clearScanError();
 		scanPrompt = null;
 		isScanning = true;
 		isLocationModalOpen = false;
@@ -443,10 +502,40 @@
 
 	async function handleLocationModalClose() {
 		loadingScanController?.cancelPendingScan();
-		scanError = null;
+		clearScanError();
 		scanPrompt = null;
 		isLocationModalOpen = false;
 		await focusScanInput();
+	}
+
+	async function handleErrorDismiss() {
+		if (scanError?.retryState?.mode === 'pending') {
+			loadingScanController?.cancelPendingScan();
+		}
+
+		clearScanError();
+		await focusScanInput();
+	}
+
+	async function handleErrorRetry() {
+		if (!scanError?.retryState || isScanning || pendingTimedOutScan !== null) {
+			return;
+		}
+
+		const retryState = scanError.retryState;
+		clearScanError();
+		scanPrompt = null;
+		isScanning = true;
+
+		try {
+			if (retryState.mode === 'pending') {
+				await retryPendingScanWithDropArea(retryState.dropAreaId);
+			} else {
+				await executeDirectScan(retryState.request);
+			}
+		} finally {
+			isScanning = false;
+		}
 	}
 
 	function getLabelStatusClasses(scanned: boolean) {
@@ -761,7 +850,30 @@
 									class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
 								>
 									<TriangleAlert class="mt-0.5 size-4 shrink-0" />
-									<p>{scanError}</p>
+									<div class="min-w-0 flex-1">
+										<p class="font-semibold text-rose-800">{scanError.title}</p>
+										<p class="mt-1">{scanError.message}</p>
+										<div class="mt-3 flex flex-wrap gap-2">
+											{#if scanError.retryState}
+												<button
+													type="button"
+													class="inline-flex items-center justify-center rounded-full bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
+													disabled={isScanning || pendingTimedOutScan !== null}
+													onclick={handleErrorRetry}
+												>
+													Retry scan
+												</button>
+											{/if}
+											<button
+												type="button"
+												class="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
+												disabled={isScanning || pendingTimedOutScan !== null}
+												onclick={handleErrorDismiss}
+											>
+												Dismiss error
+											</button>
+										</div>
+									</div>
 								</div>
 							{:else if scanPrompt}
 								<div

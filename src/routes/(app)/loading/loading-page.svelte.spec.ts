@@ -509,6 +509,27 @@ describe('loading page', () => {
 		expect(document.activeElement).toBe(inputElement);
 	});
 
+	it('renders the mapped loading error title for does-not-belong results', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'does-not-belong',
+				message: "Label doesn't belong to this drop!"
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-404');
+
+		await expect.element(page.getByText('Not Found')).toBeInTheDocument();
+		await expect
+			.element(page.getByText("Label doesn't belong to this drop!"))
+			.toBeInTheDocument();
+	});
+
 	it('opens the Scan New Location modal when the backend requests a location, then retries after a modal selection', async () => {
 		const detailRefresh = vi.fn().mockResolvedValue(undefined);
 		const unionRefresh = vi.fn().mockResolvedValue(undefined);
@@ -795,6 +816,78 @@ describe('loading page', () => {
 			.not.toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('dismisses a thrown loading scan failure and returns the field to ready state', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockRejectedValueOnce(new Error('Failed to execute remote function'));
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Dismiss error' }))
+			.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Dismiss error' }).click();
+
+		await expect.element(page.getByText('Connection issue')).not.toBeInTheDocument();
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('retries the last thrown loading scan request from the recovery panel', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockRejectedValueOnce(new Error('Failed to execute remote function'))
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Retry scan' }).click();
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-100',
+			department: 'Wrap',
+			dropAreaId: null,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		await vi.waitFor(() => {
+			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		});
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('shows api-error results with diagnosable loading context', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'api-error',
+				message: '500: dak-web unavailable'
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-500');
+
+		await expect.element(page.getByText('API Error')).toBeInTheDocument();
+		await expect.element(page.getByText('500: dak-web unavailable')).toBeInTheDocument();
 	});
 
 	it('redirects to home when the loading entry params are invalid', async () => {
