@@ -312,11 +312,13 @@
 			return action !== null;
 		} catch (error) {
 			scanPrompt = null;
-			scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
 
 			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
+				scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
 				monitorTimedOutScanSettlement(retryPromise);
 			} else {
+				scanError =
+					error instanceof Error ? error.message : 'The loading scan request failed.';
 				loadingScanController.cancelPendingScan();
 				await focusScanInput();
 			}
@@ -370,12 +372,14 @@
 			}
 		} catch (error) {
 			scanPrompt = null;
-			scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
 
 			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
+				scanError = LOADING_SCAN_TIMEOUT_MESSAGE;
 				monitorTimedOutScanSettlement(scanPromise);
 				shouldRefocusAfterScan = false;
 			} else {
+				scanError =
+					error instanceof Error ? error.message : 'The loading scan request failed.';
 				loadingScanController.cancelPendingScan();
 				shouldRefocusAfterScan = true;
 			}
@@ -398,11 +402,10 @@
 	}
 
 	function moveToDrop(direction: 'previous' | 'next') {
-		if (loadingScanController?.cancelPendingScan()) {
+		if (loadingScanController?.hasPendingScan() && loadingScanController.cancelPendingScan()) {
 			scanPrompt = null;
 		}
 
-		scanPrompt = null;
 		scanError = null;
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,

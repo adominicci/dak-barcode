@@ -88,7 +88,7 @@ export function createLoadingScanController({
 		}
 
 		if (result.status === 'success') {
-			if (clearPendingOnResult) {
+			if (clearPendingOnResult || (pendingScan !== null && result.scanType !== 'location')) {
 				invalidatePendingScan();
 			}
 
@@ -144,7 +144,9 @@ export function createLoadingScanController({
 		},
 		cancelPendingScan() {
 			const hadPendingScan = pendingScan !== null;
-			invalidatePendingScan();
+			if (hadPendingScan) {
+				invalidatePendingScan();
+			}
 			return hadPendingScan;
 		}
 	};

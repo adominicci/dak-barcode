@@ -538,6 +538,65 @@ describe('loading page', () => {
 		});
 	});
 
+	it('keeps an in-flight successful scan visible when the operator changes drops', async () => {
+		let resolveScan: ((result: ScanResult) => void) | null = null;
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail(), createDropDetail({ sequence: 2, dropSequence: 2 })], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		processLoadingScan.mockImplementationOnce(
+			() =>
+				new Promise<ScanResult>((resolve) => {
+					resolveScan = resolve;
+				})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await page.getByRole('button', { name: /Next drop/i }).click();
+
+		const scanResolver = resolveScan as ((result: ScanResult) => void) | null;
+		if (!scanResolver) {
+			throw new Error('Expected scan resolver to be captured.');
+		}
+
+		scanResolver(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		});
+		expect(detailRefresh).toHaveBeenCalledOnce();
+		expect(unionRefresh).toHaveBeenCalledOnce();
+	});
+
+	it('shows the real non-timeout error message when loading scan submission fails', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockRejectedValueOnce(new Error('Failed to execute remote function'));
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Failed to execute remote function')).toBeInTheDocument();
+		await expect
+			.element(page.getByText('We could not process that scan right now.'))
+			.not.toBeInTheDocument();
+		expect(inputElement.value).toBe('');
+		expect(document.activeElement).toBe(inputElement);
+	});
+
 	it('redirects to home when the loading entry params are invalid', async () => {
 		pageState.url = new URL('https://app.local/loading?dropsheetId=42&locationId=2');
 

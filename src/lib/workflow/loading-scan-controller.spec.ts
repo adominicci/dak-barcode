@@ -306,6 +306,107 @@ describe('createLoadingScanController', () => {
 				department: 'Wrap',
 				dropAreaId: 41,
 				loadNumber: 'L-100',
+			loaderName: 'Alex'
+		})
+		).resolves.toBeNull();
+	});
+
+	it('does not invalidate an in-flight scan when cancelPendingScan is called without a pending retry', async () => {
+		let resolveScan: ((result: ScanResult) => void) | null = null;
+		const refreshActiveDropData = vi.fn().mockResolvedValue(undefined);
+		const controller = createLoadingScanController({
+			processScan: vi.fn(
+				() =>
+					new Promise<ScanResult>((resolve) => {
+						resolveScan = resolve;
+					})
+			),
+			refreshActiveDropData
+		});
+
+		const submission = controller.submitScan({
+			scannedText: 'LP-300',
+			department: 'Wrap',
+			dropAreaId: 41,
+			loadNumber: 'L-100',
+			loaderName: 'Alex'
+		});
+
+		expect(controller.cancelPendingScan()).toBe(false);
+
+		const scanResolver = resolveScan as ((result: ScanResult) => void) | null;
+		if (!scanResolver) {
+			throw new Error('Expected scan resolver to be captured.');
+		}
+
+		scanResolver(createScanResult());
+
+		await expect(submission).resolves.toEqual({
+			kind: 'success',
+			message: 'Label loaded.',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: true
+		});
+		expect(refreshActiveDropData).toHaveBeenCalledOnce();
+	});
+
+	it('clears a stale pending scan when a different non-location scan succeeds before retrying', async () => {
+		const refreshActiveDropData = vi.fn().mockResolvedValue(undefined);
+		const controller = createLoadingScanController({
+			processScan: vi
+				.fn()
+				.mockResolvedValueOnce(
+					createScanResult({
+						status: 'needs-location',
+						message: 'Scan a driver location next.',
+						needsLocation: true
+					})
+				)
+				.mockResolvedValueOnce(
+					createScanResult({
+						scanType: 'single_label',
+						message: 'Label loaded.'
+					})
+				),
+			refreshActiveDropData
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-100',
+				department: 'Wrap',
+				dropAreaId: null,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toMatchObject({
+			kind: 'needs-location'
+		});
+		expect(controller.hasPendingScan()).toBe(true);
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-200',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			kind: 'success',
+			message: 'Label loaded.',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: true
+		});
+
+		expect(controller.hasPendingScan()).toBe(false);
+		await expect(
+			controller.retryPendingScan({
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
 				loaderName: 'Alex'
 			})
 		).resolves.toBeNull();
