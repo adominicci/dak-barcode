@@ -85,6 +85,18 @@ export type RawDstDepartmentStatusOnDropSheet = {
 	StatusOnLoadSoffitDS?: string | null;
 };
 
+export type RawDstDropSheetCategoryAvailability = {
+	DropSheetID: number;
+	RollScannedPercent?: number | null;
+	RollHasLabels?: number | null;
+	WrapScannedPercent?: number | null;
+	WrapHasLabels?: number | null;
+	PartHasLabels?: number | null;
+	// DST returns this misspelled field name without the expected capital "S".
+	PartcannedPercent?: number | null;
+	AllLoaded?: boolean | null;
+};
+
 export type RawDstStagingListItem = {
 	LPIDDetail?: number | null;
 	PartListID?: string | null;

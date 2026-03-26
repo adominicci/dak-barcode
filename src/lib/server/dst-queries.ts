@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import {
 	OPERATIONAL_DEPARTMENTS,
 	type DepartmentStatus,
+	type DropSheetCategoryAvailability,
 	type DropArea,
 	type DropSheet,
 	type LoadViewDetail,
@@ -13,6 +14,7 @@ import {
 import type {
 	RawDstCategoryListEntry,
 	RawDstDepartmentStatusOnDropSheet,
+	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
 	RawDstLoadViewDetail,
@@ -23,6 +25,7 @@ import type {
 import {
 	mapDstCategoryList,
 	mapDstDepartmentStatusFromDropSheet,
+	mapDstDropSheetCategoryAvailability,
 	mapDstDropArea,
 	mapDstDropSheet,
 	mapDstLoadViewDetail,
@@ -37,6 +40,7 @@ const DST_ROUTES = {
 	insertLoader: '/api/barcode-update/insert-loader',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
+	dropsheetCategoryAvailability: '/api/barcode-update/get-percent-scanned-label-count',
 	dropArea: '/api/barcode-get/get-droparea',
 	dropAreasByDepartment: '/api/barcode-update/select-drop-area',
 	categoryList: '/api/barcode-get/category-list',
@@ -179,6 +183,10 @@ function hasUsableDropSheetStatus(record: Record<string, unknown>) {
 	return isFiniteNumber(record.DropSheetID);
 }
 
+function hasUsableDropSheetCategoryAvailability(record: Record<string, unknown>) {
+	return isFiniteNumber(record.DropSheetID);
+}
+
 function hasUsableLoadViewDetail(record: Record<string, unknown>) {
 	return (
 		isFiniteNumber(record.DropSheetID) &&
@@ -226,6 +234,25 @@ export async function getDstDropsheetStatus(dropSheetId: number): Promise<Depart
 			body,
 			DST_ROUTES.dropsheetStatus,
 			hasUsableDropSheetStatus
+		)
+	);
+}
+
+export async function getDstDropSheetCategoryAvailability(
+	dropSheetId: number
+): Promise<DropSheetCategoryAvailability> {
+	const body = await readDstJson(
+		DST_ROUTES.dropsheetCategoryAvailability,
+		jsonInit({
+			DropSheetID: dropSheetId
+		})
+	);
+
+	return mapDstDropSheetCategoryAvailability(
+		expectRecordResponse<RawDstDropSheetCategoryAvailability>(
+			body,
+			DST_ROUTES.dropsheetCategoryAvailability,
+			hasUsableDropSheetCategoryAvailability
 		)
 	);
 }
