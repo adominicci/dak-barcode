@@ -113,9 +113,28 @@
 
 		isLocationModalOpen = action.openLocationModal;
 
-		if (!action.openLocationModal && !isScanning) {
+		if (!action.openLocationModal && !isScanning && pendingTimedOutScan === null) {
 			await focusScanInput();
 		}
+	}
+
+	function monitorTimedOutScanSettlement(
+		scanPromise: ReturnType<NonNullable<typeof stagingScanController>['submitScan']>
+	) {
+		pendingTimedOutScan = (async () => {
+			try {
+				const action = await scanPromise;
+				await applyScanAction(action);
+
+				if (action?.kind === 'location-updated') {
+					await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
+				}
+			} catch {
+				// The timeout fallback is already visible; keep it in place if the request also fails.
+			} finally {
+				pendingTimedOutScan = null;
+			}
+		})();
 	}
 
 	async function retryPendingScanWithDropArea(dropAreaId: number) {
@@ -139,14 +158,12 @@
 			}
 			return action !== null;
 		} catch (error) {
-			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
 
 			if (error instanceof Error && error.message === STAGING_SCAN_TIMEOUT_MESSAGE) {
-				pendingTimedOutScan = retryPromise.finally(() => {
-					pendingTimedOutScan = null;
-				});
+				monitorTimedOutScanSettlement(retryPromise);
 			} else {
+				stagingScanController?.cancelPendingScan();
 				await focusScanInput();
 			}
 			return false;
@@ -188,13 +205,11 @@
 				await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
 			}
 		} catch (error) {
-			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
 			if (error instanceof Error && error.message === STAGING_SCAN_TIMEOUT_MESSAGE) {
-				pendingTimedOutScan = scanPromise.finally(() => {
-					pendingTimedOutScan = null;
-				});
+				monitorTimedOutScanSettlement(scanPromise);
 			} else {
+				stagingScanController?.cancelPendingScan();
 				shouldRefocusAfterScan = true;
 			}
 		} finally {
@@ -283,7 +298,8 @@
 			<button
 				data-testid="staging-department-trigger"
 				type="button"
-				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors"
+				disabled={pendingTimedOutScan !== null || isScanning}
+				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
 				onclick={() => {
 					stagingScanController?.cancelPendingScan();
 					scanError = null;
@@ -300,7 +316,7 @@
 			<button
 				data-testid="staging-location-trigger"
 				type="button"
-				disabled={isDepartmentGateOpen}
+				disabled={isDepartmentGateOpen || pendingTimedOutScan !== null || isScanning}
 				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
 				onclick={() => (isLocationModalOpen = true)}
 			>

@@ -80,8 +80,9 @@
 	</div>
 	<input
 		class="sr-only"
-		type="email"
+		type="text"
 		name="email"
+		inputmode="email"
 		autocomplete="username"
 		tabindex="-1"
 		aria-hidden="true"

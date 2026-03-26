@@ -23,8 +23,36 @@ describe('fixed domain email field', () => {
 
 		await expect.element(page.getByLabelText('Email')).toHaveAttribute('autocomplete', 'off');
 		expect(emailBridge).not.toBeNull();
-		await expect.element(emailBridge).toHaveAttribute('type', 'email');
+		await expect.element(emailBridge).toHaveAttribute('type', 'text');
+		await expect.element(emailBridge).toHaveAttribute('inputmode', 'email');
 		await expect.element(emailBridge).toHaveAttribute('autocomplete', 'username');
 		await expect.element(emailBridge).toHaveValue('andresd@dakotasteelandtrim.com');
+	});
+
+	it('does not let browser email validation block autofilled usernames that include @', async () => {
+		render(FixedDomainEmailField, {
+			id: 'login-email',
+			username: 'andresd'
+		});
+
+		const form = document.createElement('form');
+		const fieldRoot = document.querySelector('.space-y-2\\.5');
+		if (!(fieldRoot instanceof HTMLDivElement)) {
+			throw new Error('Expected fixed-domain field root.');
+		}
+
+		form.append(fieldRoot);
+		document.body.append(form);
+
+		const emailBridge = document.querySelector('input[name="email"]');
+		if (!(emailBridge instanceof HTMLInputElement)) {
+			throw new Error('Expected email bridge input.');
+		}
+
+		emailBridge.value = 'user@gmail.com@dakotasteelandtrim.com';
+		emailBridge.dispatchEvent(new Event('input', { bubbles: true }));
+
+		expect(form.checkValidity()).toBe(true);
+		await expect.element(page.getByLabelText('Email')).toHaveValue('user@gmail.com');
 	});
 });

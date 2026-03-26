@@ -51,6 +51,12 @@ const { withTimeout } = vi.hoisted(() => ({
 	withTimeout: vi.fn(async <T>(promise: Promise<T>) => promise)
 }));
 
+const { toast } = vi.hoisted(() => ({
+	toast: {
+		success: vi.fn<(message: string) => void>()
+	}
+}));
+
 vi.mock('$lib/staging.remote', () => ({
 	getStagingPartsForDay,
 	getStagingPartsForDayRoll
@@ -67,6 +73,10 @@ vi.mock('$lib/scan.remote', () => ({
 
 vi.mock('$lib/workflow/async-timeout', () => ({
 	withTimeout
+}));
+
+vi.mock('svelte-sonner', () => ({
+	toast
 }));
 
 import StagingPage from './+page.svelte';
@@ -108,6 +118,7 @@ describe('staging page department gate', () => {
 		getDropAreasByDepartment.mockReset();
 		getDropArea.mockReset();
 		processStagingScan.mockReset();
+		toast.success.mockReset();
 		getStagingPartsForDay.mockReturnValue(
 			createStagingQuery([
 				{
@@ -776,7 +787,7 @@ describe('staging page department gate', () => {
 		await expect.element(scanInput).toHaveFocus();
 	});
 
-	it('keeps scan input locked after a timeout until the in-flight scan settles', async () => {
+	it('applies a late successful scan result after showing a timeout fallback', async () => {
 		withTimeout.mockRejectedValueOnce(new Error('We could not process that scan right now.'));
 		let resolveTimedOutScan: ((result: ScanResult) => void) | null = null;
 		processStagingScan.mockReturnValueOnce(
@@ -803,8 +814,12 @@ describe('staging page department gate', () => {
 
 		timedOutScanResolver(createScanResult());
 
+		await expect
+			.element(page.getByTestId('staging-scan-error'))
+			.not.toBeInTheDocument();
 		await expect.element(scanInput).not.toBeDisabled();
 		await expect.element(scanInput).toHaveFocus();
+		expect(toast.success).toHaveBeenCalledWith('Label staged.');
 	});
 
 	it('ignores a late numeric lookup response after a newer card selection closes the modal', async () => {
