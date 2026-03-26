@@ -23,14 +23,16 @@ function createLoaderInfo(overrides: Partial<LoaderInfo> = {}): LoaderInfo {
 describe('loading lifecycle helpers', () => {
 	it('parses a complete loading entry context from the route URL', () => {
 		const url = new URL(
-			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z'
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
 		);
 
 		expect(parseLoadingEntryContext(url)).toEqual({
 			dropSheetId: 42,
 			locationId: 2,
 			loaderSessionId: 88,
-			startedAt: '2026-03-26T12:00:00.000Z'
+			startedAt: '2026-03-26T12:00:00.000Z',
+			loadNumber: 'L-042',
+			dropWeight: 2152.4
 		});
 	});
 
@@ -74,7 +76,9 @@ describe('loading lifecycle helpers', () => {
 					dropSheetId: 42,
 					locationId: 2,
 					loaderSessionId: 88,
-					startedAt: '2026-03-26T12:00:00.000Z'
+					startedAt: '2026-03-26T12:00:00.000Z',
+					loadNumber: 'L-042',
+					dropWeight: 2152.4
 				},
 				selectedDepartment: 'Wrap',
 				currentLoader: { loaderId: 7, loaderName: 'Alex' },
@@ -96,7 +100,9 @@ describe('loading lifecycle helpers', () => {
 					dropSheetId: 42,
 					locationId: 2,
 					loaderSessionId: 88,
-					startedAt: null
+					startedAt: null,
+					loadNumber: null,
+					dropWeight: null
 				},
 				selectedDepartment: 'Wrap',
 				currentLoader: { loaderId: 7, loaderName: 'Alex' },
@@ -113,7 +119,9 @@ describe('loading lifecycle helpers', () => {
 					dropSheetId: 42,
 					locationId: 2,
 					loaderSessionId: 88,
-					startedAt: '2026-03-26T12:00:00.000Z'
+					startedAt: '2026-03-26T12:00:00.000Z',
+					loadNumber: 'L-042',
+					dropWeight: 2152.4
 				},
 				selectedDepartment: 'Wrap',
 				currentLoader: { loaderId: 7, loaderName: 'Alex' },
@@ -135,7 +143,9 @@ describe('loading lifecycle helpers', () => {
 					dropSheetId: 42,
 					locationId: 2,
 					loaderSessionId: 88,
-					startedAt: null
+					startedAt: null,
+					loadNumber: null,
+					dropWeight: null
 				},
 				selectedDepartment: 'Wrap',
 				currentLoader: { loaderId: 7, loaderName: 'Alex' },

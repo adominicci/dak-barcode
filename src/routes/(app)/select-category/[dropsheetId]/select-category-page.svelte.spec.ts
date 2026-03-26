@@ -184,6 +184,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -212,6 +213,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -230,6 +232,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -261,6 +264,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -286,7 +290,7 @@ describe('select-category page', () => {
 			loaderName: 'Alex'
 		});
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
 		);
 	});
 });

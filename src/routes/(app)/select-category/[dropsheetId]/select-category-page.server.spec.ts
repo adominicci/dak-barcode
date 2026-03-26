@@ -11,7 +11,7 @@ vi.mock('$lib/server/dst-queries', () => ({
 import { load } from './+page.server';
 
 describe('select-category page server load', () => {
-	it('returns the validated dropsheet id, the carried load number, and only active loader options', async () => {
+	it('returns the validated dropsheet id, the carried load number, the optional drop weight, and only active loader options', async () => {
 		getDstLoaders.mockResolvedValue([
 			{ id: 7, name: 'Alex', isActive: true },
 			{ id: 8, name: 'Inactive Loader', isActive: false },
@@ -26,6 +26,7 @@ describe('select-category page server load', () => {
 		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: '42',
+			dropWeight: null,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
 				{ id: 9, name: 'Casey', isActive: true }
@@ -44,6 +45,7 @@ describe('select-category page server load', () => {
 		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
+			dropWeight: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }]
 		});
 	});
@@ -59,6 +61,23 @@ describe('select-category page server load', () => {
 		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
+			dropWeight: null,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }]
+		});
+	});
+
+	it('parses the carried dropsheet weight when the dropsheet list hands it forward', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/select-category/42?loadNumber=L-042&dropWeight=2152.4')
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			dropWeight: 2152.4,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }]
 		});
 	});

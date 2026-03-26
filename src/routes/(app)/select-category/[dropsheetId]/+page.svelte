@@ -174,8 +174,13 @@
 				dropsheetId: String(data.dropSheetId),
 				locationId: String(locationId),
 				loaderSessionId: String(session.id),
-				startedAt: session.startedAt
+				startedAt: session.startedAt,
+				loadNumber: data.loadNumber
 			});
+
+			if (data.dropWeight !== null) {
+				searchParams.set('dropWeight', String(data.dropWeight));
+			}
 
 			await goto(resolve(`/loading?${searchParams.toString()}`));
 		} catch (error) {

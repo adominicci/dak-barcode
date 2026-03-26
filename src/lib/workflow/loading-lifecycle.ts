@@ -9,6 +9,8 @@ export type LoadingEntryContext = {
 	locationId: number;
 	loaderSessionId: number;
 	startedAt: string | null;
+	loadNumber: string | null;
+	dropWeight: number | null;
 };
 
 function parsePositiveInteger(value: string | null): number | null {
@@ -17,6 +19,16 @@ function parsePositiveInteger(value: string | null): number | null {
 	}
 
 	const parsed = Number.parseInt(value, 10);
+
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parsePositiveNumber(value: string | null): number | null {
+	if (!value) {
+		return null;
+	}
+
+	const parsed = Number.parseFloat(value);
 
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
@@ -34,7 +46,9 @@ export function parseLoadingEntryContext(url: URL): LoadingEntryContext | null {
 		dropSheetId,
 		locationId,
 		loaderSessionId,
-		startedAt: url.searchParams.get('startedAt')?.trim() || null
+		startedAt: url.searchParams.get('startedAt')?.trim() || null,
+		loadNumber: url.searchParams.get('loadNumber')?.trim() || null,
+		dropWeight: parsePositiveNumber(url.searchParams.get('dropWeight'))
 	};
 }
 
