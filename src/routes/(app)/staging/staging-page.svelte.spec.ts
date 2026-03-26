@@ -744,6 +744,38 @@ describe('staging page department gate', () => {
 		await expect.element(scanInput).toHaveFocus();
 	});
 
+	it('ignores overlapping scan submissions while a staging scan is still in flight', async () => {
+		let resolveFirstScan: ((result: ScanResult) => void) | null = null;
+		processStagingScan.mockImplementationOnce(
+			() =>
+				new Promise<ScanResult>((resolve) => {
+					resolveFirstScan = resolve;
+				})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = page.getByTestId('staging-scan-input');
+		await submitMainScan('LP-100');
+
+		expect(processStagingScan).toHaveBeenCalledTimes(1);
+		await expect.element(scanInput).toBeDisabled();
+
+		const firstScanResolver = resolveFirstScan as ((result: ScanResult) => void) | null;
+		if (!firstScanResolver) {
+			throw new Error('Expected first scan resolver to be captured.');
+		}
+
+		firstScanResolver(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(1);
+		});
+		await expect.element(scanInput).not.toBeDisabled();
+		await expect.element(scanInput).toHaveFocus();
+	});
+
 	it('renders an inline fallback error when the staging scan times out', async () => {
 		withTimeout.mockRejectedValueOnce(new Error('We could not process that scan right now.'));
 		processStagingScan.mockReturnValueOnce(new Promise<ScanResult>(() => {}));

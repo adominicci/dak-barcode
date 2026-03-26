@@ -24,6 +24,7 @@
 	let scanInputValue = $state('');
 	let scanError = $state<string | null>(null);
 	let scanInputElement = $state<HTMLInputElement | null>(null);
+	let isScanning = $state(false);
 
 	const STAGING_SCAN_TIMEOUT_MS = 8000;
 	const STAGING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
@@ -105,7 +106,7 @@
 
 		isLocationModalOpen = action.openLocationModal;
 
-		if (!action.openLocationModal) {
+		if (!action.openLocationModal && !isScanning) {
 			await focusScanInput();
 		}
 	}
@@ -137,7 +138,7 @@
 	}
 
 	async function submitScan(rawValue: string) {
-		if (!selectedDepartment || !stagingScanController) {
+		if (!selectedDepartment || !stagingScanController || isScanning) {
 			return;
 		}
 
@@ -151,6 +152,8 @@
 		}
 
 		workflowStores.setScannedText(scannedText);
+		isScanning = true;
+		let shouldRefocusAfterScan = false;
 		try {
 			const action = await withTimeout(
 				stagingScanController.submitScan({
@@ -162,6 +165,7 @@
 				STAGING_SCAN_TIMEOUT_MESSAGE
 			);
 			await applyScanAction(action);
+			shouldRefocusAfterScan = !action?.openLocationModal;
 
 			if (action?.kind === 'location-updated') {
 				await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
@@ -169,6 +173,12 @@
 		} catch {
 			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
+			shouldRefocusAfterScan = true;
+		} finally {
+			isScanning = false;
+		}
+
+		if (shouldRefocusAfterScan) {
 			await focusScanInput();
 		}
 	}
@@ -230,7 +240,7 @@
 					bind:value={scanInputValue}
 					bind:this={scanInputElement}
 					placeholder="Scan or type item barcode..."
-					disabled={isDepartmentGateOpen}
+					disabled={isDepartmentGateOpen || isScanning}
 					onkeydown={handleScanKeydown}
 					class="w-full h-16 pl-14 pr-6 bg-surface-container-highest border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-lg placeholder:text-on-surface-variant/50"
 				/>
