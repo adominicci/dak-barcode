@@ -17,6 +17,7 @@
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
 	import { processLoadingScan } from '$lib/scan.remote';
@@ -66,6 +67,7 @@
 	let scanInputValue = $state('');
 	let scanError = $state<string | null>(null);
 	let scanPrompt = $state<string | null>(null);
+	let isLocationModalOpen = $state(false);
 	let scanInputElement = $state<HTMLInputElement | null>(null);
 	let isScanning = $state(false);
 	let pendingTimedOutScan = $state<Promise<unknown> | null>(null);
@@ -119,7 +121,7 @@
 	);
 
 	$effect(() => {
-		if (!isScanning && pendingTimedOutScan === null) {
+		if (!isScanning && pendingTimedOutScan === null && !isLocationModalOpen) {
 			void focusScanInput();
 		}
 	});
@@ -209,7 +211,13 @@
 	}
 
 	async function focusScanInput() {
-		if (shouldRedirectHome || loaderInfo === null || selectedDropDetail === null) {
+		if (
+			shouldRedirectHome ||
+			loaderInfo === null ||
+			selectedDropDetail === null ||
+			isLocationModalOpen ||
+			pendingTimedOutScan !== null
+		) {
 			return;
 		}
 
@@ -248,6 +256,7 @@
 
 		scanError = action.kind === 'error' ? action.message : null;
 		scanPrompt = action.kind === 'needs-location' ? action.message : null;
+		isLocationModalOpen = action.kind === 'needs-location';
 
 		if (action.kind === 'location-updated') {
 			workflowStores.setCurrentDropArea(action.dropArea);
@@ -331,6 +340,7 @@
 			!loadingScanController ||
 			!loaderInfo ||
 			selectedDropDetail === null ||
+			isLocationModalOpen ||
 			isScanning ||
 			pendingTimedOutScan !== null
 		) {
@@ -407,11 +417,33 @@
 		}
 
 		scanError = null;
+		isLocationModalOpen = false;
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,
 			totalDrops: dropNavigation.totalDrops,
 			direction
 		});
+	}
+
+	async function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
+		workflowStores.setCurrentDropArea(dropArea);
+		isLocationModalOpen = false;
+		scanError = null;
+		scanPrompt = null;
+
+		if (await retryPendingScanWithDropArea(dropArea.dropAreaId)) {
+			return;
+		}
+
+		await focusScanInput();
+	}
+
+	async function handleLocationModalClose() {
+		loadingScanController?.cancelPendingScan();
+		scanError = null;
+		scanPrompt = null;
+		isLocationModalOpen = false;
+		await focusScanInput();
 	}
 
 	function getLabelStatusClasses(scanned: boolean) {
@@ -716,7 +748,7 @@
 									placeholder={currentDropArea?.dropAreaLabel
 										? 'Scan or type loading barcode...'
 										: 'Scan a driver location or loading barcode...'}
-									disabled={isScanning || pendingTimedOutScan !== null}
+									disabled={isScanning || pendingTimedOutScan !== null || isLocationModalOpen}
 									onkeydown={handleScanKeydown}
 									class="h-16 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-lg transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
 								/>
@@ -845,4 +877,12 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if isLocationModalOpen && loaderInfo}
+		<StagingLocationModal
+			department={loaderInfo.department}
+			onClose={handleLocationModalClose}
+			onSelect={handleLocationSelect}
+		/>
+	{/if}
 </div>
