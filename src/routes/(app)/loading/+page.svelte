@@ -427,12 +427,15 @@
 
 	async function handleLocationSelect(dropArea: NonNullable<WorkflowDropAreaSelection>) {
 		workflowStores.setCurrentDropArea(dropArea);
-		isLocationModalOpen = false;
 		scanError = null;
 		scanPrompt = null;
+		isScanning = true;
+		isLocationModalOpen = false;
 
-		if (await retryPendingScanWithDropArea(dropArea.dropAreaId)) {
-			return;
+		try {
+			await retryPendingScanWithDropArea(dropArea.dropAreaId);
+		} finally {
+			isScanning = false;
 		}
 
 		await focusScanInput();
@@ -881,6 +884,7 @@
 	{#if isLocationModalOpen && loaderInfo}
 		<StagingLocationModal
 			department={loaderInfo.department}
+			mode="loading"
 			onClose={handleLocationModalClose}
 			onSelect={handleLocationSelect}
 		/>

@@ -569,6 +569,108 @@ describe('loading page', () => {
 		});
 	});
 
+	it('keeps the scan input disabled while the modal-selected retry is in flight', async () => {
+		let resolveRetry: ((result: ScanResult) => void) | null = null;
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'needs-location',
+					message: 'Scan a driver location next.',
+					needsLocation: true
+				})
+			)
+			.mockImplementationOnce(
+				() =>
+					new Promise<ScanResult>((resolve) => {
+						resolveRetry = resolve;
+					})
+			);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await page.getByRole('button', { name: /D12/i }).click();
+
+		await expect.element(page.getByTestId('loading-scan-input')).toBeDisabled();
+
+		const retryResolver = resolveRetry as ((result: ScanResult) => void) | null;
+		if (!retryResolver) {
+			throw new Error('Expected retry resolver to be captured.');
+		}
+
+		retryResolver(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		});
+	});
+
+	it('hides non-driver loading locations and rejects numeric lookup for them', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getDropAreasByDepartment.mockReturnValue(
+			createRemoteQuery([
+				createDropArea({
+					id: 41,
+					name: 'D12',
+					supportsWrap: true,
+					supportsLoading: true,
+					supportsDriverLocation: true
+				}),
+				createDropArea({
+					id: 51,
+					name: 'W12',
+					supportsWrap: true,
+					supportsLoading: false,
+					supportsDriverLocation: false
+				})
+			])
+		);
+		getDropArea.mockImplementation(async (dropAreaId) =>
+			dropAreaId === 51
+				? createDropArea({
+						id: 51,
+						name: 'W12',
+						supportsWrap: true,
+						supportsLoading: false,
+						supportsDriverLocation: false
+					})
+				: createDropArea({
+						id: 41,
+						name: 'D12',
+						supportsWrap: true,
+						supportsLoading: true,
+						supportsDriverLocation: true
+					})
+		);
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'needs-location',
+				message: 'Scan a driver location next.',
+				needsLocation: true
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /D12/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /W12/i })).not.toBeInTheDocument();
+
+		await page.getByLabelText('Scan new location').fill('51');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(51);
+		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
+		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
+
 	it('cancels a pending needs-location scan when the modal is dismissed', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');

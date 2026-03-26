@@ -10,10 +10,12 @@
 
 	let {
 		department,
+		mode = 'staging',
 		onClose,
 		onSelect
 	}: {
 		department: NonNullable<WorkflowDepartment>;
+		mode?: 'staging' | 'loading';
 		onClose: () => void;
 		onSelect: (dropArea: NonNullable<WorkflowDropAreaSelection>) => void;
 	} = $props();
@@ -31,6 +33,10 @@
 		Roll: 'supportsRoll',
 		Parts: 'supportsParts'
 	} as const satisfies Record<NonNullable<WorkflowDepartment>, keyof DropArea>;
+	const visibleDropAreas = $derived.by(() => {
+		const availableDropAreas = dropAreasQuery.current ?? [];
+		return availableDropAreas.filter(isSelectableDropArea);
+	});
 
 	onMount(() => {
 		lookupInput?.focus();
@@ -42,6 +48,18 @@
 
 	function invalidateLookupRequests() {
 		activeLookupRequestToken += 1;
+	}
+
+	function isSelectableDropArea(dropArea: DropArea) {
+		if (!dropArea[departmentSupportKey[department]]) {
+			return false;
+		}
+
+		if (mode === 'loading') {
+			return dropArea.supportsLoading && dropArea.supportsDriverLocation;
+		}
+
+		return true;
 	}
 
 	function commitSelection(dropArea: DropArea) {
@@ -139,8 +157,11 @@
 				return;
 			}
 
-			if (!dropArea[departmentSupportKey[department]]) {
-				lookupError = 'This location does not support the selected department.';
+			if (!isSelectableDropArea(dropArea)) {
+				lookupError =
+					mode === 'loading'
+						? 'Location is not valid.'
+						: 'This location does not support the selected department.';
 				return;
 			}
 
@@ -241,7 +262,7 @@
 								<LoaderCircle class="size-7 animate-spin text-primary" />
 								<p class="text-sm font-medium">Loading locations...</p>
 							</div>
-						{:else if !dropAreasQuery.current || dropAreasQuery.current.length === 0}
+						{:else if visibleDropAreas.length === 0}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-on-surface-variant/70">
 								<MapPin class="size-7 text-primary/70" />
 								<p class="text-sm font-medium">No locations are available for this department yet.</p>
@@ -251,7 +272,7 @@
 								data-testid="staging-location-modal-grid"
 								class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 							>
-								{#each dropAreasQuery.current as dropArea (dropArea.id)}
+								{#each visibleDropAreas as dropArea (dropArea.id)}
 									<button
 										type="button"
 										class="group rounded-[1.4rem] bg-surface-container-lowest px-4 py-4 text-left shadow-[0_16px_34px_-26px_rgba(29,52,91,0.18)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
