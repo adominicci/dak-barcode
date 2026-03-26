@@ -177,7 +177,7 @@ export type StagingListItem = {
 export type StagingScanRequest = {
 	scannedText: string;
 	department: OperationalDepartment;
-	dropAreaId: number;
+	dropAreaId?: number | null;
 };
 
 export type LoadingScanRequest = StagingScanRequest & {
@@ -185,21 +185,30 @@ export type LoadingScanRequest = StagingScanRequest & {
 	loaderName: string;
 };
 
-export type ScanResult =
-	| {
-			outcome: 'success';
-			message: string;
-	  }
-	| {
-			outcome:
-				| 'needs-location'
-				| 'invalid-location'
-				| 'does-not-belong'
-				| 'incomplete-drop'
-				| 'no-match'
-				| 'api-error';
-			message: string;
-	  };
+export type ScanType = 'location' | 'pallet' | 'single_label';
+
+export type ScanStatus =
+	| 'success'
+	| 'needs-location'
+	| 'invalid-location'
+	| 'does-not-belong'
+	| 'incomplete-drop'
+	| 'no-match'
+	| 'department-blocked'
+	| 'api-error';
+
+export type ScanDropAreaSummary = {
+	id: number;
+	label: string;
+};
+
+export type ScanResult = {
+	scanType: ScanType | null;
+	status: ScanStatus;
+	message: string;
+	needsLocation: boolean;
+	dropArea: ScanDropAreaSummary | null;
+};
 
 export const OPERATOR_TARGETS = WAREHOUSE_ALIASES;
 export const TARGETS = FRONTEND_TARGETS;

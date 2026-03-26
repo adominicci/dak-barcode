@@ -2,7 +2,7 @@ import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
-import type { DropArea } from '$lib/types';
+import type { DropArea, ScanResult } from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
 type StagingQueryState = {
@@ -27,13 +27,35 @@ type DropAreaListQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
-const { getStagingPartsForDay, getStagingPartsForDayRoll, getDropAreasByDepartment, getDropArea } =
-	vi.hoisted(() => ({
+const {
+	getStagingPartsForDay,
+	getStagingPartsForDayRoll,
+	getDropAreasByDepartment,
+	getDropArea,
+	processStagingScan
+} = vi.hoisted(() => ({
 	getStagingPartsForDay: vi.fn<() => StagingQueryState>(),
 	getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>(),
 	getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => DropAreaListQueryState>(),
-	getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>()
-	}));
+	getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>(),
+	processStagingScan: vi.fn<
+		(input: {
+			scannedText: string;
+			department: 'Roll' | 'Wrap' | 'Parts';
+			dropAreaId?: number | null;
+		}) => Promise<ScanResult>
+	>()
+}));
+
+const { withTimeout } = vi.hoisted(() => ({
+	withTimeout: vi.fn(async <T>(promise: Promise<T>) => promise)
+}));
+
+const { toast } = vi.hoisted(() => ({
+	toast: {
+		success: vi.fn<(message: string) => void>()
+	}
+}));
 
 vi.mock('$lib/staging.remote', () => ({
 	getStagingPartsForDay,
@@ -43,6 +65,18 @@ vi.mock('$lib/staging.remote', () => ({
 vi.mock('$lib/drop-areas.remote', () => ({
 	getDropAreasByDepartment,
 	getDropArea
+}));
+
+vi.mock('$lib/scan.remote', () => ({
+	processStagingScan
+}));
+
+vi.mock('$lib/workflow/async-timeout', () => ({
+	withTimeout
+}));
+
+vi.mock('svelte-sonner', () => ({
+	toast
 }));
 
 import StagingPage from './+page.svelte';
@@ -77,10 +111,14 @@ describe('staging page department gate', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
+		withTimeout.mockReset();
+		withTimeout.mockImplementation(async <T>(promise: Promise<T>) => promise);
 		getStagingPartsForDay.mockReset();
 		getStagingPartsForDayRoll.mockReset();
 		getDropAreasByDepartment.mockReset();
 		getDropArea.mockReset();
+		processStagingScan.mockReset();
+		toast.success.mockReset();
 		getStagingPartsForDay.mockReturnValue(
 			createStagingQuery([
 				{
@@ -192,6 +230,37 @@ describe('staging page department gate', () => {
 						: null
 		);
 	});
+
+	function createScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
+		return {
+			scanType: 'single_label',
+			status: 'success',
+			message: 'Label staged.',
+			needsLocation: false,
+			dropArea: null,
+			...overrides
+		};
+	}
+
+	async function submitMainScan(value: string) {
+		const scanInput = page.getByTestId('staging-scan-input');
+		await scanInput.fill(value);
+
+		const inputElement = document.querySelector('[data-testid="staging-scan-input"]');
+		if (!(inputElement instanceof HTMLInputElement)) {
+			throw new Error('Expected staging scan input element.');
+		}
+
+		inputElement.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: 'Enter',
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		return scanInput;
+	}
 
 	it('shows the blocking department gate and keeps scan controls disabled on entry', async () => {
 		render(StagingPage);
@@ -516,6 +585,241 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		await expect.element(page.getByText('Location is not valid.')).toBeInTheDocument();
 		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
+
+	it('autofocuses the main scan input after department selection and keeps it focused after a location scan', async () => {
+		processStagingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: 'location',
+				message: 'Location updated.',
+				dropArea: {
+					id: 41,
+					label: 'W12'
+				}
+			})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = page.getByTestId('staging-scan-input');
+
+		await expect.element(scanInput).toHaveFocus();
+		await submitMainScan('41');
+
+		expect(processStagingScan).toHaveBeenCalledWith({
+			scannedText: '41',
+			department: 'Wrap',
+			dropAreaId: null
+		});
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toHaveFocus();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W12');
+	});
+
+	it('keeps the main scan input active when a label needs a location and retries after a numeric location scan', async () => {
+		processStagingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					status: 'needs-location',
+					message: 'Location is required before staging.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'W13'
+					}
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Parts' }).click();
+		const scanInput = await submitMainScan('LP-100');
+
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'Please scan a location first'
+		);
+		await expect.element(scanInput).toHaveFocus();
+
+		await submitMainScan('42');
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(3);
+		});
+
+		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: '42',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(3, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: 42
+		});
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('cancels the pending label when the manual location modal is dismissed', async () => {
+		processStagingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					status: 'needs-location',
+					message: 'Location is required before staging.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: 'location',
+					message: 'Location updated.',
+					dropArea: {
+						id: 42,
+						label: 'W13'
+					}
+				})
+			);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Parts' }).click();
+		await submitMainScan('LP-100');
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByRole('button', { name: 'Close location selector' }).click();
+		await submitMainScan('42');
+
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(2);
+		});
+
+		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: '42',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+	});
+
+	it('renders inline scan errors and keeps the scan input ready for recovery', async () => {
+		processStagingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: 'location',
+				status: 'invalid-location',
+				message: 'Location is not valid.'
+			})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = await submitMainScan('999');
+
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'Location is not valid.'
+		);
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('renders an inline fallback error when the staging scan command rejects', async () => {
+		processStagingScan.mockRejectedValueOnce(new Error('Failed to execute remote function'));
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = await submitMainScan('LP-404');
+
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'We could not process that scan right now.'
+		);
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('ignores overlapping scan submissions while a staging scan is still in flight', async () => {
+		let resolveFirstScan: ((result: ScanResult) => void) | null = null;
+		processStagingScan.mockImplementationOnce(
+			() =>
+				new Promise<ScanResult>((resolve) => {
+					resolveFirstScan = resolve;
+				})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = page.getByTestId('staging-scan-input');
+		await submitMainScan('LP-100');
+
+		expect(processStagingScan).toHaveBeenCalledTimes(1);
+		await expect.element(scanInput).toBeDisabled();
+
+		const firstScanResolver = resolveFirstScan as ((result: ScanResult) => void) | null;
+		if (!firstScanResolver) {
+			throw new Error('Expected first scan resolver to be captured.');
+		}
+
+		firstScanResolver(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(1);
+		});
+		await expect.element(scanInput).not.toBeDisabled();
+		await expect.element(scanInput).toHaveFocus();
+	});
+
+	it('applies a late successful scan result after showing a timeout fallback', async () => {
+		withTimeout.mockRejectedValueOnce(new Error('We could not process that scan right now.'));
+		let resolveTimedOutScan: ((result: ScanResult) => void) | null = null;
+		processStagingScan.mockReturnValueOnce(
+			new Promise<ScanResult>((resolve) => {
+				resolveTimedOutScan = resolve;
+			})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Wrap' }).click();
+		const scanInput = await submitMainScan('LP-405');
+
+		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
+			'We could not process that scan right now.'
+		);
+		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toBeDisabled();
+
+		const timedOutScanResolver = resolveTimedOutScan as ((result: ScanResult) => void) | null;
+		if (!timedOutScanResolver) {
+			throw new Error('Expected timed-out scan resolver to be captured.');
+		}
+
+		timedOutScanResolver(createScanResult());
+
+		await expect
+			.element(page.getByTestId('staging-scan-error'))
+			.not.toBeInTheDocument();
+		await expect.element(scanInput).not.toBeDisabled();
+		await expect.element(scanInput).toHaveFocus();
+		expect(toast.success).toHaveBeenCalledWith('Label staged.');
 	});
 
 	it('ignores a late numeric lookup response after a newer card selection closes the modal', async () => {

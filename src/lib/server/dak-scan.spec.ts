@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import type { LoadingScanRequest, ScanResult, StagingScanRequest } from '$lib/types';
 import type { RawDakLoadingScanRequest, RawDakStagingScanRequest } from '$lib/types/raw-dak';
 import {
@@ -14,6 +14,27 @@ import {
 	serializeDakStagingScanRequest,
 	stagingScanInputSchema
 } from './dak-scan';
+
+const { fetchDak } = vi.hoisted(() => ({
+	fetchDak: vi.fn()
+}));
+
+vi.mock('./proxy', () => ({
+	fetchDak
+}));
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+	return new Response(JSON.stringify(body), {
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		...init
+	});
+}
+
+beforeEach(() => {
+	fetchDak.mockReset();
+});
 
 describe('dak scan stub helpers', () => {
 	it('validates the staging scan input shape used by the remote command', () => {
@@ -48,6 +69,21 @@ describe('dak scan stub helpers', () => {
 				dropAreaId: 3.7
 			}).success
 		).toBe(false);
+
+		expect(
+			v.safeParse(stagingScanInputSchema, {
+				scannedText: 'LP-100',
+				department: 'Wrap'
+			}).success
+		).toBe(true);
+
+		expect(
+			v.safeParse(stagingScanInputSchema, {
+				scannedText: 'LP-100',
+				department: 'Wrap',
+				dropAreaId: null
+			}).success
+		).toBe(true);
 	});
 
 	it('validates the loading scan input shape used by the remote command', () => {
@@ -86,6 +122,19 @@ describe('dak scan stub helpers', () => {
 		});
 	});
 
+	it('omits nullable staging location fields from the dak-web payload', () => {
+		const input: StagingScanRequest = {
+			scannedText: 'LP-77',
+			department: 'Wrap',
+			dropAreaId: null
+		};
+
+		expect(serializeDakStagingScanRequest(input)).toEqual<RawDakStagingScanRequest>({
+			scanned_text: 'LP-77',
+			department: 'Wrap'
+		});
+	});
+
 	it('serializes loading scan requests to the dak-web snake_case contract', () => {
 		const input: LoadingScanRequest = {
 			scannedText: 'LP-77',
@@ -104,27 +153,103 @@ describe('dak scan stub helpers', () => {
 		});
 	});
 
-	it('returns a descriptive pending-backend result for staging scans', async () => {
-		const expected: ScanResult = {
-			outcome: 'api-error',
-			message:
-				'The dak-web staging scan endpoint /v1/scan/process-staging is not available yet. Backend delivery is still pending on DAK-193.'
-		};
+	it('posts staging scans through the shared dak proxy and normalizes location responses', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				scan_type: 'location',
+				status: 'success',
+				message: 'Location updated.',
+				needs_location: false,
+				drop_area: {
+					drop_area_id: 41,
+					drop_area: 'W12'
+				}
+			})
+		);
 
 		await expect(
 			processDakStagingScan({
-				scannedText: 'R123',
-				department: 'Roll',
-				dropAreaId: 7
+				scannedText: '41',
+				department: 'Wrap',
+				dropAreaId: null
 			})
-		).resolves.toEqual(expected);
+		).resolves.toEqual({
+			scanType: 'location',
+			status: 'success',
+			message: 'Location updated.',
+			needsLocation: false,
+			dropArea: {
+				id: 41,
+				label: 'W12'
+			}
+		});
+
+		expect(fetchDak).toHaveBeenCalledOnce();
+		const [path, init] = fetchDak.mock.calls[0] as [string, RequestInit | undefined];
+		const headers = new Headers(init?.headers);
+
+		expect(path).toBe('/v1/scan/process-staging');
+		expect(init?.method).toBe('POST');
+		expect(headers.get('Content-Type')).toBe('application/json');
+		expect(JSON.parse(String(init?.body))).toEqual({
+			scanned_text: '41',
+			department: 'Wrap'
+		});
+	});
+
+	it('normalizes staging api failures into a scanner-safe error result', async () => {
+		fetchDak.mockResolvedValue(
+			new Response('Backend exploded', {
+				status: 500
+			})
+		);
+
+		await expect(
+			processDakStagingScan({
+				scannedText: 'LP-100',
+				department: 'Parts',
+				dropAreaId: 12
+			})
+		).resolves.toEqual({
+			scanType: null,
+			status: 'api-error',
+			message: 'Backend exploded',
+			needsLocation: false,
+			dropArea: null
+		});
+	});
+
+	it('normalizes malformed staging payloads into an api error result', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				status: 'success'
+			})
+		);
+
+		await expect(
+			processDakStagingScan({
+				scannedText: 'LP-100',
+				department: 'Parts',
+				dropAreaId: 12
+			})
+		).resolves.toEqual({
+			scanType: null,
+			status: 'api-error',
+			message:
+				'The dak-web staging scan endpoint returned an invalid response payload.',
+			needsLocation: false,
+			dropArea: null
+		});
 	});
 
 	it('returns a descriptive pending-backend result for loading scans', async () => {
 		const expected: ScanResult = {
-			outcome: 'api-error',
+			scanType: null,
+			status: 'api-error',
 			message:
-				'The dak-web loading scan endpoint /v1/scan/process-loading is not available yet. Backend delivery is still pending on DAK-194.'
+				'The dak-web loading scan endpoint /v1/scan/process-loading is not available yet. Backend delivery is still pending on DAK-194.',
+			needsLocation: false,
+			dropArea: null
 		};
 
 		await expect(

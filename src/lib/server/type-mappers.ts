@@ -9,6 +9,10 @@ import type {
 	LoaderInfo,
 	LoaderSession,
 	OperationalDepartment,
+	ScanDropAreaSummary,
+	ScanResult,
+	ScanStatus,
+	ScanType,
 	StagingListItem
 } from '$lib/types';
 import type {
@@ -22,7 +26,12 @@ import type {
 	RawDstLoader,
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
-import type { RawDakLoaderInfo, RawDakLoaderSession } from '$lib/types/raw-dak';
+import type {
+	RawDakLoaderInfo,
+	RawDakLoaderSession,
+	RawDakScanDropArea,
+	RawDakScanResult
+} from '$lib/types/raw-dak';
 
 function nullableString(value: string | null | undefined): string | null {
 	return value ?? null;
@@ -38,6 +47,10 @@ function stringOrEmpty(value: string | null | undefined): string {
 
 function numberOrZero(value: number | null | undefined): number {
 	return value ?? 0;
+}
+
+function nullableBoolean(value: boolean | null | undefined): boolean | null {
+	return value ?? null;
 }
 
 function requiredNumber(
@@ -66,6 +79,56 @@ function mapOperationalDepartment(department: string): OperationalDepartment {
 
 function isOperationalDepartment(department: string): department is OperationalDepartment {
 	return OPERATIONAL_DEPARTMENTS.includes(department as OperationalDepartment);
+}
+
+function normalizeScanStatus(status: string): ScanStatus {
+	switch (status.trim().toLowerCase().replace(/[\s_]+/g, '-')) {
+		case 'success':
+			return 'success';
+		case 'needs-location':
+			return 'needs-location';
+		case 'invalid-location':
+			return 'invalid-location';
+		case 'does-not-belong':
+			return 'does-not-belong';
+		case 'incomplete-drop':
+			return 'incomplete-drop';
+		case 'no-match':
+			return 'no-match';
+		case 'department-blocked':
+			return 'department-blocked';
+		case 'api-error':
+			return 'api-error';
+		default:
+			throw new Error(`Unsupported scan status: ${status}`);
+	}
+}
+
+function normalizeScanType(scanType: string): ScanType {
+	switch (scanType.trim().toLowerCase().replace(/-/g, '_')) {
+		case 'location':
+			return 'location';
+		case 'pallet':
+			return 'pallet';
+		case 'single_label':
+			return 'single_label';
+		default:
+			throw new Error(`Unsupported scan type: ${scanType}`);
+	}
+}
+
+function mapDakScanDropArea(raw: RawDakScanDropArea): ScanDropAreaSummary {
+	const id = raw.drop_area_id ?? raw.id ?? raw.DropAreaID;
+	const label = raw.drop_area ?? raw.dropArea ?? raw.label ?? raw.name ?? raw.DropArea;
+
+	if (typeof id !== 'number' || !Number.isFinite(id) || !label || typeof label !== 'string') {
+		throw new Error('Invalid DAK scan drop area payload.');
+	}
+
+	return {
+		id,
+		label
+	};
 }
 
 export function mapDstLoader(raw: RawDstLoader): Loader {
@@ -225,5 +288,31 @@ export function mapDakLoaderSession(raw: RawDakLoaderSession): LoaderSession {
 		loaderName: raw.loader_name,
 		startedAt: raw.started_at,
 		endedAt: raw.ended_at ?? null
+	};
+}
+
+export function mapDakScanResult(raw: RawDakScanResult): ScanResult {
+	const rawScanType = raw.scan_type ?? raw.scanType;
+	const rawStatus = raw.status;
+	const rawMessage = raw.message;
+	const rawNeedsLocation = nullableBoolean(raw.needs_location ?? raw.needsLocation);
+
+	if (typeof rawStatus !== 'string' || typeof rawMessage !== 'string') {
+		throw new Error('Invalid DAK scan result payload.');
+	}
+
+	const status = normalizeScanStatus(rawStatus);
+	if (typeof rawScanType !== 'string' && status === 'success') {
+		throw new Error('Invalid DAK scan result payload.');
+	}
+
+	const scanType = typeof rawScanType === 'string' ? normalizeScanType(rawScanType) : null;
+
+	return {
+		scanType,
+		status,
+		message: rawMessage,
+		needsLocation: rawNeedsLocation ?? false,
+		dropArea: raw.drop_area || raw.dropArea ? mapDakScanDropArea(raw.drop_area ?? raw.dropArea!) : null
 	};
 }

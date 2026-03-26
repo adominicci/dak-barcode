@@ -5,6 +5,7 @@
 	import { ArrowRight, CircleAlert, ShieldCheck } from '@lucide/svelte';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import FixedDomainEmailField from '$lib/components/auth/fixed-domain-email-field.svelte';
+	import { syncFixedDomainEmailFormData } from '$lib/components/auth/fixed-domain-form';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -13,7 +14,8 @@
 	let { data, form }: PageProps = $props();
 	let isSubmitting = $state(false);
 
-	const enhanceForm: SubmitFunction = () => {
+	const enhanceForm: SubmitFunction = ({ formElement, formData }) => {
+		syncFixedDomainEmailFormData(formElement, formData);
 		isSubmitting = true;
 
 		return async ({ update }) => {

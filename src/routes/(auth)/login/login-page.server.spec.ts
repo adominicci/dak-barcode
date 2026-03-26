@@ -107,6 +107,30 @@ describe('login actions', () => {
 		vi.clearAllMocks();
 	});
 
+	it('does not emit login debug logs during sign in attempts', async () => {
+		const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {});
+		createSupabaseServerClient.mockReturnValue({
+			auth: {
+				signInWithPassword: vi.fn(async () => ({
+					data: {},
+					error: { message: 'Invalid login credentials' }
+				}))
+			}
+		});
+		const event = createRequestEvent(
+			new URLSearchParams({
+				username: 'andresd',
+				email: 'andresd@dakotasteelandtrim.com',
+				password: '12345678'
+			})
+		);
+		const { actions } = await import('./+page.server');
+
+		await actions.default(event as never);
+
+		expect(consoleInfo).not.toHaveBeenCalled();
+	});
+
 	it('returns validation errors when email or password are missing', async () => {
 		const event = createRequestEvent(new URLSearchParams({ email: '', password: '' }));
 		const { actions } = await import('./+page.server');
