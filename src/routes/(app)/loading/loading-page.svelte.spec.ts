@@ -20,7 +20,9 @@ const {
 	navigationSpy
 } = vi.hoisted(() => {
 	const pageState = {
-		url: new URL('https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88')
+		url: new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z'
+		)
 	};
 
 	const navigationSpy: {
@@ -91,7 +93,7 @@ describe('loading page', () => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
 		pageState.url = new URL(
-			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88'
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z'
 		);
 		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo()));
 	});
@@ -169,5 +171,50 @@ describe('loading page', () => {
 		expect(goto).toHaveBeenCalledWith('/home', { replaceState: true });
 		expect(get(workflowStores.currentLoader)).toBeNull();
 		expect(get(workflowStores.selectedDepartment)).toBeNull();
+	});
+
+	it('ends the loader session on exit even before loader info finishes loading', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoaderInfo.mockReturnValue(
+			createLoaderInfoQuery(createLoaderInfo(), {
+				current: null,
+				loading: true
+			})
+		);
+		endLoaderSession.mockResolvedValue(
+			createLoaderInfo({
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
+		);
+
+		render(LoadingPage);
+
+		const cancel = vi.fn();
+		navigationSpy.callback?.({
+			type: 'link',
+			willUnload: false,
+			to: {
+				url: new URL('https://app.local/home'),
+				route: { id: '/home' }
+			},
+			cancel
+		});
+
+		expect(cancel).toHaveBeenCalledOnce();
+		await vi.waitFor(() => {
+			expect(endLoaderSession).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: 88,
+					dropSheetId: 42,
+					loaderId: 7,
+					department: 'Wrap',
+					loaderName: 'Alex',
+					startedAt: '2026-03-26T12:00:00.000Z',
+					endedAt: expect.any(String)
+				})
+			);
+		});
+		expect(goto).toHaveBeenCalledWith('/home', { replaceState: true });
 	});
 });

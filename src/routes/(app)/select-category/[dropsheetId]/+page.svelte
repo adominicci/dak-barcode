@@ -170,11 +170,14 @@
 			});
 			workflowStores.prepareForLoadingEntry();
 
-			await goto(
-				resolve(
-					`/loading?dropsheetId=${data.dropSheetId}&locationId=${locationId}&loaderSessionId=${session.id}`
-				)
-			);
+			const searchParams = new URLSearchParams({
+				dropsheetId: String(data.dropSheetId),
+				locationId: String(locationId),
+				loaderSessionId: String(session.id),
+				startedAt: session.startedAt
+			});
+
+			await goto(resolve(`/loading?${searchParams.toString()}`));
 		} catch (error) {
 			submitError = error instanceof Error ? error.message : 'Unable to start loading.';
 		} finally {

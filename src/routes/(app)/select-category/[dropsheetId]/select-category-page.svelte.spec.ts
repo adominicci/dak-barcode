@@ -285,6 +285,8 @@ describe('select-category page', () => {
 			loaderId: 7,
 			loaderName: 'Alex'
 		});
-		expect(goto).toHaveBeenCalledWith('/loading?dropsheetId=42&locationId=2&loaderSessionId=88');
+		expect(goto).toHaveBeenCalledWith(
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z'
+		);
 	});
 });

@@ -92,6 +92,7 @@ export type RawDstDropSheetCategoryAvailability = {
 	WrapScannedPercent?: number | null;
 	WrapHasLabels?: number | null;
 	PartHasLabels?: number | null;
+	// DST returns this misspelled field name without the expected capital "S".
 	PartcannedPercent?: number | null;
 	AllLoaded?: boolean | null;
 };

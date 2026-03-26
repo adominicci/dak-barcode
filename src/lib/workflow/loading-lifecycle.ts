@@ -8,6 +8,7 @@ export type LoadingEntryContext = {
 	dropSheetId: number;
 	locationId: number;
 	loaderSessionId: number;
+	startedAt: string | null;
 };
 
 function parsePositiveInteger(value: string | null): number | null {
@@ -32,7 +33,8 @@ export function parseLoadingEntryContext(url: URL): LoadingEntryContext | null {
 	return {
 		dropSheetId,
 		locationId,
-		loaderSessionId
+		loaderSessionId,
+		startedAt: url.searchParams.get('startedAt')?.trim() || null
 	};
 }
 
@@ -43,18 +45,37 @@ export function hasLoadingWorkflowContext(input: {
 	return input.selectedDepartment !== null && input.currentLoader !== null;
 }
 
-export function buildEndLoaderSessionInput(
-	loaderInfo: LoaderInfo,
-	endedAt: string
-): (LoaderInfo & { id: number; endedAt: string }) | null {
-	if (loaderInfo.id === null) {
+export function buildEndLoaderSessionInput(input: {
+	loaderInfo: LoaderInfo | null;
+	loadingEntry: LoadingEntryContext;
+	selectedDepartment: WorkflowDepartment;
+	currentLoader: WorkflowLoaderSelection;
+	endedAt: string;
+}): (LoaderInfo & { id: number; endedAt: string }) | null {
+	if (input.loaderInfo?.id != null) {
+		return {
+			...input.loaderInfo,
+			id: input.loaderInfo.id,
+			endedAt: input.endedAt
+		};
+	}
+
+	if (
+		input.selectedDepartment === null ||
+		input.currentLoader === null ||
+		input.loadingEntry.startedAt === null
+	) {
 		return null;
 	}
 
 	return {
-		...loaderInfo,
-		id: loaderInfo.id,
-		endedAt
+		id: input.loadingEntry.loaderSessionId,
+		dropSheetId: input.loadingEntry.dropSheetId,
+		loaderId: input.currentLoader.loaderId,
+		department: input.selectedDepartment,
+		loaderName: input.currentLoader.loaderName,
+		startedAt: input.loadingEntry.startedAt,
+		endedAt: input.endedAt
 	};
 }
 

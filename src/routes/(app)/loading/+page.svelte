@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate, goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Clock3, ClipboardList, LoaderCircle, ScanBarcode, TriangleAlert, UserRound } from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -46,7 +47,7 @@
 
 		redirectHandled = true;
 		allowNavigation = true;
-		void goto('/home', { replaceState: true });
+		void goto(resolve('/home'), { replaceState: true });
 	});
 
 	beforeNavigate((navigation) => {
@@ -55,14 +56,19 @@
 			navigation.willUnload ||
 			navigation.to?.url.pathname === '/loading' ||
 			isEndingSession ||
-			loadingEntry === null ||
-			loaderInfo === null
+			loadingEntry === null
 		) {
 			return;
 		}
 
-		const endInput = buildEndLoaderSessionInput(loaderInfo, new Date().toISOString());
 		const destinationHref = navigation.to ? toNavigationHref(navigation.to.url) : null;
+		const endInput = buildEndLoaderSessionInput({
+			loaderInfo,
+			loadingEntry,
+			selectedDepartment,
+			currentLoader,
+			endedAt: new Date().toISOString()
+		});
 
 		if (endInput === null || destinationHref === null) {
 			return;
@@ -77,7 +83,8 @@
 				await endLoaderSession(endInput);
 				workflowStores.resetOperationalState();
 				allowNavigation = true;
-				await goto(destinationHref, { replaceState: true });
+				// beforeNavigate only reaches this branch for SvelteKit-owned destinations.
+				await goto((resolve as (href: string) => string)(destinationHref), { replaceState: true });
 			} catch (error) {
 				lifecycleError =
 					error instanceof Error ? error.message : 'Unable to end the loader session.';

@@ -23,13 +23,14 @@ function createLoaderInfo(overrides: Partial<LoaderInfo> = {}): LoaderInfo {
 describe('loading lifecycle helpers', () => {
 	it('parses a complete loading entry context from the route URL', () => {
 		const url = new URL(
-			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88'
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z'
 		);
 
 		expect(parseLoadingEntryContext(url)).toEqual({
 			dropSheetId: 42,
 			locationId: 2,
-			loaderSessionId: 88
+			loaderSessionId: 88,
+			startedAt: '2026-03-26T12:00:00.000Z'
 		});
 	});
 
@@ -66,7 +67,20 @@ describe('loading lifecycle helpers', () => {
 	});
 
 	it('builds the end-session payload from resolved loader info', () => {
-		expect(buildEndLoaderSessionInput(createLoaderInfo(), '2026-03-26T12:05:00.000Z')).toEqual({
+		expect(
+			buildEndLoaderSessionInput({
+				loaderInfo: createLoaderInfo(),
+				loadingEntry: {
+					dropSheetId: 42,
+					locationId: 2,
+					loaderSessionId: 88,
+					startedAt: '2026-03-26T12:00:00.000Z'
+				},
+				selectedDepartment: 'Wrap',
+				currentLoader: { loaderId: 7, loaderName: 'Alex' },
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
+		).toEqual({
 			id: 88,
 			dropSheetId: 42,
 			loaderId: 7,
@@ -76,7 +90,57 @@ describe('loading lifecycle helpers', () => {
 			endedAt: '2026-03-26T12:05:00.000Z'
 		});
 		expect(
-			buildEndLoaderSessionInput(createLoaderInfo({ id: null }), '2026-03-26T12:05:00.000Z')
+			buildEndLoaderSessionInput({
+				loaderInfo: createLoaderInfo({ id: null }),
+				loadingEntry: {
+					dropSheetId: 42,
+					locationId: 2,
+					loaderSessionId: 88,
+					startedAt: null
+				},
+				selectedDepartment: 'Wrap',
+				currentLoader: { loaderId: 7, loaderName: 'Alex' },
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
+		).toBeNull();
+	});
+
+	it('builds the end-session payload from the loading entry fallback when loader info is still loading', () => {
+		expect(
+			buildEndLoaderSessionInput({
+				loaderInfo: null,
+				loadingEntry: {
+					dropSheetId: 42,
+					locationId: 2,
+					loaderSessionId: 88,
+					startedAt: '2026-03-26T12:00:00.000Z'
+				},
+				selectedDepartment: 'Wrap',
+				currentLoader: { loaderId: 7, loaderName: 'Alex' },
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
+		).toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex',
+			startedAt: '2026-03-26T12:00:00.000Z',
+			endedAt: '2026-03-26T12:05:00.000Z'
+		});
+		expect(
+			buildEndLoaderSessionInput({
+				loaderInfo: null,
+				loadingEntry: {
+					dropSheetId: 42,
+					locationId: 2,
+					loaderSessionId: 88,
+					startedAt: null
+				},
+				selectedDepartment: 'Wrap',
+				currentLoader: { loaderId: 7, loaderName: 'Alex' },
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
 		).toBeNull();
 	});
 
