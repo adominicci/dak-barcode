@@ -8,6 +8,9 @@
 
 	let { children, data }: LayoutProps = $props();
 	const isHomeRoute = $derived(page.url.pathname === '/home');
+	const backPath = $derived(
+		page.url.pathname.startsWith('/select-category') ? '/dropsheets' : '/home'
+	);
 	const appHeaderTitle = $derived(
 		page.url.pathname === '/dropsheets'
 			? 'Dropsheets'
@@ -46,8 +49,8 @@
 		<header class="glass-header fixed top-0 w-full z-50 shadow-sm border-b border-slate-100">
 			<div class="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
 				<div class="flex items-center gap-4">
-					<a
-						href={resolve('/home')}
+						<a
+						href={resolve(backPath)}
 						class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
 						aria-label="Back"
 					>

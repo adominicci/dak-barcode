@@ -150,6 +150,44 @@ describe('dst query helpers', () => {
 		});
 	});
 
+	it('loads dropsheet category availability through the legacy label-count endpoint', async () => {
+		fetchDst.mockResolvedValue(
+			jsonResponse({
+				DropSheetID: 42,
+				RollScannedPercent: 0.25,
+				RollHasLabels: 4,
+				WrapScannedPercent: 0.5,
+				WrapHasLabels: 6,
+				PartHasLabels: 3,
+				PartcannedPercent: 0.75,
+				AllLoaded: false
+			})
+		);
+
+		const { getDstDropSheetCategoryAvailability } = await import('./dst-queries');
+
+		await expect(getDstDropSheetCategoryAvailability(42)).resolves.toEqual({
+			dropSheetId: 42,
+			rollScannedPercent: 0.25,
+			rollHasLabels: 4,
+			wrapScannedPercent: 0.5,
+			wrapHasLabels: 6,
+			partsHasLabels: 3,
+			partsScannedPercent: 0.75,
+			allLoaded: false
+		});
+
+		const [path, init] = getFetchCall();
+		const headers = new Headers(init?.headers);
+
+		expect(path).toBe('/api/barcode-update/get-percent-scanned-label-count');
+		expect(init?.method).toBe('POST');
+		expect(headers.get('Content-Type')).toBe('application/json');
+		expect(JSON.parse(String(init?.body))).toEqual({
+			DropSheetID: 42
+		});
+	});
+
 	it('returns null for invalid drop-area lookups instead of leaking an empty backend record', async () => {
 		fetchDst.mockResolvedValue(jsonResponse({}));
 

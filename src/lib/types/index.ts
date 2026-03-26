@@ -164,6 +164,17 @@ export type DepartmentStatus = {
 	soffit: string | null;
 };
 
+export type DropSheetCategoryAvailability = {
+	dropSheetId: number;
+	rollScannedPercent: number;
+	rollHasLabels: number;
+	wrapScannedPercent: number;
+	wrapHasLabels: number;
+	partsHasLabels: number;
+	partsScannedPercent: number;
+	allLoaded: boolean;
+};
+
 export type StagingListItem = {
 	lpidDetail: number;
 	partListId: string;
