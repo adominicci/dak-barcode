@@ -131,7 +131,9 @@ describe('dropsheets page', () => {
 
 		await page.getByRole('button', { name: /L-091/i }).click();
 
-		expect(goto).toHaveBeenCalledWith('/select-category/91');
+		expect(goto).toHaveBeenCalledWith(
+			'/select-category/91?loadNumber=L-091&deliveryNumber=L-091'
+		);
 	});
 
 	it('shows the empty state when the selected date has no dropsheets', async () => {

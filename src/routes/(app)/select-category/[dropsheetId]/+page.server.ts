@@ -16,12 +16,32 @@ function parseDropSheetId(value: string): number {
 	return parsed;
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+function parseLoadNumber(
+	loadNumber: string | null | undefined,
+	deliveryNumber: string | null | undefined,
+	dropSheetId: number
+): string {
+	const trimmed = loadNumber?.trim() || deliveryNumber?.trim();
+
+	if (trimmed) {
+		return trimmed;
+	}
+
+	return String(dropSheetId);
+}
+
+export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
 	const loaders = (await getDstLoaders()).filter((loader) => loader.isActive);
+	const loadNumber = parseLoadNumber(
+		url.searchParams.get('loadNumber'),
+		url.searchParams.get('deliveryNumber'),
+		dropSheetId
+	);
 
 	return {
 		dropSheetId,
+		loadNumber,
 		loaders
 	};
 };

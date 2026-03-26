@@ -1,6 +1,7 @@
 import { OPERATIONAL_DEPARTMENTS } from '$lib/types';
 import type {
 	DepartmentStatus,
+	DropSheetCategoryAvailability,
 	DropArea,
 	DropSheet,
 	LoadViewDetail,
@@ -19,6 +20,7 @@ import type {
 	RawDstCategoryListEntry,
 	RawDstDepartmentStatusOnDrop,
 	RawDstDepartmentStatusOnDropSheet,
+	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
 	RawDstLoadViewDetail,
@@ -27,6 +29,7 @@ import type {
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
 import type {
+	RawDakDepartmentStatus,
 	RawDakLoaderInfo,
 	RawDakLoaderSession,
 	RawDakScanDropArea,
@@ -50,6 +53,10 @@ function numberOrZero(value: number | null | undefined): number {
 }
 
 function nullableBoolean(value: boolean | null | undefined): boolean | null {
+	return value ?? null;
+}
+
+function nullableDakStatus(value: string | null | undefined): string | null {
 	return value ?? null;
 }
 
@@ -233,6 +240,21 @@ export function mapDstDepartmentStatusFromDropSheet(
 	};
 }
 
+export function mapDstDropSheetCategoryAvailability(
+	raw: RawDstDropSheetCategoryAvailability
+): DropSheetCategoryAvailability {
+	return {
+		dropSheetId: raw.DropSheetID,
+		rollScannedPercent: raw.RollScannedPercent ?? 0,
+		rollHasLabels: raw.RollHasLabels ?? 0,
+		wrapScannedPercent: raw.WrapScannedPercent ?? 0,
+		wrapHasLabels: raw.WrapHasLabels ?? 0,
+		partsHasLabels: raw.PartHasLabels ?? 0,
+		partsScannedPercent: raw.PartcannedPercent ?? 0,
+		allLoaded: raw.AllLoaded ?? false
+	};
+}
+
 export function mapDstStagingListItem(raw: RawDstStagingListItem): StagingListItem {
 	return {
 		lpidDetail: requiredNumber(raw.LPIDDetail, 'mapDstStagingListItem: missing required ID fields'),
@@ -276,6 +298,25 @@ export function mapDakLoaderInfo(raw: RawDakLoaderInfo): LoaderInfo {
 		loaderName: raw.loader_name,
 		startedAt: raw.started_at,
 		endedAt: raw.ended_at ?? null
+	};
+}
+
+export function mapDakDepartmentStatus(raw: RawDakDepartmentStatus): DepartmentStatus {
+	const subjectId = raw.drop_sheet_id ?? raw.dropSheetId ?? raw.DropSheetID;
+
+	if (typeof subjectId !== 'number' || !Number.isFinite(subjectId)) {
+		throw new Error('Invalid DAK department status payload.');
+	}
+
+	return {
+		scope: 'dropsheet',
+		subjectId,
+		slit: nullableDakStatus(raw.slit),
+		trim: nullableDakStatus(raw.trim),
+		wrap: nullableDakStatus(raw.wrap),
+		roll: nullableDakStatus(raw.roll),
+		parts: nullableDakStatus(raw.parts ?? raw.part),
+		soffit: nullableDakStatus(raw.soffit)
 	};
 }
 

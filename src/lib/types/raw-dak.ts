@@ -19,6 +19,26 @@ export type RawDakLoaderSession = {
 	ended_at?: string | null;
 };
 
+export type RawDakDepartmentStatus = {
+	drop_sheet_id?: number | null;
+	dropSheetId?: number | null;
+	DropSheetID?: number | null;
+	slit?: string | null;
+	trim?: string | null;
+	wrap?: string | null;
+	roll?: string | null;
+	parts?: string | null;
+	part?: string | null;
+	soffit?: string | null;
+	is_blocked?:
+		| {
+				wrap?: boolean | null;
+				roll?: boolean | null;
+				parts?: boolean | null;
+		  }
+		| null;
+};
+
 export type RawDakStagingScanRequest = {
 	scanned_text: string;
 	department: string;

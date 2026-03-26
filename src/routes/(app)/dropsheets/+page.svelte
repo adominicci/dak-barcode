@@ -30,8 +30,13 @@
 		return DATE_FORMATTER.format(new Date(timestamp));
 	}
 
-	function openDropsheet(dropSheetId: number) {
-		return goto(resolve(`/select-category/${dropSheetId}`));
+	function openDropsheet(dropSheetId: number, loadNumber: string) {
+		const searchParams = new URLSearchParams({
+			loadNumber,
+			deliveryNumber: loadNumber
+		});
+
+		return goto(resolve(`/select-category/${dropSheetId}?${searchParams.toString()}`));
 	}
 </script>
 
@@ -83,7 +88,7 @@
 			{#each dropsheets as dropsheet (dropsheet.id)}
 				<button
 					type="button"
-					onclick={() => openDropsheet(dropsheet.id)}
+					onclick={() => openDropsheet(dropsheet.id, dropsheet.loadNumber)}
 					class="group rounded-[2rem] bg-white p-6 text-left shadow-sm transition-all hover:shadow-md active:scale-[0.99] sm:flex sm:items-center sm:justify-between sm:gap-6"
 				>
 					<div class="flex-1 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">

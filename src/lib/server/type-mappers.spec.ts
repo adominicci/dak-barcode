@@ -10,10 +10,12 @@ import type {
 	StagingScanRequest
 } from '$lib/types';
 import {
+	mapDakDepartmentStatus,
 	mapDakLoaderInfo,
 	mapDakLoaderSession,
 	mapDakScanResult,
 	mapDstCategoryList,
+	mapDstDropSheetCategoryAvailability,
 	mapDstDepartmentStatusFromDrop,
 	mapDstDepartmentStatusFromDropSheet,
 	mapDstDropArea,
@@ -197,6 +199,30 @@ describe('dst record mappers', () => {
 		});
 	});
 
+	it('maps dropsheet category availability into the canonical loading-category contract', () => {
+		expect(
+			mapDstDropSheetCategoryAvailability({
+				DropSheetID: 42,
+				RollScannedPercent: 0.25,
+				RollHasLabels: 4,
+				WrapScannedPercent: 0.5,
+				WrapHasLabels: 6,
+				PartHasLabels: 3,
+				PartcannedPercent: 0.75,
+				AllLoaded: false
+			})
+		).toEqual({
+			dropSheetId: 42,
+			rollScannedPercent: 0.25,
+			rollHasLabels: 4,
+			wrapScannedPercent: 0.5,
+			wrapHasLabels: 6,
+			partsHasLabels: 3,
+			partsScannedPercent: 0.75,
+			allLoaded: false
+		});
+	});
+
 	it('maps staging day rows into a stable canonical list item', () => {
 		expect(
 			mapDstStagingListItem({
@@ -259,6 +285,34 @@ describe('dst record mappers', () => {
 });
 
 describe('dak record mappers', () => {
+	it('maps dak-web department status into the shared dropsheet status shape', () => {
+		expect(
+			mapDakDepartmentStatus({
+				drop_sheet_id: 42,
+				slit: 'NA',
+				trim: 'NA',
+				wrap: 'NA',
+				roll: 'READY',
+				parts: 'NA',
+				soffit: 'NA',
+				is_blocked: {
+					wrap: false,
+					roll: false,
+					parts: false
+				}
+			})
+		).toEqual({
+			scope: 'dropsheet',
+			subjectId: 42,
+			slit: 'NA',
+			trim: 'NA',
+			wrap: 'NA',
+			roll: 'READY',
+			parts: 'NA',
+			soffit: 'NA'
+		});
+	});
+
 	it('maps loader info from dak-web into the shared session shape', () => {
 		expect(
 			mapDakLoaderInfo({

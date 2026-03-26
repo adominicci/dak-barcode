@@ -1,9 +1,20 @@
 import { createRawSnippet } from 'svelte';
 import { get } from 'svelte/store';
 import { page } from 'vitest/browser';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { workflowStores } from '$lib/workflow/stores';
+
+const { pageState } = vi.hoisted(() => ({
+	pageState: {
+		url: new URL('https://app.local/account')
+	}
+}));
+
+vi.mock('$app/state', () => ({
+	page: pageState
+}));
+
 import AppLayout from './+layout.svelte';
 
 const children = createRawSnippet(() => ({
@@ -21,6 +32,7 @@ describe('(app) layout workflow target sync', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget(null);
 		workflowStores.resetOperationalState();
+		pageState.url = new URL('https://app.local/account');
 	});
 
 	it('hydrates the workflow active target from layout data', async () => {
@@ -76,5 +88,23 @@ describe('(app) layout workflow target sync', () => {
 
 		await expect.element(page.getByText('Workflow layout child')).toBeInTheDocument();
 		expect(get(workflowStores.activeTarget)).toBeNull();
+	});
+
+	it('routes the select-category back button to the dropsheet list instead of home', async () => {
+		pageState.url = new URL('https://app.local/select-category/42?loadNumber=L-042');
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/dropsheets'
+		);
 	});
 });
