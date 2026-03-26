@@ -150,7 +150,7 @@ describe('select-category page', () => {
 		);
 	});
 
-	it('renders the top strip from dropsheet status, drives department card badges from dak department status, shows the carried load number, and keeps loading blocked until a loader is selected', async () => {
+	it('renders the top strip and department card badges from DST dropsheet status, shows the carried load number, and keeps loading blocked until a loader is selected', async () => {
 		getDropsheetCategoryAvailability.mockReturnValue(
 			createCategoryAvailabilityQuery({
 				dropSheetId: 42,
@@ -184,6 +184,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -195,8 +196,8 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('L-042', { exact: true })).toBeInTheDocument();
 		expect(getDropsheetStatus).toHaveBeenCalledWith(42);
 		expect(getDropsheetCategoryAvailability).toHaveBeenCalledWith(42);
-		expect(getOnLoadStatusAllDepts).toHaveBeenCalledWith(42);
-		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('READY')).toBeInTheDocument();
+		expect(getOnLoadStatusAllDepts).not.toHaveBeenCalled();
+		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('DONE')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).not.toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i })).not.toBeInTheDocument();
@@ -204,7 +205,7 @@ describe('select-category page', () => {
 		await expect.element(page.getByRole('option', { name: 'Casey' })).toBeInTheDocument();
 	});
 
-	it('shows per-department progress percentages from the DST availability payload alongside the separate dak status badge', async () => {
+	it('shows per-department progress percentages from the DST availability payload alongside the DST status badge', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
 			form: null,
@@ -212,6 +213,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -219,7 +221,7 @@ describe('select-category page', () => {
 		await expect.element(page.getByRole('button', { name: /Wrap/i }).getByText('50%')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('25%')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i }).getByText('75%')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('READY')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('STOP')).toBeInTheDocument();
 	});
 
 	it('uses compact sizing hooks for the shared iPad layout', async () => {
@@ -230,6 +232,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -261,6 +264,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				dropWeight: 2152.4,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -286,7 +290,7 @@ describe('select-category page', () => {
 			loaderName: 'Alex'
 		});
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
 		);
 	});
 });

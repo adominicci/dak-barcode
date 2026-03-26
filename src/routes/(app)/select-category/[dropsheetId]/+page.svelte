@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { AlertCircle, LoaderCircle, PackageCheck, UserRound } from '@lucide/svelte';
-	import { getOnLoadStatusAllDepts } from '$lib/department-status.remote';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
@@ -33,10 +32,9 @@
 	let pendingDepartment = $state<OperationalDepartment | null>(null);
 	let submitError = $state<string | null>(null);
 
-	let departmentStatusQuery = $derived(getOnLoadStatusAllDepts(data.dropSheetId));
 	let statusQuery = $derived(getDropsheetStatus(data.dropSheetId));
 	let categoryAvailabilityQuery = $derived(getDropsheetCategoryAvailability(data.dropSheetId));
-	let currentStatus = $derived(departmentStatusQuery.current ?? null);
+	let currentStatus = $derived(statusQuery.current ?? null);
 	let stripStatus = $derived(statusQuery.current ?? null);
 	let categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
 	let selectedLoader = $derived(
@@ -174,8 +172,13 @@
 				dropsheetId: String(data.dropSheetId),
 				locationId: String(locationId),
 				loaderSessionId: String(session.id),
-				startedAt: session.startedAt
+				startedAt: session.startedAt,
+				loadNumber: data.loadNumber
 			});
+
+			if (data.dropWeight !== null) {
+				searchParams.set('dropWeight', String(data.dropWeight));
+			}
 
 			await goto(resolve(`/loading?${searchParams.toString()}`));
 		} catch (error) {

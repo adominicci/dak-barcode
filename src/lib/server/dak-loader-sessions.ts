@@ -40,6 +40,20 @@ function isNonEmptyString(value: unknown): value is string {
 	return typeof value === 'string' && value.length > 0;
 }
 
+function readNumberLike(value: unknown): number | null {
+	if (isFiniteNumber(value)) {
+		return value;
+	}
+
+	if (typeof value === 'string' && value.trim() !== '') {
+		const parsed = Number(value);
+
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+
+	return null;
+}
+
 function withQuery(
 	path: string,
 	params: Record<string, string | number | null | undefined>
@@ -122,6 +136,46 @@ function hasUsableLoaderSession(record: Record<string, unknown>) {
 	);
 }
 
+function isMinimalLoaderSessionResponse(record: Record<string, unknown>) {
+	return (
+		!isFiniteNumber(record.fkDropSheetID) &&
+		!isFiniteNumber(record.fkLoaderID) &&
+		!isNonEmptyString(record.Department) &&
+		!isNonEmptyString(record.loader_name) &&
+		!isNonEmptyString(record.started_at)
+	);
+}
+
+function toMinimalLoaderSessionResponse(
+	body: unknown,
+	input: LoaderSessionUpsertInput
+): RawDakLoaderSession | null {
+	if (!isRecord(body) || !isMinimalLoaderSessionResponse(body)) {
+		return null;
+	}
+
+	const id = readNumberLike(body.loader_id) ?? readNumberLike(body.LoaderID);
+
+	if (id === null) {
+		return null;
+	}
+
+	return {
+		loader_id: id,
+		fkDropSheetID: input.dropSheetId,
+		fkLoaderID: input.loaderId,
+		Department: input.department,
+		loader_name: input.loaderName,
+		started_at: input.startedAt,
+		ended_at:
+			typeof body.ended_at === 'string'
+				? body.ended_at
+				: typeof input.endedAt === 'string'
+					? input.endedAt
+					: null
+	};
+}
+
 function toDakLoaderSessionPayload(input: LoaderSessionUpsertInput) {
 	const payload: Record<string, number | string | null> = {
 		fkDropSheetID: input.dropSheetId,
@@ -178,14 +232,15 @@ export async function upsertDakLoaderSession(
 		DAK_ROUTES.upsertLoaderSession,
 		jsonInit(toDakLoaderSessionPayload(input))
 	);
-
-	return mapDakLoaderSession(
+	const normalizedBody =
+		toMinimalLoaderSessionResponse(body, input) ??
 		expectRecordResponse<RawDakLoaderSession>(
 			body,
 			DAK_ROUTES.upsertLoaderSession,
 			hasUsableLoaderSession
-		)
-	);
+		);
+
+	return mapDakLoaderSession(normalizedBody);
 }
 
 export async function endDakLoaderSession(
