@@ -83,7 +83,121 @@ describe('createLoadingScanController', () => {
 			})
 		).resolves.toEqual({
 			kind: 'error',
+			title: 'Invalid Location',
 			message: 'Location is not valid.',
+			errorKind: 'business',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
+	it('maps does-not-belong scans into a not-found loading error with the legacy meaning', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				status: 'does-not-belong',
+				message: 'Custom backend: label mismatch'
+			})
+		);
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
+			processScan,
+			refreshActiveDropData
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-404',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			kind: 'error',
+			title: 'Not Found',
+			message: 'Custom backend: label mismatch',
+			errorKind: 'business',
+			dropArea: null,
+			clearCurrentDropArea: false,
+			showSuccessToast: false
+		});
+
+		expect(refreshActiveDropData).not.toHaveBeenCalled();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
+	it.each([
+		['no-match', 'No Match', 'Label is not valid!', 'business'],
+		['department-blocked', 'Not Completed', 'This drop is not completed!', 'business'],
+		['incomplete-drop', 'Not Completed', 'This drop is not completed!', 'business']
+	] as const)(
+		'maps %s scans into the expected titled loading error',
+		async (status, title, message, errorKind) => {
+			const processScan = vi.fn().mockResolvedValue(
+				createScanResult({
+					status,
+					message
+				})
+			);
+			const refreshActiveDropData = vi.fn();
+			const controller = createLoadingScanController({
+				processScan,
+				refreshActiveDropData
+			});
+
+			await expect(
+				controller.submitScan({
+					scannedText: 'LP-200',
+					department: 'Wrap',
+					dropAreaId: 41,
+					loadNumber: 'L-100',
+					loaderName: 'Alex'
+				})
+			).resolves.toEqual({
+				kind: 'error',
+				title,
+				message,
+				errorKind,
+				dropArea: null,
+				clearCurrentDropArea: false,
+				showSuccessToast: false
+			});
+
+			expect(refreshActiveDropData).not.toHaveBeenCalled();
+			expect(controller.hasPendingScan()).toBe(false);
+		}
+	);
+
+	it('maps api-error scans into a diagnosable loading error', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				status: 'api-error',
+				message: '500: dak-web unavailable'
+			})
+		);
+		const refreshActiveDropData = vi.fn();
+		const controller = createLoadingScanController({
+			processScan,
+			refreshActiveDropData
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-500',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-100',
+				loaderName: 'Alex'
+			})
+		).resolves.toEqual({
+			kind: 'error',
+			title: 'API Error',
+			message: '500: dak-web unavailable',
+			errorKind: 'api',
 			dropArea: null,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
