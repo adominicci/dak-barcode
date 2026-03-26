@@ -69,6 +69,7 @@ function pendingScanResult(
 		status: 'api-error',
 		message: `The dak-web ${label} scan endpoint ${route} is not available yet. Backend delivery is still pending on ${dependency}.`,
 		needsLocation: false,
+		needPick: null,
 		dropArea: null
 	};
 }
@@ -79,6 +80,7 @@ function apiErrorResult(message: string): ScanResult {
 		status: 'api-error',
 		message,
 		needsLocation: false,
+		needPick: null,
 		dropArea: null
 	};
 }
@@ -116,6 +118,33 @@ export async function processDakStagingScan(input: StagingScanRequest): Promise<
 }
 
 export async function processDakLoadingScan(input: LoadingScanRequest): Promise<ScanResult> {
-	// TODO(DAK-194): replace with a dak-web POST using serializeDakLoadingScanRequest(input).
-	return pendingScanResult(DAK_LOADING_SCAN_ROUTE, DAK_LOADING_SCAN_DEPENDENCY, 'loading');
+	try {
+		const response = await fetchDak(DAK_LOADING_SCAN_ROUTE, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(serializeDakLoadingScanRequest(input))
+		});
+
+		if (!response.ok) {
+			const message = (await response.text()).trim();
+			return apiErrorResult(message || 'The loading scan request failed.');
+		}
+
+		let payload: RawDakScanResult;
+		try {
+			payload = (await response.json()) as RawDakScanResult;
+		} catch {
+			return apiErrorResult('The dak-web loading scan endpoint returned an invalid response payload.');
+		}
+
+		try {
+			return mapDakScanResult(payload);
+		} catch {
+			return apiErrorResult('The dak-web loading scan endpoint returned an invalid response payload.');
+		}
+	} catch (error) {
+		return apiErrorResult(error instanceof Error ? error.message : 'The loading scan request failed.');
+	}
 }

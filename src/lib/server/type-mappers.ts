@@ -336,6 +336,7 @@ export function mapDakScanResult(raw: RawDakScanResult): ScanResult {
 	const rawScanType = raw.scan_type ?? raw.scanType;
 	const rawStatus = raw.status;
 	const rawMessage = raw.message;
+	const rawNeedPick = raw.need_pick ?? raw.needPick;
 	const rawNeedsLocation = nullableBoolean(raw.needs_location ?? raw.needsLocation);
 
 	if (typeof rawStatus !== 'string' || typeof rawMessage !== 'string') {
@@ -354,6 +355,8 @@ export function mapDakScanResult(raw: RawDakScanResult): ScanResult {
 		status,
 		message: rawMessage,
 		needsLocation: rawNeedsLocation ?? false,
+		needPick:
+			typeof rawNeedPick === 'number' && Number.isFinite(rawNeedPick) ? rawNeedPick : null,
 		dropArea: raw.drop_area || raw.dropArea ? mapDakScanDropArea(raw.drop_area ?? raw.dropArea!) : null
 	};
 }

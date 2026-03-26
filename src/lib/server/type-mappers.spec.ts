@@ -380,7 +380,27 @@ describe('dak record mappers', () => {
 			status: 'needs-location',
 			message: 'Location is required before staging.',
 			needsLocation: true,
+			needPick: null,
 			dropArea: null
+		});
+	});
+
+	it('maps optional need-pick values from loading scan payloads', () => {
+		expect(
+			mapDakScanResult({
+				scan_type: 'pallet',
+				status: 'success',
+				message: 'Pallet loaded.',
+				needs_location: false,
+				need_pick: 4
+			})
+		).toEqual({
+			scanType: 'pallet',
+			status: 'success',
+			message: 'Pallet loaded.',
+			needsLocation: false,
+			dropArea: null,
+			needPick: 4
 		});
 	});
 });
@@ -407,6 +427,7 @@ describe('shared operational and scan contracts', () => {
 			status: string;
 			message: string;
 			needsLocation: boolean;
+			needPick: number | null;
 			dropArea: {
 				id: number;
 				label: string;

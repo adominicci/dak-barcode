@@ -134,7 +134,7 @@ These rules apply to every milestone:
 - `getDepartmentStatus`
 - `getOnLoadStatusAllDepts`
 
-Use stubs or mocked behavior until the external backend endpoints are available.
+Use shared remote-function wrappers that can start as stubs and then switch to the live backend contract once the external endpoints are available.
 
 **2.5 — Define shared types**
 - auth/profile types
@@ -170,12 +170,12 @@ Use stubs or mocked behavior until the external backend endpoints are available.
 
 - Keep request/response types ready
 - Keep remote wrappers aligned with the contract
-- Use mocks/stubs until the endpoints are available
+- Replace stubs with live integrations as each endpoint ships
 - Add integration verification as soon as the backend is ready
 
 ### Definition of Done
 
-- Frontend stubs are ready before backend delivery
+- Frontend wrappers are ready before backend delivery and updated once the live endpoints ship
 - Integration points are documented and testable
 - Backend contract includes `Sandbox` support and case-sensitive target handling
 
@@ -257,7 +257,7 @@ Use stubs or mocked behavior until the external backend endpoints are available.
 - Numeric -> location lookup
 - Accept any valid drop area in staging
 - Non-numeric -> pallet or single-label flow through the scan endpoint
-- `needs_location` -> open location-selection flow
+- `needs_location` -> keep the scan pending on the page, prompt for a driver-location scan next, and hand the dedicated modal flow to a follow-on issue
 
 **5.4 — Department-specific lists**
 - Roll
@@ -318,7 +318,8 @@ Use stubs or mocked behavior until the external backend endpoints are available.
 - Numeric -> driver-location validation
 - Non-numeric -> pallet or single-label processing
 - Department blocking rules
-- `needs_location` modal and retry
+- `needs_location` pending-scan bridge and retry in `DAK-207`
+- dedicated Scan New Location modal in `DAK-208`
 - Roll resets location after successful scan
 
 **6.6 — Error handling**

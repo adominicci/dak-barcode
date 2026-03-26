@@ -220,6 +220,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Numeric scans are treated as location codes
 - [ ] In Loading, only driver locations are valid
 - [ ] Non-numeric scans branch into pallet or single-label processing
+- [ ] If a loading scan needs a driver location, keep the original scan pending and prompt for the numeric location scan next
 - [ ] DUE/STOP department blocking matches the legacy Flutter behavior
 - [ ] NeedPick count updates after successful scans
 - [ ] Roll resets the selected drop area after each successful scan
