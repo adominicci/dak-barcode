@@ -99,7 +99,7 @@ describe('createLoadingScanController', () => {
 		const processScan = vi.fn().mockResolvedValue(
 			createScanResult({
 				status: 'does-not-belong',
-				message: "Label doesn't belong to this drop!"
+				message: 'Custom backend: label mismatch'
 			})
 		);
 		const refreshActiveDropData = vi.fn();
@@ -119,7 +119,7 @@ describe('createLoadingScanController', () => {
 		).resolves.toEqual({
 			kind: 'error',
 			title: 'Not Found',
-			message: "Label doesn't belong to this drop!",
+			message: 'Custom backend: label mismatch',
 			errorKind: 'business',
 			dropArea: null,
 			clearCurrentDropArea: false,
@@ -129,6 +129,48 @@ describe('createLoadingScanController', () => {
 		expect(refreshActiveDropData).not.toHaveBeenCalled();
 		expect(controller.hasPendingScan()).toBe(false);
 	});
+
+	it.each([
+		['no-match', 'No Match', 'Label is not valid!', 'business'],
+		['department-blocked', 'Not Completed', 'This drop is not completed!', 'business'],
+		['incomplete-drop', 'Not Completed', 'This drop is not completed!', 'business']
+	] as const)(
+		'maps %s scans into the expected titled loading error',
+		async (status, title, message, errorKind) => {
+			const processScan = vi.fn().mockResolvedValue(
+				createScanResult({
+					status,
+					message
+				})
+			);
+			const refreshActiveDropData = vi.fn();
+			const controller = createLoadingScanController({
+				processScan,
+				refreshActiveDropData
+			});
+
+			await expect(
+				controller.submitScan({
+					scannedText: 'LP-200',
+					department: 'Wrap',
+					dropAreaId: 41,
+					loadNumber: 'L-100',
+					loaderName: 'Alex'
+				})
+			).resolves.toEqual({
+				kind: 'error',
+				title,
+				message,
+				errorKind,
+				dropArea: null,
+				clearCurrentDropArea: false,
+				showSuccessToast: false
+			});
+
+			expect(refreshActiveDropData).not.toHaveBeenCalled();
+			expect(controller.hasPendingScan()).toBe(false);
+		}
+	);
 
 	it('maps api-error scans into a diagnosable loading error', async () => {
 		const processScan = vi.fn().mockResolvedValue(

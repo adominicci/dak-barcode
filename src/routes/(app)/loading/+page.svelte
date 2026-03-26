@@ -362,7 +362,10 @@
 			scanPrompt = null;
 
 			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
-				setTransportError(LOADING_SCAN_TIMEOUT_MESSAGE, null);
+				setTransportError(LOADING_SCAN_TIMEOUT_MESSAGE, {
+					mode: 'pending',
+					dropAreaId
+				});
 				monitorTimedOutScanSettlement(retryPromise);
 			} else {
 				setTransportError(
@@ -509,7 +512,7 @@
 	}
 
 	async function handleErrorDismiss() {
-		if (scanError?.retryState?.mode === 'pending') {
+		if (scanError?.retryState?.mode === 'pending' || loadingScanController?.hasPendingScan()) {
 			loadingScanController?.cancelPendingScan();
 		}
 
