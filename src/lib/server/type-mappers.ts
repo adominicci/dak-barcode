@@ -297,13 +297,20 @@ export function mapDakScanResult(raw: RawDakScanResult): ScanResult {
 	const rawMessage = raw.message;
 	const rawNeedsLocation = nullableBoolean(raw.needs_location ?? raw.needsLocation);
 
-	if (typeof rawScanType !== 'string' || typeof rawStatus !== 'string' || typeof rawMessage !== 'string') {
+	if (typeof rawStatus !== 'string' || typeof rawMessage !== 'string') {
 		throw new Error('Invalid DAK scan result payload.');
 	}
 
+	const status = normalizeScanStatus(rawStatus);
+	if (typeof rawScanType !== 'string' && status === 'success') {
+		throw new Error('Invalid DAK scan result payload.');
+	}
+
+	const scanType = typeof rawScanType === 'string' ? normalizeScanType(rawScanType) : null;
+
 	return {
-		scanType: normalizeScanType(rawScanType),
-		status: normalizeScanStatus(rawStatus),
+		scanType,
+		status,
 		message: rawMessage,
 		needsLocation: rawNeedsLocation ?? false,
 		dropArea: raw.drop_area || raw.dropArea ? mapDakScanDropArea(raw.drop_area ?? raw.dropArea!) : null
