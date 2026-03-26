@@ -6,6 +6,8 @@
 
 **Architecture:** Keep the legacy DST responsibilities and the newer `dak-web` responsibilities separate. The dropsheet list and top summary strip continue to use DST-backed dropsheet data, while the per-department card badge is driven by the real `DAK-195` `dak-web` department-status endpoint. Back navigation is fixed by making the authenticated app header route-aware instead of hardcoded to `/home`.
 
+**Correction (2026-03-26):** Live validation against the legacy FlutterFlow app and the current backend responses showed that Select Category cannot safely depend on `GET /v1/scan/department-status` yet. The legacy page reads DST `check-onload-statusDS-departments` for its visible department state, while loader-session start only relies on the returned `loader_id`. Until `DAK-195` is verified end-to-end for this route, Select Category should stay on the DST status payload and treat the DAK session-start response as a minimal id handoff.
+
 **Tech Stack:** SvelteKit 5, Svelte runes, TypeScript, Bun, Vitest, Tailwind 4, remote functions, `dak-web` proxy helpers, DST proxy helpers.
 
 ---

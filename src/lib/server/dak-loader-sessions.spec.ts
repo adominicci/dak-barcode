@@ -133,6 +133,67 @@ describe('dak loader-session helpers', () => {
 		});
 	});
 
+	it('accepts the minimal start-session payload used by the legacy loading handoff', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				loader_id: 88
+			})
+		);
+
+		const { upsertDakLoaderSession } = await import('./dak-loader-sessions');
+
+		await expect(
+			upsertDakLoaderSession({
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z'
+			})
+		).resolves.toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex',
+			startedAt: '2026-03-20T10:00:00Z',
+			endedAt: null
+		});
+	});
+
+	it('prefers the full server response when dak-web returns a complete loader session record', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				loader_id: 88,
+				fkDropSheetID: 42,
+				fkLoaderID: 7,
+				Department: 'Wrap',
+				loader_name: 'Alex Trimmed',
+				started_at: '2026-03-20T10:00:01Z'
+			})
+		);
+
+		const { upsertDakLoaderSession } = await import('./dak-loader-sessions');
+
+		await expect(
+			upsertDakLoaderSession({
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: '  Alex  ',
+				startedAt: '2026-03-20T10:00:00Z'
+			})
+		).resolves.toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex Trimmed',
+			startedAt: '2026-03-20T10:00:01Z',
+			endedAt: null
+		});
+	});
+
 	it('omits nullable optional loader session fields from the upsert payload', async () => {
 		fetchDak.mockResolvedValue(
 			jsonResponse({
