@@ -25,7 +25,9 @@ export type LoadingScanAction =
 	  }
 	| {
 			kind: 'error';
+			title: string;
 			message: string;
+			errorKind: 'business' | 'api';
 			dropArea: null;
 			clearCurrentDropArea: false;
 			showSuccessToast: false;
@@ -39,6 +41,71 @@ type CreateLoadingScanControllerOptions = {
 type ResolveScanOptions = {
 	clearPendingOnResult: boolean;
 };
+
+function fallbackLoadingErrorMessage(status: ScanResult['status']) {
+	switch (status) {
+		case 'invalid-location':
+			return 'Location is not valid.';
+		case 'does-not-belong':
+			return "Label doesn't belong to this drop!";
+		case 'no-match':
+			return 'Label is not valid!';
+		case 'department-blocked':
+		case 'incomplete-drop':
+			return 'This drop is not completed!';
+		case 'api-error':
+			return 'The loading scan request failed.';
+		default:
+			return 'We could not process that scan right now.';
+	}
+}
+
+function normalizeLoadingError(result: ScanResult): Pick<
+	Extract<LoadingScanAction, { kind: 'error' }>,
+	'title' | 'message' | 'errorKind'
+> {
+	const message = result.message.trim() || fallbackLoadingErrorMessage(result.status);
+
+	switch (result.status) {
+		case 'invalid-location':
+			return {
+				title: 'Invalid Location',
+				message,
+				errorKind: 'business'
+			};
+		case 'does-not-belong':
+			return {
+				title: 'Not Found',
+				message,
+				errorKind: 'business'
+			};
+		case 'no-match':
+			return {
+				title: 'No Match',
+				message,
+				errorKind: 'business'
+			};
+		case 'department-blocked':
+		case 'incomplete-drop':
+			return {
+				title: 'Not Completed',
+				message,
+				errorKind: 'business'
+			};
+		case 'api-error':
+			return {
+				title: 'API Error',
+				message,
+				errorKind: 'api'
+			};
+		default:
+			return {
+				title: 'Scan Error',
+				message,
+				errorKind: 'business'
+			};
+	}
+}
 
 export function createLoadingScanController({
 	processScan,
@@ -111,9 +178,13 @@ export function createLoadingScanController({
 			invalidatePendingScan();
 		}
 
+		const loadingError = normalizeLoadingError(result);
+
 		return {
 			kind: 'error',
-			message: result.message,
+			title: loadingError.title,
+			message: loadingError.message,
+			errorKind: loadingError.errorKind,
 			dropArea: null,
 			clearCurrentDropArea: false,
 			showSuccessToast: false

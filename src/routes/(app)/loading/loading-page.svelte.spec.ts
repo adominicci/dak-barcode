@@ -504,9 +504,50 @@ describe('loading page', () => {
 
 		const inputElement = await submitMainScan('LP-100');
 
+		await expect.element(page.getByText(/^Not Completed$/)).toBeInTheDocument();
 		await expect.element(page.getByText('This drop is not completed!')).toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('renders the mapped loading error title for does-not-belong results', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'does-not-belong',
+				message: "Label doesn't belong to this drop!"
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-404');
+
+		await expect.element(page.getByText('Not Found')).toBeInTheDocument();
+		await expect
+			.element(page.getByText("Label doesn't belong to this drop!"))
+			.toBeInTheDocument();
+	});
+
+	it('renders the mapped loading error title for no-match results', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'no-match',
+				message: 'Label is not valid!'
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-999');
+
+		await expect.element(page.getByText('No Match')).toBeInTheDocument();
+		await expect.element(page.getByText('Label is not valid!')).toBeInTheDocument();
 	});
 
 	it('opens the Scan New Location modal when the backend requests a location, then retries after a modal selection', async () => {
@@ -795,6 +836,149 @@ describe('loading page', () => {
 			.not.toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('dismisses a thrown loading scan failure and returns the field to ready state', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockRejectedValueOnce(new Error('Failed to execute remote function'));
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Dismiss error' }))
+			.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Dismiss error' }).click();
+
+		await expect.element(page.getByText('Connection issue')).not.toBeInTheDocument();
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('retries the last thrown loading scan request from the recovery panel', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockRejectedValueOnce(new Error('Failed to execute remote function'))
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Retry scan' }).click();
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-100',
+			department: 'Wrap',
+			dropAreaId: null,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		await vi.waitFor(() => {
+			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		});
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('dismisses a timed-out pending retry without leaving a stale pending scan behind', async () => {
+		let rejectPendingRetry: ((error: Error) => void) | null = null;
+		vi.useFakeTimers();
+
+		try {
+			workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+			workflowStores.setSelectedDepartment('Wrap');
+			processLoadingScan
+				.mockResolvedValueOnce(
+					createScanResult({
+						scanType: null,
+						status: 'needs-location',
+						message: 'Scan a driver location next.',
+						needsLocation: true
+					})
+				)
+				.mockImplementationOnce(
+					() =>
+						new Promise<ScanResult>((_, reject) => {
+							rejectPendingRetry = reject;
+						})
+				)
+				.mockResolvedValueOnce(
+					createScanResult({
+						scanType: 'location',
+						message: 'Location updated.',
+						dropArea: {
+							id: 42,
+							label: 'D13'
+						}
+					})
+				);
+
+			render(LoadingPage);
+
+			await submitMainScan('LP-100');
+			await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+			await page.getByRole('button', { name: /D12/i }).click();
+
+			await vi.advanceTimersByTimeAsync(8000);
+			await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+
+			const pendingRetryRejector = rejectPendingRetry as ((error: Error) => void) | null;
+			if (!pendingRetryRejector) {
+				throw new Error('Expected pending retry rejector to be captured.');
+			}
+
+			pendingRetryRejector(new Error('late retry failure'));
+
+			await vi.waitFor(() => {
+				expect(page.getByRole('button', { name: 'Dismiss error' })).toBeDefined();
+			});
+
+			await page.getByRole('button', { name: 'Dismiss error' }).click();
+			await submitMainScan('42');
+
+			await vi.waitFor(() => {
+				expect(processLoadingScan).toHaveBeenCalledTimes(3);
+			});
+			expect(processLoadingScan).toHaveBeenNthCalledWith(3, {
+				scannedText: '42',
+				department: 'Wrap',
+				dropAreaId: 41,
+				loadNumber: 'L-042',
+				loaderName: 'Alex'
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('shows api-error results with diagnosable loading context', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'api-error',
+				message: '500: dak-web unavailable'
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-500');
+
+		await expect.element(page.getByText('API Error')).toBeInTheDocument();
+		await expect.element(page.getByText('500: dak-web unavailable')).toBeInTheDocument();
 	});
 
 	it('redirects to home when the loading entry params are invalid', async () => {
