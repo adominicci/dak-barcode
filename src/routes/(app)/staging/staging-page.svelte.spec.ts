@@ -776,9 +776,14 @@ describe('staging page department gate', () => {
 		await expect.element(scanInput).toHaveFocus();
 	});
 
-	it('renders an inline fallback error when the staging scan times out', async () => {
+	it('keeps scan input locked after a timeout until the in-flight scan settles', async () => {
 		withTimeout.mockRejectedValueOnce(new Error('We could not process that scan right now.'));
-		processStagingScan.mockReturnValueOnce(new Promise<ScanResult>(() => {}));
+		let resolveTimedOutScan: ((result: ScanResult) => void) | null = null;
+		processStagingScan.mockReturnValueOnce(
+			new Promise<ScanResult>((resolve) => {
+				resolveTimedOutScan = resolve;
+			})
+		);
 
 		render(StagingPage);
 
@@ -789,6 +794,16 @@ describe('staging page department gate', () => {
 			'We could not process that scan right now.'
 		);
 		await expect.element(scanInput).toHaveValue('');
+		await expect.element(scanInput).toBeDisabled();
+
+		const timedOutScanResolver = resolveTimedOutScan as ((result: ScanResult) => void) | null;
+		if (!timedOutScanResolver) {
+			throw new Error('Expected timed-out scan resolver to be captured.');
+		}
+
+		timedOutScanResolver(createScanResult());
+
+		await expect.element(scanInput).not.toBeDisabled();
 		await expect.element(scanInput).toHaveFocus();
 	});
 

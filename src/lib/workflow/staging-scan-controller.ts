@@ -98,7 +98,14 @@ export function createStagingScanController({
 				invalidatePendingScan();
 			}
 
-			await refreshActiveList();
+			// A successful backend mutation must still surface as success even if the
+			// follow-up list refresh fails. Otherwise operators are encouraged to rescan
+			// an item that has already been staged.
+			try {
+				await refreshActiveList();
+			} catch {
+				// The page will remain scan-ready and can refresh again on the next success.
+			}
 			return {
 				kind: 'success',
 				message: result.message,

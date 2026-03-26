@@ -122,6 +122,38 @@ describe('createStagingScanController', () => {
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
+	it('returns success even when refreshing the active list fails after a successful scan', async () => {
+		const processScan = vi.fn().mockResolvedValue(
+			createScanResult({
+				scanType: 'single_label',
+				message: 'Label staged.'
+			})
+		);
+		const refreshActiveList = vi.fn().mockRejectedValue(new Error('Refresh failed.'));
+		const controller = createStagingScanController({
+			processScan,
+			refreshActiveList
+		});
+
+		await expect(
+			controller.submitScan({
+				scannedText: 'LP-200',
+				department: 'Wrap',
+				dropAreaId: 41
+			})
+		).resolves.toEqual({
+			kind: 'success',
+			message: 'Label staged.',
+			dropArea: null,
+			openLocationModal: false,
+			clearCurrentDropArea: false,
+			showSuccessToast: true
+		});
+
+		expect(refreshActiveList).toHaveBeenCalledOnce();
+		expect(controller.hasPendingScan()).toBe(false);
+	});
+
 	it('stores a pending scan on needs-location without opening the manual selector', async () => {
 		const processScan = vi
 			.fn()

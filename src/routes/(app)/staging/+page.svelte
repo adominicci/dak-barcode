@@ -25,10 +25,17 @@
 	let scanError = $state<string | null>(null);
 	let scanInputElement = $state<HTMLInputElement | null>(null);
 	let isScanning = $state(false);
+	let pendingTimedOutScan = $state<Promise<unknown> | null>(null);
 
 	const STAGING_SCAN_TIMEOUT_MS = 8000;
 	const STAGING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
 	const STAGING_LOCATION_REQUIRED_MESSAGE = 'Please scan a location first';
+
+	$effect(() => {
+		if (!isScanning && pendingTimedOutScan === null && !isLocationModalOpen) {
+			void focusScanInput();
+		}
+	});
 
 	onMount(() => {
 		workflowStores.prepareForStagingEntry();
@@ -116,12 +123,14 @@
 			return false;
 		}
 
+		const retryPromise = stagingScanController.retryPendingScan({
+			department: selectedDepartment,
+			dropAreaId
+		});
+
 		try {
 			const action = await withTimeout(
-				stagingScanController.retryPendingScan({
-					department: selectedDepartment,
-					dropAreaId
-				}),
+				retryPromise,
 				STAGING_SCAN_TIMEOUT_MS,
 				STAGING_SCAN_TIMEOUT_MESSAGE
 			);
@@ -129,16 +138,23 @@
 				await applyScanAction(action);
 			}
 			return action !== null;
-		} catch {
+		} catch (error) {
 			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
-			await focusScanInput();
+
+			if (error instanceof Error && error.message === STAGING_SCAN_TIMEOUT_MESSAGE) {
+				pendingTimedOutScan = retryPromise.finally(() => {
+					pendingTimedOutScan = null;
+				});
+			} else {
+				await focusScanInput();
+			}
 			return false;
 		}
 	}
 
 	async function submitScan(rawValue: string) {
-		if (!selectedDepartment || !stagingScanController || isScanning) {
+		if (!selectedDepartment || !stagingScanController || isScanning || pendingTimedOutScan !== null) {
 			return;
 		}
 
@@ -154,13 +170,14 @@
 		workflowStores.setScannedText(scannedText);
 		isScanning = true;
 		let shouldRefocusAfterScan = false;
+		const scanPromise = stagingScanController.submitScan({
+			scannedText,
+			department: selectedDepartment,
+			dropAreaId: currentDropArea?.dropAreaId ?? null
+		});
 		try {
 			const action = await withTimeout(
-				stagingScanController.submitScan({
-					scannedText,
-					department: selectedDepartment,
-					dropAreaId: currentDropArea?.dropAreaId ?? null
-				}),
+				scanPromise,
 				STAGING_SCAN_TIMEOUT_MS,
 				STAGING_SCAN_TIMEOUT_MESSAGE
 			);
@@ -170,10 +187,16 @@
 			if (action?.kind === 'location-updated') {
 				await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
 			}
-		} catch {
+		} catch (error) {
 			stagingScanController?.cancelPendingScan();
 			scanError = STAGING_SCAN_TIMEOUT_MESSAGE;
-			shouldRefocusAfterScan = true;
+			if (error instanceof Error && error.message === STAGING_SCAN_TIMEOUT_MESSAGE) {
+				pendingTimedOutScan = scanPromise.finally(() => {
+					pendingTimedOutScan = null;
+				});
+			} else {
+				shouldRefocusAfterScan = true;
+			}
 		} finally {
 			isScanning = false;
 		}
@@ -240,7 +263,7 @@
 					bind:value={scanInputValue}
 					bind:this={scanInputElement}
 					placeholder="Scan or type item barcode..."
-					disabled={isDepartmentGateOpen || isScanning}
+					disabled={isDepartmentGateOpen || isScanning || pendingTimedOutScan !== null}
 					onkeydown={handleScanKeydown}
 					class="w-full h-16 pl-14 pr-6 bg-surface-container-highest border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-lg placeholder:text-on-surface-variant/50"
 				/>
