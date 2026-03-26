@@ -127,7 +127,7 @@ function hasUsableLoaderInfo(record: Record<string, unknown>) {
 
 function hasUsableLoaderSession(record: Record<string, unknown>) {
 	return (
-		(readNumberLike(record.LoaderID) !== null || readNumberLike(record.loader_id) !== null) &&
+		(isFiniteNumber(record.LoaderID) || isFiniteNumber(record.loader_id)) &&
 		isFiniteNumber(record.fkDropSheetID) &&
 		isFiniteNumber(record.fkLoaderID) &&
 		isNonEmptyString(record.Department) &&

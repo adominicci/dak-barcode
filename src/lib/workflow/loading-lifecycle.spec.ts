@@ -36,6 +36,21 @@ describe('loading lifecycle helpers', () => {
 		});
 	});
 
+	it('preserves zero drop weight in the loading entry context', () => {
+		const url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=0'
+		);
+
+		expect(parseLoadingEntryContext(url)).toEqual({
+			dropSheetId: 42,
+			locationId: 2,
+			loaderSessionId: 88,
+			startedAt: '2026-03-26T12:00:00.000Z',
+			loadNumber: 'L-042',
+			dropWeight: 0
+		});
+	});
+
 	it('rejects missing or invalid loading entry params', () => {
 		expect(
 			parseLoadingEntryContext(new URL('https://app.local/loading?dropsheetId=42&locationId=2'))

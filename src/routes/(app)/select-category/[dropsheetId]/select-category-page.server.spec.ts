@@ -82,6 +82,22 @@ describe('select-category page server load', () => {
 		});
 	});
 
+	it('preserves zero dropsheet weight when the handoff includes it explicitly', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/select-category/42?loadNumber=L-042&dropWeight=0')
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			dropWeight: 0,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }]
+		});
+	});
+
 	it('rejects invalid dropsheet ids with a 404', async () => {
 		getDstLoaders.mockResolvedValue([]);
 
