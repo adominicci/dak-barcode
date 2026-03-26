@@ -82,7 +82,7 @@ describe('select-category page server load', () => {
 		});
 	});
 
-	it('preserves zero dropsheet weight when the handoff includes it explicitly', async () => {
+	it('treats zero dropsheet weight as unknown when the handoff includes it explicitly', async () => {
 		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
 
 		await expect(
@@ -93,7 +93,7 @@ describe('select-category page server load', () => {
 		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
-			dropWeight: 0,
+			dropWeight: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }]
 		});
 	});

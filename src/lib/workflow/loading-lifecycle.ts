@@ -23,14 +23,14 @@ function parsePositiveInteger(value: string | null): number | null {
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-export function parseNonNegativeNumber(value: string | null): number | null {
+export function parsePositiveNumber(value: string | null): number | null {
 	if (!value) {
 		return null;
 	}
 
 	const parsed = Number.parseFloat(value);
 
-	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 export function parseLoadingEntryContext(url: URL): LoadingEntryContext | null {
@@ -48,7 +48,7 @@ export function parseLoadingEntryContext(url: URL): LoadingEntryContext | null {
 		loaderSessionId,
 		startedAt: url.searchParams.get('startedAt')?.trim() || null,
 		loadNumber: url.searchParams.get('loadNumber')?.trim() || null,
-		dropWeight: parseNonNegativeNumber(url.searchParams.get('dropWeight'))
+		dropWeight: parsePositiveNumber(url.searchParams.get('dropWeight'))
 	};
 }
 

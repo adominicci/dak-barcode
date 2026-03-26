@@ -22,6 +22,7 @@
 		createLoadingDropNavigationState,
 		moveLoadingDropSelection
 	} from '$lib/workflow/loading-drop-navigation';
+	import { getLoadingUnionKey } from '$lib/workflow/loading-union-key';
 	import {
 		buildEndLoaderSessionInput,
 		hasLoadingWorkflowContext,
@@ -492,7 +493,7 @@
 						</div>
 					{:else}
 						<div class="mt-6 grid gap-3">
-							{#each dropLabels as label (`${label.partListId}-${label.labelNumber}`)}
+							{#each dropLabels as label, index (getLoadingUnionKey(label, index))}
 								<div class="rounded-[1.5rem] bg-surface-container-low p-4">
 									<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 										<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
