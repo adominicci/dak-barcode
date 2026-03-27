@@ -4,6 +4,11 @@ export type RawDstLoader = {
 	IsActive: boolean;
 };
 
+export type RawDstTrailer = {
+	TrailerID: number;
+	Trailer: string;
+};
+
 export type RawDstDropSheet = {
 	DropSheetID: number;
 	LoadNumber: string;
