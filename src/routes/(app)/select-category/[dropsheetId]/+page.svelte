@@ -326,9 +326,9 @@
 			</div>
 		{/if}
 
-		<div data-testid="select-category-actions" class="grid gap-3 xl:grid-cols-3">
+		<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
 			{#if visibleDepartments.length === 0}
-				<div class="rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
+				<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
 					<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
 					<p class="mt-2 text-sm leading-6 text-slate-600">
 						This load does not have wrap, roll, or parts labels available yet.
