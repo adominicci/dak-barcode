@@ -4,12 +4,16 @@ import type {
 	DropSheetCategoryAvailability,
 	DropArea,
 	DropSheet,
+	LegacyLoadViewAllEntry,
+	LegacyOrderStatusRow,
+	LegacyMoveOrderRow,
 	LoadViewDetail,
 	LoadViewUnion,
 	Loader,
 	LoaderInfo,
 	LoaderSession,
 	OperationalDepartment,
+	PalletBelongsToLpidResult,
 	Trailer,
 	ScanDropAreaSummary,
 	ScanResult,
@@ -24,9 +28,14 @@ import type {
 	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
+	RawDstLegacyLoadViewAllEntry,
+	RawDstLegacyMoveOrderRow,
+	RawDstLegacyOrderStatusRow,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
+	RawDstPalletBelongsToLpid,
+	RawDstPalletLpidLookupRow,
 	RawDstTrailer,
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
@@ -216,6 +225,72 @@ export function mapDstLoadViewUnion(raw: RawDstLoadViewUnion): LoadViewUnion {
 		lengthText: raw.length ?? '',
 		categoryId: raw.CategoryID ?? 0,
 		lpid: raw.LPID ?? 0
+	};
+}
+
+export function mapDstLegacyLoadViewAllEntry(
+	raw: RawDstLegacyLoadViewAllEntry
+): LegacyLoadViewAllEntry {
+	return {
+		dropSheetId: raw.DropSheetID,
+		dropSheetCustId: raw.Dropsheetcustid ?? 0,
+		sequence: raw.DSSequence ?? '',
+		loadNumber: raw.LoadNumber ?? '',
+		driver: raw.Driver ?? '',
+		status: raw.Status ?? null
+	};
+}
+
+export function mapDstLegacyOrderStatusRow(raw: RawDstLegacyOrderStatusRow): LegacyOrderStatusRow {
+	return {
+		dropSheetCustId: raw.DropSheetCustID,
+		orderSoNumber: raw.OrderSONumber ?? '',
+		customerName: raw.CustomerName ?? '',
+		fkDropSheetId: raw.fkDropSheetID,
+		sequence: raw.DSSequence,
+		orderSlitterStatus: raw.OrderSlitterStatus ?? null,
+		orderTrimStatus: raw.OrderTrimStatus ?? null,
+		orderWrapStatus: raw.OrderWrapStatus ?? null,
+		orderPartStatus: raw.OrderPartStatus ?? null,
+		orderRollStatus: raw.OrderRollStatus ?? null,
+		orderSoffitStatus: raw.OrderSoffitStatus ?? null,
+		statusSort: raw.StatusSort ?? 0
+	};
+}
+
+export function mapDstLegacyMoveOrderRow(raw: RawDstLegacyMoveOrderRow): LegacyMoveOrderRow {
+	return {
+		dropSheetCustId: raw.DropSheetCustID,
+		partListId: raw.PartListID ?? '',
+		qtyDet: raw.QtyDet ?? '',
+		labelNumber: raw.LabelNumber ?? 0,
+		scanned: raw.Scanned ?? false,
+		orderSoNumber: raw.OrderSONumber ?? '',
+		customerName: raw.CustomerName ?? '',
+		loadingLocationId: raw.LoadingLocationID,
+		dropArea: raw.DropArea ?? raw.dropArea ?? '',
+		partColor: raw.PartColor ?? null,
+		fkDropSheetId: raw.fkDropSheetID,
+		recordType: raw.RecordType,
+		lpid: raw.LPID,
+		sequence: raw.DSSequence,
+		unload: raw.Unload ?? false,
+		unloadManualScan: raw.UnloadManualScan ?? false
+	};
+}
+
+export function mapDstLpidForPalletLoad(raw: RawDstPalletLpidLookupRow): number {
+	return raw.LPID;
+}
+
+export function mapDstPalletBelongsToLpid(
+	raw: RawDstPalletBelongsToLpid
+): PalletBelongsToLpidResult {
+	return {
+		lpid: raw.LPID,
+		palletId: raw.PalletID,
+		palletLabel: raw.PalletLabel ?? null,
+		palletScan: raw.PalletScan ?? false
 	};
 }
 

@@ -136,6 +136,56 @@ export type LoadViewUnion = {
 	lpid: number;
 };
 
+export type LegacyLoadViewAllEntry = {
+	dropSheetId: number;
+	dropSheetCustId: number;
+	sequence: string;
+	loadNumber: string;
+	driver: string;
+	status: string | null;
+};
+
+export type LegacyOrderStatusRow = {
+	dropSheetCustId: number;
+	orderSoNumber: string;
+	customerName: string;
+	fkDropSheetId: number;
+	sequence: number;
+	orderSlitterStatus: string | null;
+	orderTrimStatus: string | null;
+	orderWrapStatus: string | null;
+	orderPartStatus: string | null;
+	orderRollStatus: string | null;
+	orderSoffitStatus: string | null;
+	statusSort: number;
+};
+
+export type LegacyMoveOrderRow = {
+	dropSheetCustId: number;
+	partListId: string;
+	qtyDet: string;
+	labelNumber: number;
+	scanned: boolean;
+	orderSoNumber: string;
+	customerName: string;
+	loadingLocationId: number;
+	dropArea: string;
+	partColor: string | null;
+	fkDropSheetId: number;
+	recordType: number;
+	lpid: number;
+	sequence: number;
+	unload: boolean;
+	unloadManualScan: boolean;
+};
+
+export type PalletBelongsToLpidResult = {
+	lpid: number;
+	palletId: number;
+	palletLabel: string | null;
+	palletScan: boolean;
+};
+
 export type LoaderSession = {
 	id: number | null;
 	dropSheetId: number;

@@ -14,7 +14,7 @@
 		onClose,
 		onSelect
 	}: {
-		department: NonNullable<WorkflowDepartment>;
+		department: WorkflowDepartment;
 		mode?: 'staging' | 'loading';
 		onClose: () => void;
 		onSelect: (dropArea: NonNullable<WorkflowDropAreaSelection>) => void;
@@ -27,14 +27,14 @@
 	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
 
-	const dropAreasQuery = $derived(getDropAreasByDepartment(department));
+	const dropAreasQuery = $derived(department ? getDropAreasByDepartment(department) : null);
 	const departmentSupportKey = {
 		Wrap: 'supportsWrap',
 		Roll: 'supportsRoll',
 		Parts: 'supportsParts'
 	} as const satisfies Record<NonNullable<WorkflowDepartment>, keyof DropArea>;
 	const visibleDropAreas = $derived.by(() => {
-		const availableDropAreas = dropAreasQuery.current ?? [];
+		const availableDropAreas = dropAreasQuery?.current ?? [];
 		return availableDropAreas.filter(isSelectableDropArea);
 	});
 
@@ -51,7 +51,7 @@
 	}
 
 	function isSelectableDropArea(dropArea: DropArea) {
-		if (!dropArea[departmentSupportKey[department]]) {
+		if (department !== null && !dropArea[departmentSupportKey[department]]) {
 			return false;
 		}
 
@@ -252,12 +252,17 @@
 						data-testid="staging-location-list-scroll-region"
 						class="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
 					>
-						{#if dropAreasQuery.error}
+						{#if department === null}
+							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-on-surface-variant/70">
+								<MapPin class="size-7 text-primary/70" />
+								<p class="text-sm font-medium">Scan a driver location to continue.</p>
+							</div>
+						{:else if dropAreasQuery?.error}
 							<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 								<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 								<p>{dropAreasQuery.error.message}</p>
 							</div>
-						{:else if dropAreasQuery.loading}
+						{:else if dropAreasQuery?.loading}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-on-surface-variant/70">
 								<LoaderCircle class="size-7 animate-spin text-primary" />
 								<p class="text-sm font-medium">Loading locations...</p>

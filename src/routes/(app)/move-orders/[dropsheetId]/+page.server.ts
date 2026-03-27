@@ -1,5 +1,4 @@
 import { error } from '@sveltejs/kit';
-import { getDstLoaders } from '$lib/server/dst-queries';
 import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
 import type { PageServerLoad } from './$types';
 
@@ -23,12 +22,7 @@ function parseLoadNumber(
 	dropSheetId: number
 ): string {
 	const trimmed = loadNumber?.trim() || deliveryNumber?.trim();
-
-	if (trimmed) {
-		return trimmed;
-	}
-
-	return String(dropSheetId);
+	return trimmed ? trimmed : String(dropSheetId);
 }
 
 function parseDriverName(driverName: string | null | undefined): string | null {
@@ -36,22 +30,23 @@ function parseDriverName(driverName: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
+function parseReturnTo(returnTo: string | null | undefined): string | null {
+	const trimmed = returnTo?.trim();
+	return trimmed ? trimmed : null;
+}
+
 export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
-	const loaders = (await getDstLoaders()).filter((loader) => loader.isActive);
-	const loadNumber = parseLoadNumber(
-		url.searchParams.get('loadNumber'),
-		url.searchParams.get('deliveryNumber'),
-		dropSheetId
-	);
-	const driverName = parseDriverName(url.searchParams.get('driverName'));
-	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
 
 	return {
 		dropSheetId,
-		loadNumber,
-		driverName,
-		dropWeight,
-		loaders
+		loadNumber: parseLoadNumber(
+			url.searchParams.get('loadNumber'),
+			url.searchParams.get('deliveryNumber'),
+			dropSheetId
+		),
+		driverName: parseDriverName(url.searchParams.get('driverName')),
+		dropWeight: parsePositiveNumber(url.searchParams.get('dropWeight')),
+		returnTo: parseReturnTo(url.searchParams.get('returnTo'))
 	};
 };

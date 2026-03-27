@@ -5,10 +5,14 @@ import {
 	type DropSheetCategoryAvailability,
 	type DropArea,
 	type DropSheet,
+	type LegacyLoadViewAllEntry,
+	type LegacyMoveOrderRow,
+	type LegacyOrderStatusRow,
 	type LoadViewDetail,
 	type LoadViewUnion,
 	type Loader,
 	type OperationalDepartment,
+	type PalletBelongsToLpidResult,
 	type Trailer,
 	type StagingListItem
 } from '$lib/types';
@@ -18,9 +22,14 @@ import type {
 	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
+	RawDstLegacyLoadViewAllEntry,
+	RawDstLegacyMoveOrderRow,
+	RawDstLegacyOrderStatusRow,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
+	RawDstPalletBelongsToLpid,
+	RawDstPalletLpidLookupRow,
 	RawDstTrailer,
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
@@ -30,9 +39,14 @@ import {
 	mapDstDropSheetCategoryAvailability,
 	mapDstDropArea,
 	mapDstDropSheet,
+	mapDstLegacyLoadViewAllEntry,
+	mapDstLegacyMoveOrderRow,
+	mapDstLegacyOrderStatusRow,
+	mapDstLpidForPalletLoad,
 	mapDstLoadViewDetail,
 	mapDstLoadViewUnion,
 	mapDstLoader,
+	mapDstPalletBelongsToLpid,
 	mapDstTrailer,
 	mapDstStagingListItem
 } from './type-mappers';
@@ -50,6 +64,13 @@ const DST_ROUTES = {
 	dropArea: '/api/barcode-get/get-droparea',
 	dropAreasByDepartment: '/api/barcode-update/select-drop-area',
 	categoryList: '/api/barcode-get/category-list',
+	legacyLoadViewAllForOrderStatus: '/api/barcode-get/loadview-all-get-orderstatus',
+	legacyOrderStatusInDropsheet: '/api/barcode-get/get-orderstatus-in-dropsheet',
+	legacyMoveOrdersLoaded: '/api/barcode-update/get-orders-loaded-move-new-location',
+	getLpidForPalletLoad: '/api/barcode-update/get-lpid-pallet-load',
+	checkPalletBelongsToLpid: '/api/barcode-get/check-pallet-belongs-lpid',
+	updatePalletLoad: '/api/barcode-update/update-pallet-load',
+	updateSingleLabelLoad: '/api/barcode-update/update-single-label-load',
 	loadViewDetail: '/api/barcode-update/loadview-details-by-sequence',
 	loadViewUnion: '/api/barcode-update/load-labels-union-view',
 	loadViewDetailAll: '/api/barcode-update/loadview-detail-sequence-all',
@@ -96,6 +117,45 @@ export const loadViewDetailAllInputSchema = v.object({
 	locationId: v.number()
 });
 
+export const legacyLoadViewAllInputSchema = v.object({
+	dropSheetId: v.number()
+});
+
+export const legacyOrderStatusInputSchema = v.object({
+	dropSheetId: v.number(),
+	dropSheetCustId: v.number()
+});
+
+export const legacyMoveOrdersInputSchema = v.object({
+	dropSheetId: v.number(),
+	dropSheetCustId: v.number()
+});
+
+export const getLpidForPalletLoadInputSchema = v.object({
+	barcode: v.pipe(v.string(), v.nonEmpty('Expected a non-empty barcode')),
+	loadNumber: v.pipe(v.string(), v.nonEmpty('Expected a non-empty load number')),
+	isPallet: v.boolean()
+});
+
+export const checkPalletBelongsToLpidInputSchema = v.object({
+	barcode: v.pipe(v.string(), v.nonEmpty('Expected a non-empty barcode')),
+	lpid: v.number()
+});
+
+export const updatePalletLoadInputSchema = v.object({
+	dropAreaId: v.number(),
+	palletId: v.number(),
+	loaderName: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name')),
+	lpid: v.number()
+});
+
+export const updateSingleLabelLoadInputSchema = v.object({
+	locationId: v.number(),
+	loaderName: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name')),
+	lpid: v.number(),
+	labelNumber: v.number()
+});
+
 export const numberOfDropsInputSchema = v.object({
 	dropSheetId: v.number(),
 	locationId: v.number()
@@ -104,6 +164,13 @@ export const numberOfDropsInputSchema = v.object({
 type LoadViewDetailInput = v.InferOutput<typeof loadViewDetailInputSchema>;
 type LoadViewUnionInput = v.InferOutput<typeof loadViewUnionInputSchema>;
 type LoadViewDetailAllInput = v.InferOutput<typeof loadViewDetailAllInputSchema>;
+type LegacyLoadViewAllInput = v.InferOutput<typeof legacyLoadViewAllInputSchema>;
+type LegacyOrderStatusInput = v.InferOutput<typeof legacyOrderStatusInputSchema>;
+type LegacyMoveOrdersInput = v.InferOutput<typeof legacyMoveOrdersInputSchema>;
+type GetLpidForPalletLoadInput = v.InferOutput<typeof getLpidForPalletLoadInputSchema>;
+type CheckPalletBelongsToLpidInput = v.InferOutput<typeof checkPalletBelongsToLpidInputSchema>;
+type UpdatePalletLoadInput = v.InferOutput<typeof updatePalletLoadInputSchema>;
+type UpdateSingleLabelLoadInput = v.InferOutput<typeof updateSingleLabelLoadInputSchema>;
 type NumberOfDropsInput = v.InferOutput<typeof numberOfDropsInputSchema>;
 type DropSheetTrailerUpdateInput = v.InferOutput<typeof dropSheetTrailerUpdateInputSchema>;
 type DropSheetPickedByLoaderUpdateInput = v.InferOutput<typeof dropSheetPickedByLoaderUpdateInputSchema>;
@@ -213,6 +280,19 @@ function hasUsableLoadViewDetail(record: Record<string, unknown>) {
 
 function hasUsableNumberOfDrops(record: Record<string, unknown>) {
 	return isFiniteNumber(record.NumberOfDrops);
+}
+
+function hasUsablePalletLpidLookup(record: Record<string, unknown>) {
+	return isFiniteNumber(record.LPID) && record.LPID > 0;
+}
+
+function hasUsablePalletBelongsToLpid(record: Record<string, unknown>) {
+	return (
+		isFiniteNumber(record.LPID) &&
+		record.LPID > 0 &&
+		isFiniteNumber(record.PalletID) &&
+		record.PalletID > 0
+	);
 }
 
 export async function getDstLoaders(): Promise<Loader[]> {
@@ -385,6 +465,114 @@ export async function getDstLoadViewDetailAll(
 
 	return expectListResponse<RawDstLoadViewDetail>(body, DST_ROUTES.loadViewDetailAll).map(
 		mapDstLoadViewDetail
+	);
+}
+
+export async function getDstLegacyLoadViewAll(
+	input: LegacyLoadViewAllInput
+): Promise<LegacyLoadViewAllEntry[]> {
+	const path = withQuery(DST_ROUTES.legacyLoadViewAllForOrderStatus, {
+		DropSheetID: input.dropSheetId
+	});
+	const body = await readDstJson(path);
+
+	return expectListResponse<RawDstLegacyLoadViewAllEntry>(body, path).map(
+		mapDstLegacyLoadViewAllEntry
+	);
+}
+
+export async function getDstLegacyOrderStatusRows(
+	input: LegacyOrderStatusInput
+): Promise<LegacyOrderStatusRow[]> {
+	const path = withQuery(DST_ROUTES.legacyOrderStatusInDropsheet, {
+		DropSheetID: input.dropSheetId,
+		DropSheetCustID: input.dropSheetCustId
+	});
+	const body = await readDstJson(path);
+
+	return expectListResponse<RawDstLegacyOrderStatusRow>(body, path).map(
+		mapDstLegacyOrderStatusRow
+	);
+}
+
+export async function getDstLegacyMoveOrdersRows(
+	input: LegacyMoveOrdersInput
+): Promise<LegacyMoveOrderRow[]> {
+	const body = await readDstJson(
+		DST_ROUTES.legacyMoveOrdersLoaded,
+		jsonInit({
+			DropSheetID: input.dropSheetId,
+			CustomerDropSheetID: input.dropSheetCustId
+		})
+	);
+
+	return expectListResponse<RawDstLegacyMoveOrderRow>(body, DST_ROUTES.legacyMoveOrdersLoaded).map(
+		mapDstLegacyMoveOrderRow
+	);
+}
+
+export async function getDstLpidForPalletLoad(
+	input: GetLpidForPalletLoadInput
+): Promise<number> {
+	const body = await readDstJson(
+		DST_ROUTES.getLpidForPalletLoad,
+		jsonInit({
+			Barcode: input.barcode,
+			LoadNumber: input.loadNumber,
+			Pallet: input.isPallet
+		})
+	);
+	const rows = expectListResponse<RawDstPalletLpidLookupRow>(body, DST_ROUTES.getLpidForPalletLoad);
+	const firstRow = rows.find((row) => hasUsablePalletLpidLookup(row as Record<string, unknown>));
+
+	if (!firstRow) {
+		throw new Error(`DST route ${DST_ROUTES.getLpidForPalletLoad} returned no usable LPID record.`);
+	}
+
+	return mapDstLpidForPalletLoad(firstRow);
+}
+
+export async function checkDstPalletBelongsToLpid(
+	input: CheckPalletBelongsToLpidInput
+): Promise<PalletBelongsToLpidResult> {
+	const path = withQuery(DST_ROUTES.checkPalletBelongsToLpid, {
+		Barcode: input.barcode,
+		LPID: input.lpid
+	});
+	const body = await readDstJson(path);
+
+	return mapDstPalletBelongsToLpid(
+		expectRecordResponse<RawDstPalletBelongsToLpid>(
+			body,
+			path,
+			hasUsablePalletBelongsToLpid
+		)
+	);
+}
+
+export async function updateDstPalletLoad(input: UpdatePalletLoadInput): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.updatePalletLoad,
+		jsonInit({
+			DropArea: input.dropAreaId,
+			PalletID: input.palletId,
+			Loader: input.loaderName,
+			LPIDNumber: input.lpid
+		})
+	);
+}
+
+export async function updateDstSingleLabelLoad(
+	input: UpdateSingleLabelLoadInput
+): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.updateSingleLabelLoad,
+		jsonInit({
+			Location: input.locationId,
+			Loader: input.loaderName,
+			LPID: input.lpid,
+			LabelNumber: input.labelNumber
+		})
 	);
 }
 
