@@ -9,6 +9,7 @@
 		Truck
 	} from '@lucide/svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
+	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
@@ -31,11 +32,6 @@
 	const PERCENT_FORMATTER = new Intl.NumberFormat('en-US', {
 		style: 'percent',
 		maximumFractionDigits: 0
-	});
-
-	const WEIGHT_FORMATTER = new Intl.NumberFormat('en-US', {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1
 	});
 
 	let { data }: PageProps = $props();
@@ -157,14 +153,6 @@
 		return PERCENT_FORMATTER.format(Math.max(0, Math.min(1, value)));
 	}
 
-	function formatWeight(value: number | null): string {
-		if (value === null) {
-			return '--';
-		}
-
-		return WEIGHT_FORMATTER.format(value);
-	}
-
 	function getDepartmentLoaderNames(department: OperationalDepartment): string[] {
 		return departmentLoaderGroups[department] ?? [];
 	}
@@ -268,30 +256,13 @@
 </script>
 
 <div class="space-y-6 xl:space-y-5">
-	<div class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
-		<div class="grid gap-2 md:grid-cols-3" data-testid="select-category-summary-grid">
-			<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">Driver</p>
-				<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">
-					{data.driverName ?? '--'}
-				</p>
-			</div>
-
-			<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-					Delivery Number
-				</p>
-				<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">{data.loadNumber}</p>
-			</div>
-
-			<div class="rounded-[1.25rem] bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-4 py-3 text-white shadow-[var(--shadow-primary)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-white/70">Weight</p>
-				<div class="mt-1.5 flex items-baseline gap-2">
-					<p class="text-2xl font-black tracking-tight">{formatWeight(data.dropWeight)}</p>
-					<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">lbs</p>
-				</div>
-			</div>
-		</div>
+	<div class="space-y-3 rounded-[2.5rem] bg-white/92 p-3 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
+		<LoadSummaryStrip
+			testId="select-category-summary-grid"
+			driverName={data.driverName}
+			loadNumber={data.loadNumber}
+			dropWeight={data.dropWeight}
+		/>
 
 		{#if statusQuery.error}
 			<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">

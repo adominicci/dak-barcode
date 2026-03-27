@@ -183,7 +183,19 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-summary-grid')).not.toHaveTextContent(
 			'lbs lbs'
 		);
-		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-1\.5/);
+		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
+			/text-lg/
+		);
+		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
+			/font-semibold/
+		);
+		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/text-lg/);
+		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/font-semibold/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/text-xl/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/font-semibold/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/text-\[10px\]/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/font-medium/);
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i })).toBeInTheDocument();

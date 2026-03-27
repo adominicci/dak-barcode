@@ -246,6 +246,30 @@ describe('move-orders page', () => {
 			.toBeInTheDocument();
 		await expect.element(page.getByTestId('move-orders-summary')).toHaveClass(/gap-1\.5/);
 		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('David Schmidt', { exact: true }))
+			.toHaveClass(/text-lg/);
+		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('David Schmidt', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('L-042', { exact: true }))
+			.toHaveClass(/text-lg/);
+		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('L-042', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('2,152.4', { exact: true }))
+			.toHaveClass(/text-xl/);
+		await expect
+			.element(page.getByTestId('move-orders-summary').getByText('2,152.4', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect.element(page.getByTestId('move-orders-summary').getByText('lbs', { exact: true })).toHaveClass(
+			/text-\[10px\]/
+		);
+		await expect.element(page.getByTestId('move-orders-summary').getByText('lbs', { exact: true })).toHaveClass(
+			/font-medium/
+		);
+		await expect
 			.element(page.getByTestId('move-orders-sequences').getByRole('button', { name: '001' }))
 			.toBeInTheDocument();
 		await expect
