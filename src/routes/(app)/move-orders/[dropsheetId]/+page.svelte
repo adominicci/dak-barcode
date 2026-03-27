@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
+	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import {
 		checkPalletBelongsToLpid,
@@ -57,17 +58,6 @@
 		});
 	});
 	const moveOrdersRows = $derived(moveOrdersRowsQuery?.current ?? []);
-
-	const summaryWeight = $derived.by(() => {
-		if (data.dropWeight === null) {
-			return '--';
-		}
-
-		return new Intl.NumberFormat('en-US', {
-			minimumFractionDigits: 1,
-			maximumFractionDigits: 1
-		}).format(data.dropWeight);
-	});
 
 	function handleSequenceSelect(sequence: LegacyLoadViewAllEntry) {
 		selectedSequence = sequence.sequence;
@@ -191,27 +181,12 @@
 </script>
 
 <div class="space-y-6">
-	<section class="grid gap-1.5 md:grid-cols-3" data-testid="move-orders-summary">
-		<div class="rounded-[1rem] bg-surface-container-low px-3 py-2.5 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[8px] uppercase tracking-[0.2em] text-on-surface-variant">Driver</p>
-			<p class="mt-1 text-lg font-bold tracking-tight text-slate-950">{data.driverName ?? '--'}</p>
-		</div>
-
-		<div class="rounded-[1rem] bg-surface-container-low px-3 py-2.5 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[8px] uppercase tracking-[0.2em] text-on-surface-variant">
-				Delivery Number
-			</p>
-			<p class="mt-1 text-lg font-bold tracking-tight text-slate-950">{data.loadNumber}</p>
-		</div>
-
-		<div class="rounded-[1rem] bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-3 py-2.5 text-white shadow-[var(--shadow-primary)]">
-			<p class="ui-label text-[8px] uppercase tracking-[0.2em] text-white/70">Weight</p>
-			<div class="mt-1 flex items-baseline gap-2">
-				<p class="text-lg font-black tracking-tight">{summaryWeight}</p>
-				<p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">lbs</p>
-			</div>
-		</div>
-	</section>
+	<LoadSummaryStrip
+		testId="move-orders-summary"
+		driverName={data.driverName}
+		loadNumber={data.loadNumber}
+		dropWeight={data.dropWeight}
+	/>
 
 	{#if loadViewAllQuery.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">

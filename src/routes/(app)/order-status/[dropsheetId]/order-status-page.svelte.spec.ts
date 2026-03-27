@@ -179,7 +179,31 @@ describe('order-status page', () => {
 		await expect
 			.element(page.getByTestId('order-status-summary').getByText('2,152.4 lbs'))
 			.toBeInTheDocument();
-		await expect.element(page.getByTestId('order-status-summary')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('order-status-summary')).toHaveClass(/gap-1\.5/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('David Schmidt', { exact: true }))
+			.toHaveClass(/text-lg/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('David Schmidt', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('L-042', { exact: true }))
+			.toHaveClass(/text-lg/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('L-042', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('2,152.4', { exact: true }))
+			.toHaveClass(/text-xl/);
+		await expect
+			.element(page.getByTestId('order-status-summary').getByText('2,152.4', { exact: true }))
+			.toHaveClass(/font-semibold/);
+		await expect.element(page.getByTestId('order-status-summary').getByText('lbs', { exact: true })).toHaveClass(
+			/text-\[10px\]/
+		);
+		await expect.element(page.getByTestId('order-status-summary').getByText('lbs', { exact: true })).toHaveClass(
+			/font-medium/
+		);
 		await expect.element(page.getByTestId('order-status-sequences').getByRole('button').first()).toHaveTextContent('ALL');
 		await expect
 			.element(page.getByTestId('order-status-sequences').getByRole('button').nth(1))

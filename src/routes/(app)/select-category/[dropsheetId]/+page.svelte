@@ -9,6 +9,7 @@
 		Truck
 	} from '@lucide/svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
+	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
@@ -33,11 +34,6 @@
 		maximumFractionDigits: 0
 	});
 
-	const WEIGHT_FORMATTER = new Intl.NumberFormat('en-US', {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1
-	});
-
 	let { data }: PageProps = $props();
 
 	let currentLoader = $state<WorkflowLoaderSelection>(null);
@@ -52,6 +48,19 @@
 	const currentStatus = $derived(statusQuery.current ?? null);
 	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
 	const statusEntries = $derived(byStatusDisplay(currentStatus));
+	const departmentLoaderGroups = $derived.by(() => {
+		const groups: Record<OperationalDepartment, string[]> = {
+			Roll: [],
+			Wrap: [],
+			Parts: []
+		};
+
+		for (const group of data.departmentLoaders) {
+			groups[group.department] = group.loaderNames;
+		}
+
+		return groups;
+	});
 	const visibleDepartments = $derived(
 		getVisibleDepartments(LOADING_ENTRY_DEPARTMENTS, categoryAvailability)
 	);
@@ -144,12 +153,8 @@
 		return PERCENT_FORMATTER.format(Math.max(0, Math.min(1, value)));
 	}
 
-	function formatWeight(value: number | null): string {
-		if (value === null) {
-			return '--';
-		}
-
-		return WEIGHT_FORMATTER.format(value);
+	function getDepartmentLoaderNames(department: OperationalDepartment): string[] {
+		return departmentLoaderGroups[department] ?? [];
 	}
 
 	function closeLoaderModal() {
@@ -251,30 +256,13 @@
 </script>
 
 <div class="space-y-6 xl:space-y-5">
-	<div class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
-		<div class="grid gap-2 md:grid-cols-3" data-testid="select-category-summary-grid">
-			<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">Driver</p>
-				<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">
-					{data.driverName ?? '--'}
-				</p>
-			</div>
-
-			<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-					Delivery Number
-				</p>
-				<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">{data.loadNumber}</p>
-			</div>
-
-			<div class="rounded-[1.25rem] bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-4 py-3 text-white shadow-[var(--shadow-primary)]">
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-white/70">Weight</p>
-				<div class="mt-1.5 flex items-baseline gap-2">
-					<p class="text-2xl font-black tracking-tight">{formatWeight(data.dropWeight)}</p>
-					<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">lbs</p>
-				</div>
-			</div>
-		</div>
+	<div class="space-y-3 rounded-[2.5rem] bg-white/92 p-3 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
+		<LoadSummaryStrip
+			testId="select-category-summary-grid"
+			driverName={data.driverName}
+			loadNumber={data.loadNumber}
+			dropWeight={data.dropWeight}
+		/>
 
 		{#if statusQuery.error}
 			<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
@@ -309,9 +297,19 @@
 			</div>
 		{/if}
 
-		<div data-testid="select-category-actions" class="grid gap-3 xl:grid-cols-3">
+	</div>
+
+	<div
+		data-testid="select-category-departments-card"
+		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+	>
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
+		</div>
+
+		<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
 			{#if visibleDepartments.length === 0}
-				<div class="rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
+				<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
 					<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
 					<p class="mt-2 text-sm leading-6 text-slate-600">
 						This load does not have wrap, roll, or parts labels available yet.
@@ -327,7 +325,7 @@
 					type="button"
 					onclick={() => handleDepartmentSelect(entry.department)}
 					disabled={pendingDepartment !== null}
-					class="group flex min-h-[7rem] flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+					class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					<div class="flex items-start justify-between gap-4">
 						<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
@@ -356,6 +354,46 @@
 						</div>
 					</div>
 				</button>
+			{/each}
+		</div>
+	</div>
+
+	<div
+		data-testid="select-category-loader-roster"
+		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+	>
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xl font-bold tracking-tight text-slate-950">Loaders</h2>
+		</div>
+
+		<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-3">
+			{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
+				{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
+				<section
+					data-testid={`select-category-loader-column-${entry.department}`}
+					class="rounded-[1.5rem] bg-surface-container-low/60 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/70"
+				>
+					<div class="flex items-center justify-between gap-3">
+						<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
+						<span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--shadow-soft)]">
+							{departmentLoaderNames.length}
+						</span>
+					</div>
+
+					{#if departmentLoaderNames.length === 0}
+						<div class="mt-3 rounded-[1.1rem] border border-dashed border-slate-200 bg-white/80 px-3 py-4 text-sm text-slate-500">
+							No loaders yet for this department.
+						</div>
+					{:else}
+						<div class="mt-3 flex flex-wrap gap-2">
+							{#each departmentLoaderNames as loaderName (loaderName)}
+								<span class="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
+									{loaderName}
+								</span>
+							{/each}
+						</div>
+					{/if}
+				</section>
 			{/each}
 		</div>
 	</div>

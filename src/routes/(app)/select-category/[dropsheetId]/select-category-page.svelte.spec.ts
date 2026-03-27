@@ -36,6 +36,11 @@ type CategoryAvailabilityQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
+type DepartmentLoaderGroup = {
+	department: 'Wrap' | 'Roll' | 'Parts';
+	loaderNames: string[];
+};
+
 const { goto, getDropsheetCategoryAvailability, getDropsheetStatus, getNumberOfDrops, upsertLoaderSession } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
@@ -92,7 +97,12 @@ const layoutData = {
 	displayName: 'Loader One',
 	isAdmin: false,
 	userEmail: 'loader@dakotasteelandtrim.com',
-	userRole: 'loading' as const
+	userRole: 'loading' as const,
+	departmentLoaders: [
+		{ department: 'Wrap', loaderNames: [] },
+		{ department: 'Roll', loaderNames: [] },
+		{ department: 'Parts', loaderNames: [] }
+	] as DepartmentLoaderGroup[]
 };
 
 describe('select-category page', () => {
@@ -141,6 +151,11 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				departmentLoaders: [
+					{ department: 'Wrap', loaderNames: ['Kaleb', 'Anthony'] },
+					{ department: 'Roll', loaderNames: ['Kaleb'] },
+					{ department: 'Parts', loaderNames: [] }
+				] as DepartmentLoaderGroup[],
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -168,7 +183,19 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-summary-grid')).not.toHaveTextContent(
 			'lbs lbs'
 		);
-		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-1\.5/);
+		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
+			/text-lg/
+		);
+		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
+			/font-semibold/
+		);
+		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/text-lg/);
+		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/font-semibold/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/text-xl/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/font-semibold/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/text-\[10px\]/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/font-medium/);
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i })).toBeInTheDocument();
@@ -183,6 +210,41 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('50%')).toBeInTheDocument();
 		await expect.element(page.getByText('25%')).toBeInTheDocument();
 		await expect.element(page.getByText('75%')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-departments-card')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
+			'Departments'
+		);
+		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveTextContent(
+			'Loaders'
+		);
+		await expect.element(page.getByTestId('select-category-loader-roster')).not.toHaveTextContent(
+			'Current roster'
+		);
+		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveTextContent(
+			'Kaleb'
+		);
+		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveTextContent(
+			'Anthony'
+		);
+		await expect.element(page.getByTestId('select-category-loader-column-Roll')).toHaveTextContent(
+			'Kaleb'
+		);
+		await expect.element(page.getByTestId('select-category-loader-column-Parts')).toHaveTextContent(
+			'No loaders yet for this department.'
+		);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid/);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(
+			/bg-white\/92/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
+			/cursor-pointer/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
+			/ring-1/
+		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();

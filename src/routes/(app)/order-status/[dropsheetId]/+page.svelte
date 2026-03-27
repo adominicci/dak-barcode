@@ -1,6 +1,7 @@
 <script lang="ts">
 import { getLegacyLoadViewAll, getLegacyOrderStatusRows } from '$lib/legacy-workflow.remote';
 import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
+import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 import { sortLegacyLoadViewAllEntries } from '$lib/workflow/legacy-sequence-order';
 import { getWorkflowStatusClasses } from '$lib/workflow/status-tones';
 import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
@@ -35,17 +36,6 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 	});
 	const orderStatusRows = $derived(orderStatusRowsQuery?.current ?? []);
 
-	const summaryWeight = $derived.by(() => {
-		if (data.dropWeight === null) {
-			return '--';
-		}
-
-		return new Intl.NumberFormat('en-US', {
-			minimumFractionDigits: 1,
-			maximumFractionDigits: 1
-		}).format(data.dropWeight);
-	});
-
 	function handleSequenceSelect(sequence: LegacyLoadViewAllEntry) {
 		selectedSequence = sequence.sequence;
 	}
@@ -76,27 +66,12 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 </script>
 
 <div class="space-y-6">
-	<section class="grid gap-2 md:grid-cols-3" data-testid="order-status-summary">
-		<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">Driver</p>
-			<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">{data.driverName ?? '--'}</p>
-		</div>
-
-		<div class="rounded-[1.25rem] bg-surface-container-low px-4 py-3 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-				Delivery Number
-			</p>
-			<p class="mt-1.5 text-xl font-bold tracking-tight text-slate-950">{data.loadNumber}</p>
-		</div>
-
-		<div class="rounded-[1.25rem] bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-4 py-3 text-white shadow-[var(--shadow-primary)]">
-			<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-white/70">Weight</p>
-			<div class="mt-1.5 flex items-baseline gap-2">
-				<p class="text-2xl font-black tracking-tight">{summaryWeight}</p>
-				<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">lbs</p>
-			</div>
-		</div>
-	</section>
+	<LoadSummaryStrip
+		testId="order-status-summary"
+		driverName={data.driverName}
+		loadNumber={data.loadNumber}
+		dropWeight={data.dropWeight}
+	/>
 
 	{#if loadViewAllQuery.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
