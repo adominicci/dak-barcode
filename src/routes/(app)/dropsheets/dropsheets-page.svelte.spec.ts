@@ -220,6 +220,29 @@ describe("dropsheets page", () => {
       .toHaveTextContent("Chris");
   });
 
+  it("shows the shared spinner in the refresh button while dropsheets are loading", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([], { loading: true }),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await expect.element(page.getByTestId("dropsheets-refresh-spinner")).toBeInTheDocument();
+    await expect.element(page.getByText("Loading order status")).toBeInTheDocument();
+    await expect.element(page.getByText("Loading dropsheets...")).not.toBeInTheDocument();
+  });
+
+
   it("opens the date picker and reloads the list when a new day is chosen", async () => {
     const dayOneRefresh = vi.fn();
     const dayTwoRefresh = vi.fn();
@@ -435,7 +458,7 @@ describe("dropsheets page", () => {
       .click();
 
     expect(goto).toHaveBeenCalledWith(
-      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&dropWeight=2152.4",
+      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4",
     );
   });
 

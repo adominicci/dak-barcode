@@ -539,6 +539,112 @@ describe("dst query helpers", () => {
     expect(url.searchParams.get("order_so_number")).toBe("SO-101");
   });
 
+  it("supports the legacy move-order mutation endpoints with canonical payloads", async () => {
+    fetchDst
+      .mockResolvedValueOnce(jsonResponse([{ LPID: 501 }]))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          LPID: 501,
+          PalletID: 777,
+          PalletLabel: "PALLET-42",
+          PalletScan: true,
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({}))
+      .mockResolvedValueOnce(jsonResponse({}));
+
+    const {
+      getDstLpidForPalletLoad,
+      checkDstPalletBelongsToLpid,
+      updateDstPalletLoad,
+      updateDstSingleLabelLoad,
+    } = await import("./dst-queries");
+
+    await expect(
+      getDstLpidForPalletLoad({
+        barcode: "PALLET-42",
+        loadNumber: "L-100",
+        isPallet: true,
+      }),
+    ).resolves.toBe(501);
+
+    await expect(
+      checkDstPalletBelongsToLpid({
+        barcode: "PALLET-42",
+        lpid: 501,
+      }),
+    ).resolves.toEqual({
+      lpid: 501,
+      palletId: 777,
+      palletLabel: "PALLET-42",
+      palletScan: true,
+    });
+
+    await expect(
+      updateDstPalletLoad({
+        dropAreaId: 41,
+        palletId: 777,
+        loaderName: "Alex",
+        lpid: 501,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      updateDstSingleLabelLoad({
+        locationId: 41,
+        loaderName: "Alex",
+        lpid: 501,
+        labelNumber: 88,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetchDst).toHaveBeenCalledTimes(4);
+
+    const [lookupPath, lookupInit] = fetchDst.mock.calls[0] as [
+      string,
+      RequestInit | undefined,
+    ];
+    expect(lookupPath).toBe("/api/barcode-update/get-lpid-pallet-load");
+    expect(lookupInit?.method).toBe("POST");
+    expect(JSON.parse(String(lookupInit?.body))).toEqual({
+      Barcode: "PALLET-42",
+      LoadNumber: "L-100",
+      Pallet: true,
+    });
+
+    const [checkPath] = fetchDst.mock.calls[1] as [string, RequestInit | undefined];
+    const checkUrl = new URL(checkPath, "https://dst.example.com");
+    expect(checkUrl.pathname).toBe("/api/barcode-get/check-pallet-belongs-lpid");
+    expect(checkUrl.searchParams.get("Barcode")).toBe("PALLET-42");
+    expect(checkUrl.searchParams.get("LPID")).toBe("501");
+
+    const [updatePalletPath, updatePalletInit] = fetchDst.mock.calls[2] as [
+      string,
+      RequestInit | undefined,
+    ];
+    expect(updatePalletPath).toBe("/api/barcode-update/update-pallet-load");
+    expect(updatePalletInit?.method).toBe("POST");
+    expect(JSON.parse(String(updatePalletInit?.body))).toEqual({
+      DropArea: 41,
+      PalletID: 777,
+      Loader: "Alex",
+      LPIDNumber: 501,
+    });
+
+    const [updateLabelPath, updateLabelInit] = fetchDst.mock.calls[3] as [
+      string,
+      RequestInit | undefined,
+    ];
+    expect(updateLabelPath).toBe("/api/barcode-update/update-single-label-load");
+    expect(updateLabelInit?.method).toBe("POST");
+    expect(JSON.parse(String(updateLabelInit?.body))).toEqual({
+      Location: 41,
+      Loader: "Alex",
+      LPID: 501,
+      LabelNumber: 88,
+    });
+  });
+
   it("fails loudly for required single-record queries that return no usable payload", async () => {
     fetchDst.mockResolvedValue(jsonResponse({}));
 
@@ -629,10 +735,14 @@ describe("dst query schemas", () => {
 
   it("validates the structured load-view query inputs used by the remote wrappers", async () => {
     const {
+      checkPalletBelongsToLpidInputSchema,
+      getLpidForPalletLoadInputSchema,
       loadViewDetailAllInputSchema,
       loadViewDetailInputSchema,
       loadViewUnionInputSchema,
       numberOfDropsInputSchema,
+      updatePalletLoadInputSchema,
+      updateSingleLabelLoadInputSchema,
     } = await import("./dst-queries");
 
     expect(
@@ -687,5 +797,47 @@ describe("dst query schemas", () => {
         locationId: "1",
       }).success,
     ).toBe(false);
+    expect(
+      v.safeParse(getLpidForPalletLoadInputSchema, {
+        barcode: "PALLET-42",
+        loadNumber: "L-100",
+        isPallet: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      v.safeParse(getLpidForPalletLoadInputSchema, {
+        barcode: "",
+        loadNumber: "L-100",
+        isPallet: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      v.safeParse(checkPalletBelongsToLpidInputSchema, {
+        barcode: "PALLET-42",
+        lpid: 501,
+      }).success,
+    ).toBe(true);
+    expect(
+      v.safeParse(checkPalletBelongsToLpidInputSchema, {
+        barcode: "PALLET-42",
+        lpid: "501",
+      }).success,
+    ).toBe(false);
+    expect(
+      v.safeParse(updatePalletLoadInputSchema, {
+        dropAreaId: 41,
+        palletId: 777,
+        loaderName: "Alex",
+        lpid: 501,
+      }).success,
+    ).toBe(true);
+    expect(
+      v.safeParse(updateSingleLabelLoadInputSchema, {
+        locationId: 41,
+        loaderName: "Alex",
+        lpid: 501,
+        labelNumber: 88,
+      }).success,
+    ).toBe(true);
   });
 });

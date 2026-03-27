@@ -36,12 +36,11 @@ type CategoryAvailabilityQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
-const { goto, getDropsheetCategoryAvailability, getDropsheetStatus, getOnLoadStatusAllDepts, getNumberOfDrops, upsertLoaderSession } = vi.hoisted(
+const { goto, getDropsheetCategoryAvailability, getDropsheetStatus, getNumberOfDrops, upsertLoaderSession } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
-		getOnLoadStatusAllDepts: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
 		getNumberOfDrops: vi.fn(),
 		upsertLoaderSession: vi.fn()
 	})
@@ -54,10 +53,6 @@ vi.mock('$app/navigation', () => ({
 vi.mock('$lib/dropsheets.remote', () => ({
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus
-}));
-
-vi.mock('$lib/department-status.remote', () => ({
-	getOnLoadStatusAllDepts
 }));
 
 vi.mock('$lib/load-view.remote', () => ({ getNumberOfDrops }));
@@ -105,7 +100,6 @@ describe('select-category page', () => {
 		goto.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
-		getOnLoadStatusAllDepts.mockReset();
 		getNumberOfDrops.mockReset();
 		upsertLoaderSession.mockReset();
 		workflowStores.resetOperationalState();
@@ -135,48 +129,9 @@ describe('select-category page', () => {
 				allLoaded: false
 			})
 		);
-
-		getOnLoadStatusAllDepts.mockReturnValue(
-			createStatusQuery({
-				scope: 'dropsheet',
-				subjectId: 42,
-				slit: 'NA',
-				trim: 'NA',
-				wrap: 'NA',
-				roll: 'READY',
-				parts: 'NA',
-				soffit: 'NA'
-			})
-		);
 	});
 
-	it('renders the top strip and department card badges from DST dropsheet status, shows the carried load number, and keeps loading blocked until a loader is selected', async () => {
-		getDropsheetCategoryAvailability.mockReturnValue(
-			createCategoryAvailabilityQuery({
-				dropSheetId: 42,
-				wrapHasLabels: 0,
-				wrapScannedPercent: 0,
-				rollHasLabels: 4,
-				rollScannedPercent: 0.5,
-				partsHasLabels: 0,
-				partsScannedPercent: 0,
-				allLoaded: false
-			})
-		);
-
-		getDropsheetStatus.mockReturnValue(
-			createStatusQuery({
-				scope: 'dropsheet',
-				subjectId: 42,
-				slit: 'NA',
-				trim: 'NA',
-				wrap: 'NA',
-				roll: 'DONE',
-				parts: 'NA',
-				soffit: 'NA'
-			})
-		);
-
+	it('renders the compact summary cards and department actions without the old sidebar or heading block', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
 			form: null,
@@ -184,6 +139,7 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
@@ -192,59 +148,48 @@ describe('select-category page', () => {
 			}
 		});
 
-		await expect.element(page.getByText('Select Category')).toBeInTheDocument();
-		await expect.element(page.getByText('L-042', { exact: true })).toBeInTheDocument();
-		expect(getDropsheetStatus).toHaveBeenCalledWith(42);
-		expect(getDropsheetCategoryAvailability).toHaveBeenCalledWith(42);
-		expect(getOnLoadStatusAllDepts).not.toHaveBeenCalled();
-		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('DONE')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeDisabled();
-		await expect.element(page.getByRole('button', { name: /Wrap/i })).not.toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Parts/i })).not.toBeInTheDocument();
-		await expect.element(page.getByRole('option', { name: 'Alex' })).toBeInTheDocument();
-		await expect.element(page.getByRole('option', { name: 'Casey' })).toBeInTheDocument();
+		await expect.element(page.getByText('Select Category')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-panel')).not.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-summary-grid').getByText('Driver'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-summary-grid').getByText('Delivery Number'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-summary-grid').getByText('Weight'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-summary-grid').getByText('David Schmidt'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-summary-grid').getByText('L-042', { exact: true }))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-summary-grid')).not.toHaveTextContent(
+			'lbs lbs'
+		);
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-2/);
+		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /Parts/i })).toBeInTheDocument();
+		await expect.element(page.getByText('Location 2')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Location 1')).not.toBeInTheDocument();
+		await expect
+			.element(page.getByText('Protect wrapped orders and finish the trailer handoff.'))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByText('Stage roll inventory into driver-valid loading locations.'))
+			.not.toBeInTheDocument();
+		await expect.element(page.getByText('50%')).toBeInTheDocument();
+		await expect.element(page.getByText('25%')).toBeInTheDocument();
+		await expect.element(page.getByText('75%')).toBeInTheDocument();
+		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
+		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
+		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Signature', { exact: true })).not.toBeInTheDocument();
 	});
 
-	it('shows per-department progress percentages from the DST availability payload alongside the DST status badge', async () => {
-		render(SelectCategoryPage, {
-			params: { dropsheetId: '42' },
-			form: null,
-			data: {
-				...layoutData,
-				dropSheetId: 42,
-				loadNumber: 'L-042',
-				dropWeight: 2152.4,
-				loaders: [{ id: 7, name: 'Alex', isActive: true }]
-			}
-		});
-
-		await expect.element(page.getByRole('button', { name: /Wrap/i }).getByText('50%')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('25%')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Parts/i }).getByText('75%')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Roll/i }).getByText('STOP')).toBeInTheDocument();
-	});
-
-	it('uses compact sizing hooks for the shared iPad layout', async () => {
-		render(SelectCategoryPage, {
-			params: { dropsheetId: '42' },
-			form: null,
-			data: {
-				...layoutData,
-				dropSheetId: 42,
-				loadNumber: 'L-042',
-				dropWeight: 2152.4,
-				loaders: [{ id: 7, name: 'Alex', isActive: true }]
-			}
-		});
-
-		await expect.element(page.getByTestId('select-category-title')).toHaveClass(/text-2xl/);
-		await expect.element(page.getByTestId('select-category-stat-cards')).toHaveClass(/gap-2/);
-		await expect.element(page.getByTestId('select-category-loader-panel')).toHaveClass(/p-5/);
-		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/p-5/);
-		await expect.element(page.getByTestId('select-category-loader-select')).toHaveClass(/h-14/);
-	});
-
-	it('maps Wrap to location 2, creates the loader session, stores the selection, and navigates into loading', async () => {
+	it('opens the loader modal on every department tap and persists the chosen loader for the loading handoff', async () => {
 		getNumberOfDrops.mockResolvedValue(14);
 		upsertLoaderSession.mockResolvedValue({
 			id: 88,
@@ -264,13 +209,19 @@ describe('select-category page', () => {
 				...layoutData,
 				dropSheetId: 42,
 				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
-				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+				loaders: [
+					{ id: 7, name: 'Alex', isActive: true },
+					{ id: 9, name: 'Casey', isActive: true }
+				]
 			}
 		});
 
-		await page.getByLabelText('Loader').selectOptions('7');
 		await page.getByRole('button', { name: /Wrap/i }).click();
+		await expect.element(page.getByTestId('selection-modal')).toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Alex' }).click();
 
 		expect(getNumberOfDrops).toHaveBeenCalledWith({
 			dropSheetId: 42,
@@ -289,8 +240,29 @@ describe('select-category page', () => {
 			loaderId: 7,
 			loaderName: 'Alex'
 		});
+		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4&driverName=David+Schmidt'
 		);
+	});
+
+	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/grid/);
+		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/grid-cols-6/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-3/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[7rem\]/);
 	});
 });

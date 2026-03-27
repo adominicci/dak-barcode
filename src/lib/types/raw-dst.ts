@@ -70,6 +70,61 @@ export type RawDstLoadViewUnion = {
 	LPID?: number | null;
 };
 
+export type RawDstLegacyLoadViewAllEntry = {
+	DropSheetID: number;
+	Dropsheetcustid?: number | null;
+	DSSequence?: string | null;
+	LoadNumber?: string | null;
+	Driver?: string | null;
+	Status?: string | null;
+};
+
+export type RawDstLegacyOrderStatusRow = {
+	DropSheetCustID: number;
+	OrderSONumber?: string | null;
+	CustomerName?: string | null;
+	fkDropSheetID: number;
+	DSSequence: number;
+	OrderSlitterStatus?: string | null;
+	OrderTrimStatus?: string | null;
+	OrderWrapStatus?: string | null;
+	OrderPartStatus?: string | null;
+	OrderRollStatus?: string | null;
+	OrderSoffitStatus?: string | null;
+	StatusSort?: number | null;
+};
+
+export type RawDstLegacyMoveOrderRow = {
+	DropSheetCustID: number;
+	PartListID?: string | null;
+	QtyDet?: string | null;
+	LabelNumber?: number | null;
+	Scanned?: boolean | null;
+	OrderSONumber?: string | null;
+	CustomerName?: string | null;
+	LoadingLocationID: number;
+	DropArea?: string | null;
+	dropArea?: string | null;
+	PartColor?: string | null;
+	fkDropSheetID: number;
+	RecordType: number;
+	LPID: number;
+	DSSequence: number;
+	Unload?: boolean | null;
+	UnloadManualScan?: boolean | null;
+};
+
+export type RawDstPalletLpidLookupRow = {
+	LPID: number;
+};
+
+export type RawDstPalletBelongsToLpid = {
+	LPID: number;
+	PalletID: number;
+	PalletLabel?: string | null;
+	PalletScan?: boolean | null;
+};
+
 export type RawDstDepartmentStatusOnDrop = {
 	CustDropSheetID: number;
 	StatusOnLoadSlit?: string | null;

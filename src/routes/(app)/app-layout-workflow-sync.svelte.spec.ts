@@ -20,6 +20,7 @@ import AppLayout from './+layout.svelte';
 const children = createRawSnippet(() => ({
 	render: () => '<div>Workflow layout child</div>'
 }));
+const workflowLayoutChild = () => page.getByText('Workflow layout child').first();
 
 const baseData = {
 	displayName: 'Loader One',
@@ -45,7 +46,7 @@ describe('(app) layout workflow target sync', () => {
 			children
 		});
 
-		await expect.element(page.getByText('Workflow layout child')).toBeInTheDocument();
+		await expect.element(workflowLayoutChild()).toBeInTheDocument();
 		expect(get(workflowStores.activeTarget)).toBe('Freeport');
 	});
 
@@ -59,7 +60,6 @@ describe('(app) layout workflow target sync', () => {
 			children
 		});
 
-		await expect.element(page.getByText('Workflow layout child')).toBeInTheDocument();
 		expect(get(workflowStores.activeTarget)).toBe('Canton');
 
 		await view.rerender({
@@ -86,11 +86,11 @@ describe('(app) layout workflow target sync', () => {
 			children
 		});
 
-		await expect.element(page.getByText('Workflow layout child')).toBeInTheDocument();
+		await expect.element(workflowLayoutChild()).toBeInTheDocument();
 		expect(get(workflowStores.activeTarget)).toBeNull();
 	});
 
-	it('routes the select-category back button to the dropsheet list instead of home', async () => {
+	it('routes select-category back to the dropsheet list', async () => {
 		pageState.url = new URL('https://app.local/select-category/42?loadNumber=L-042');
 
 		render(AppLayout, {
@@ -106,5 +106,62 @@ describe('(app) layout workflow target sync', () => {
 			'href',
 			'/dropsheets'
 		);
+	});
+
+	it('routes order-status back to select-category when launched from that flow', async () => {
+		pageState.url = new URL(
+			'https://app.local/order-status/42?returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
+		);
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/select-category/42?loadNumber=L-042'
+		);
+		await expect.element(page.getByRole('heading', { name: 'Order Status' })).toBeInTheDocument();
+	});
+
+	it('routes move-orders back to select-category when launched from that flow', async () => {
+		pageState.url = new URL(
+			'https://app.local/move-orders/42?returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
+		);
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/select-category/42?loadNumber=L-042'
+		);
+		await expect.element(page.getByRole('heading', { name: 'Dropsheet' })).toBeInTheDocument();
+	});
+
+	it('rejects unsafe returnTo values and falls back to home', async () => {
+		pageState.url = new URL('https://app.local/order-status/42?returnTo=https%3A%2F%2Fevil.example.com');
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/home');
 	});
 });

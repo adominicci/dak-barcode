@@ -7,11 +7,11 @@
 		ChevronDown,
 		ChevronLeft,
 		ChevronRight,
-		LoaderCircle,
 		PackageSearch,
 		RefreshCw,
 		TriangleAlert
 	} from '@lucide/svelte';
+	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import { getLoaders } from '$lib/loaders.remote';
 	import { getTrailers, updateDropsheetTrailer } from '$lib/trailers.remote';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -187,6 +187,7 @@
 		const searchParams = new URLSearchParams({
 			loadNumber: dropSheet.loadNumber,
 			deliveryNumber: dropSheet.loadNumber,
+			driverName: dropSheet.driverName ?? '',
 			dropWeight: String(dropSheet.dropWeight)
 		});
 
@@ -347,7 +348,7 @@
 					onclick={() => void dropsheetsQuery.refresh()}
 				>
 					{#if dropsheetsQuery.loading}
-						<LoaderCircle class="size-4 animate-spin text-primary" />
+						<LoadingSpinner size="sm" decorative data-testid="dropsheets-refresh-spinner" />
 					{:else}
 						<RefreshCw class="size-4 text-primary" />
 					{/if}
@@ -369,11 +370,11 @@
 			</div>
 		{:else if dropsheetsQuery.loading && dropsheets.length === 0}
 			<div class="px-6 py-12 text-center">
-				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
-					<LoaderCircle class="size-8 animate-spin" />
+				<div class="mx-auto flex size-16 items-center justify-center">
+					<LoadingSpinner size="lg" data-testid="dropsheets-loading-spinner" />
 				</div>
 				<p class="mt-5 text-lg font-semibold tracking-tight text-slate-950">
-					Loading dropsheets...
+					Loading order status
 				</p>
 			</div>
 		{:else if dropsheets.length === 0}

@@ -31,6 +31,11 @@ function parseLoadNumber(
 	return String(dropSheetId);
 }
 
+function parseDriverName(driverName: string | null | undefined): string | null {
+	const trimmed = driverName?.trim();
+	return trimmed ? trimmed : null;
+}
+
 export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
 	const loaders = (await getDstLoaders()).filter((loader) => loader.isActive);
@@ -39,11 +44,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		url.searchParams.get('deliveryNumber'),
 		dropSheetId
 	);
+	const driverName = parseDriverName(url.searchParams.get('driverName'));
 	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
 
 	return {
 		dropSheetId,
 		loadNumber,
+		driverName,
 		dropWeight,
 		loaders
 	};

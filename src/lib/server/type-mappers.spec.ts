@@ -22,6 +22,7 @@ import {
   mapDstDropSheet,
   mapDstLoadViewDetail,
   mapDstLoadViewUnion,
+  mapDstLegacyMoveOrderRow,
   mapDstLoader,
   mapDstTrailer,
   mapDstStagingListItem,
@@ -163,6 +164,46 @@ describe("dst record mappers", () => {
       lengthText: "10ft",
       categoryId: 3,
       lpid: 999,
+    });
+  });
+
+  it("maps legacy move-order rows when the location field is returned as lowercase dropArea", () => {
+    expect(
+      mapDstLegacyMoveOrderRow({
+        DropSheetCustID: 100,
+        PartListID: "15WSBR",
+        QtyDet: "W1-L-1",
+        LabelNumber: 1,
+        Scanned: false,
+        OrderSONumber: "97855-SO",
+        CustomerName: "AH - Wood Lake DSRES",
+        LoadingLocationID: 1,
+        dropArea: "PB",
+        PartColor: null,
+        fkDropSheetID: 42,
+        RecordType: 1,
+        LPID: 345255,
+        DSSequence: 1,
+        Unload: false,
+        UnloadManualScan: false,
+      }),
+    ).toEqual({
+      dropSheetCustId: 100,
+      partListId: "15WSBR",
+      qtyDet: "W1-L-1",
+      labelNumber: 1,
+      scanned: false,
+      orderSoNumber: "97855-SO",
+      customerName: "AH - Wood Lake DSRES",
+      loadingLocationId: 1,
+      dropArea: "PB",
+      partColor: null,
+      fkDropSheetId: 42,
+      recordType: 1,
+      lpid: 345255,
+      sequence: 1,
+      unload: false,
+      unloadManualScan: false,
     });
   });
 
