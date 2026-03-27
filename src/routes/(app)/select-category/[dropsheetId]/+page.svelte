@@ -52,6 +52,19 @@
 	const currentStatus = $derived(statusQuery.current ?? null);
 	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
 	const statusEntries = $derived(byStatusDisplay(currentStatus));
+	const departmentLoaderGroups = $derived.by(() => {
+		const groups: Record<OperationalDepartment, string[]> = {
+			Roll: [],
+			Wrap: [],
+			Parts: []
+		};
+
+		for (const group of data.departmentLoaders) {
+			groups[group.department] = group.loaderNames;
+		}
+
+		return groups;
+	});
 	const visibleDepartments = $derived(
 		getVisibleDepartments(LOADING_ENTRY_DEPARTMENTS, categoryAvailability)
 	);
@@ -150,6 +163,10 @@
 		}
 
 		return WEIGHT_FORMATTER.format(value);
+	}
+
+	function getDepartmentLoaderNames(department: OperationalDepartment): string[] {
+		return departmentLoaderGroups[department] ?? [];
 	}
 
 	function closeLoaderModal() {
@@ -356,6 +373,54 @@
 						</div>
 					</div>
 				</button>
+			{/each}
+		</div>
+	</div>
+
+	<div
+		data-testid="select-category-loader-roster"
+		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+	>
+		<div class="flex flex-wrap items-end justify-between gap-3">
+			<div>
+				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
+					Loaders by department
+				</p>
+				<h2 class="mt-1 text-xl font-bold tracking-tight text-slate-950">Current roster</h2>
+			</div>
+			<p class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+				Read-only legacy parity
+			</p>
+		</div>
+
+		<div class="grid gap-3 xl:grid-cols-3">
+			{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
+				{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
+				<section
+					data-testid={`select-category-loader-column-${entry.department}`}
+					class="rounded-[1.5rem] bg-surface-container-low/60 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/70"
+				>
+					<div class="flex items-center justify-between gap-3">
+						<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
+						<span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--shadow-soft)]">
+							{departmentLoaderNames.length}
+						</span>
+					</div>
+
+					{#if departmentLoaderNames.length === 0}
+						<div class="mt-3 rounded-[1.1rem] border border-dashed border-slate-200 bg-white/80 px-3 py-4 text-sm text-slate-500">
+							No loaders yet for this department.
+						</div>
+					{:else}
+						<div class="mt-3 flex flex-wrap gap-2">
+							{#each departmentLoaderNames as loaderName (loaderName)}
+								<span class="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
+									{loaderName}
+								</span>
+							{/each}
+						</div>
+					{/if}
+				</section>
 			{/each}
 		</div>
 	</div>
