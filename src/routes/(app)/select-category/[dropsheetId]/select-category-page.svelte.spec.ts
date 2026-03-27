@@ -198,6 +198,10 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('50%')).toBeInTheDocument();
 		await expect.element(page.getByText('25%')).toBeInTheDocument();
 		await expect.element(page.getByText('75%')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-departments-card')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
+			'Departments'
+		);
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveTextContent(
 			'Loaders'
@@ -220,6 +224,9 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid/);
 		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid-cols-3/);
 		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(
+			/bg-white\/92/
+		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
