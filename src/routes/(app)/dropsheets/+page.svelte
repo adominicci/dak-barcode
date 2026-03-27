@@ -59,8 +59,8 @@
 		minute: '2-digit'
 	});
 
-const TABLE_SELECTION_BUTTON_CLASSES =
-	'inline-flex min-h-9 max-w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-[0_10px_24px_-20px_rgba(0,88,188,0.85)] transition hover:bg-primary/90 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
+	const TABLE_SELECTION_BUTTON_CLASSES =
+		'inline-flex min-h-9 max-w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-[0_10px_24px_-20px_rgba(0,88,188,0.85)] transition hover:bg-primary/90 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
 
 	let { data }: PageProps = $props();
 	let selectedDateValue = $derived(parseDate(data.selectedDate));

@@ -1,4 +1,4 @@
-import { query } from '$app/server';
+import { command, query } from '$app/server';
 import {
 	dropSheetDateSchema,
 	dropSheetPickedByLoaderUpdateInputSchema,
@@ -8,7 +8,6 @@ import {
 	getDstDropsheetStatus,
 	updateDstDropSheetPickedByLoader
 } from '$lib/server/dst-queries';
-import { command } from '$app/server';
 
 export const getDropsheets = query(dropSheetDateSchema, async (dropSheetDate) =>
 	getDstDropsheets(dropSheetDate)
