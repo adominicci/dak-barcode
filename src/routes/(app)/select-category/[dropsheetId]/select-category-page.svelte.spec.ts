@@ -98,6 +98,7 @@ const layoutData = {
 	isAdmin: false,
 	userEmail: 'loader@dakotasteelandtrim.com',
 	userRole: 'loading' as const,
+	departmentLoadersError: null,
 	departmentLoaders: [
 		{ department: 'Wrap', loaderNames: [] },
 		{ department: 'Roll', loaderNames: [] },
@@ -249,6 +250,38 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Signature', { exact: true })).not.toBeInTheDocument();
+	});
+
+	it('shows a roster error banner when the loader sessions fail to load', async () => {
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				departmentLoadersError: 'Roster unavailable.',
+				departmentLoaders: [
+					{ department: 'Wrap', loaderNames: [] },
+					{ department: 'Roll', loaderNames: [] },
+					{ department: 'Parts', loaderNames: [] }
+				] as DepartmentLoaderGroup[],
+				loaders: [
+					{ id: 7, name: 'Alex', isActive: true }
+				]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-loader-roster-error')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster-error')).toHaveTextContent(
+			'Unable to load loader roster.'
+		);
+		await expect.element(page.getByTestId('select-category-loader-roster-error')).toHaveTextContent(
+			'Roster unavailable.'
+		);
+		await expect.element(page.getByTestId('select-category-loader-grid')).not.toBeInTheDocument();
 	});
 
 	it('opens the loader modal on every department tap and persists the chosen loader for the loading handoff', async () => {

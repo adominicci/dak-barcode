@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { getDstLoaders } = vi.hoisted(() => ({
 	getDstLoaders: vi.fn()
@@ -7,6 +7,8 @@ const { getDstLoaders } = vi.hoisted(() => ({
 const { getDakLoadersForDropsheet } = vi.hoisted(() => ({
 	getDakLoadersForDropsheet: vi.fn()
 }));
+
+const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
 vi.mock('$lib/server/dst-queries', () => ({
 	getDstLoaders
@@ -19,6 +21,10 @@ vi.mock('$lib/server/dak-loader-sessions', () => ({
 import { load } from './+page.server';
 
 describe('select-category page server load', () => {
+	beforeEach(() => {
+		consoleError.mockClear();
+	});
+
 	it('returns the validated dropsheet id, the carried load number, driver name, the optional drop weight, and only active loader options', async () => {
 		getDstLoaders.mockResolvedValue([
 			{ id: 7, name: 'Alex', isActive: true },
@@ -45,7 +51,8 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: [] },
 				{ department: 'Roll', loaderNames: [] },
 				{ department: 'Parts', loaderNames: [] }
-			]
+			],
+			departmentLoadersError: null
 		});
 	});
 
@@ -114,8 +121,38 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: ['Alex', 'Casey'] },
 				{ department: 'Roll', loaderNames: ['Jordan'] },
 				{ department: 'Parts', loaderNames: ['Taylor'] }
-			]
+			],
+			departmentLoadersError: null
 		});
+	});
+
+	it('returns an explicit roster error when the loader session fetch fails', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+		getDakLoadersForDropsheet.mockRejectedValue(new Error('Roster unavailable.'));
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/select-category/42?loadNumber=L-042')
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			driverName: null,
+			dropWeight: null,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }],
+			departmentLoaders: [
+				{ department: 'Wrap', loaderNames: [] },
+				{ department: 'Roll', loaderNames: [] },
+				{ department: 'Parts', loaderNames: [] }
+			],
+			departmentLoadersError: 'Roster unavailable.'
+		});
+
+		expect(consoleError).toHaveBeenCalledWith(
+			'Failed to load department loaders for dropsheet',
+			expect.objectContaining({ dropSheetId: 42 })
+		);
 	});
 
 	it('accepts the legacy deliveryNumber query when loadNumber is absent', async () => {
@@ -137,7 +174,8 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: [] },
 				{ department: 'Roll', loaderNames: [] },
 				{ department: 'Parts', loaderNames: [] }
-			]
+			],
+			departmentLoadersError: null
 		});
 	});
 
@@ -162,7 +200,8 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: [] },
 				{ department: 'Roll', loaderNames: [] },
 				{ department: 'Parts', loaderNames: [] }
-			]
+			],
+			departmentLoadersError: null
 		});
 	});
 
@@ -185,7 +224,8 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: [] },
 				{ department: 'Roll', loaderNames: [] },
 				{ department: 'Parts', loaderNames: [] }
-			]
+			],
+			departmentLoadersError: null
 		});
 	});
 
@@ -208,7 +248,8 @@ describe('select-category page server load', () => {
 				{ department: 'Wrap', loaderNames: [] },
 				{ department: 'Roll', loaderNames: [] },
 				{ department: 'Parts', loaderNames: [] }
-			]
+			],
+			departmentLoadersError: null
 		});
 	});
 

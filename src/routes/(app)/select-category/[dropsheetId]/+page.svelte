@@ -307,6 +307,7 @@
 			<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
 		</div>
 
+		<!-- Fixed three columns keep the department cards readable and left-to-right on the shared iPad. -->
 		<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
 			{#if visibleDepartments.length === 0}
 				<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
@@ -366,36 +367,47 @@
 			<h2 class="text-xl font-bold tracking-tight text-slate-950">Loaders</h2>
 		</div>
 
-		<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-3">
-			{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
-				{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
-				<section
-					data-testid={`select-category-loader-column-${entry.department}`}
-					class="rounded-[1.5rem] bg-surface-container-low/60 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/70"
-				>
-					<div class="flex items-center justify-between gap-3">
-						<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
-						<span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--shadow-soft)]">
-							{departmentLoaderNames.length}
-						</span>
-					</div>
+		{#if data.departmentLoadersError}
+			<div
+				data-testid="select-category-loader-roster-error"
+				class="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700"
+			>
+				<p class="font-semibold">Unable to load loader roster.</p>
+				<p class="mt-1 leading-6">{data.departmentLoadersError}</p>
+			</div>
+		{:else}
+			<!-- Fixed three columns keep the loader roster readable and left-to-right on the shared iPad. -->
+			<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-3">
+				{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
+					{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
+					<section
+						data-testid={`select-category-loader-column-${entry.department}`}
+						class="rounded-[1.5rem] bg-surface-container-low/60 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/70"
+					>
+						<div class="flex items-center justify-between gap-3">
+							<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
+							<span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--shadow-soft)]">
+								{departmentLoaderNames.length}
+							</span>
+						</div>
 
-					{#if departmentLoaderNames.length === 0}
-						<div class="mt-3 rounded-[1.1rem] border border-dashed border-slate-200 bg-white/80 px-3 py-4 text-sm text-slate-500">
-							No loaders yet for this department.
-						</div>
-					{:else}
-						<div class="mt-3 flex flex-wrap gap-2">
-							{#each departmentLoaderNames as loaderName (loaderName)}
-								<span class="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
-									{loaderName}
-								</span>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{/each}
-		</div>
+						{#if departmentLoaderNames.length === 0}
+							<div class="mt-3 rounded-[1.1rem] border border-dashed border-slate-200 bg-white/80 px-3 py-4 text-sm text-slate-500">
+								No loaders yet for this department.
+							</div>
+						{:else}
+							<div class="mt-3 flex flex-wrap gap-2">
+								{#each departmentLoaderNames as loaderName (loaderName)}
+									<span class="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
+										{loaderName}
+									</span>
+								{/each}
+							</div>
+						{/if}
+					</section>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)]">

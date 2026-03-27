@@ -88,12 +88,22 @@ function buildDepartmentLoaderGroups(loaders: LoaderSession[]): DepartmentLoader
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
-	const [loaders, departmentLoaders] = await Promise.all([
-		getDstLoaders().then((entries) => entries.filter((loader) => loader.isActive)),
-		getDakLoadersForDropsheet(dropSheetId)
-			.then((entries) => buildDepartmentLoaderGroups(entries))
-			.catch(() => buildEmptyDepartmentLoaderGroups())
-	]);
+	const loadersPromise = getDstLoaders().then((entries) => entries.filter((loader) => loader.isActive));
+	const departmentLoadersPromise = getDakLoadersForDropsheet(dropSheetId);
+	const loaders = await loadersPromise;
+	let departmentLoaders = buildEmptyDepartmentLoaderGroups();
+	let departmentLoadersError: string | null = null;
+
+	try {
+		departmentLoaders = buildDepartmentLoaderGroups(await departmentLoadersPromise);
+	} catch (error) {
+		departmentLoadersError =
+			error instanceof Error ? error.message : 'Unable to load loader roster.';
+		console.error('Failed to load department loaders for dropsheet', {
+			dropSheetId,
+			error
+		});
+	}
 	const loadNumber = parseLoadNumber(
 		url.searchParams.get('loadNumber'),
 		url.searchParams.get('deliveryNumber'),
@@ -108,6 +118,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		driverName,
 		dropWeight,
 		loaders,
-		departmentLoaders
+		departmentLoaders,
+		departmentLoadersError
 	};
 };
