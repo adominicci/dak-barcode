@@ -155,6 +155,20 @@ describe('select-category page server load', () => {
 		);
 	});
 
+	it('bubbles loader fetch failures even when the roster fetch also rejects', async () => {
+		getDstLoaders.mockRejectedValue(new Error('DST unavailable.'));
+		getDakLoadersForDropsheet.mockRejectedValue(new Error('Roster unavailable.'));
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/select-category/42')
+			} as never)
+		).rejects.toThrow('DST unavailable.');
+
+		expect(consoleError).not.toHaveBeenCalled();
+	});
+
 	it('accepts the legacy deliveryNumber query when loadNumber is absent', async () => {
 		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
 		getDakLoadersForDropsheet.mockResolvedValue([]);

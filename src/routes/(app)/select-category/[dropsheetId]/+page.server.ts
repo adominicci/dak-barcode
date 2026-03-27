@@ -88,21 +88,29 @@ function buildDepartmentLoaderGroups(loaders: LoaderSession[]): DepartmentLoader
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const dropSheetId = parseDropSheetId(params.dropsheetId);
-	const loadersPromise = getDstLoaders().then((entries) => entries.filter((loader) => loader.isActive));
-	const departmentLoadersPromise = getDakLoadersForDropsheet(dropSheetId);
-	const loaders = await loadersPromise;
+	const [loadersResult, departmentLoadersResult] = await Promise.allSettled([
+		getDstLoaders().then((entries) => entries.filter((loader) => loader.isActive)),
+		getDakLoadersForDropsheet(dropSheetId)
+	]);
+
+	if (loadersResult.status === 'rejected') {
+		throw loadersResult.reason;
+	}
+
+	const loaders = loadersResult.value;
 	let departmentLoaders = buildEmptyDepartmentLoaderGroups();
 	let departmentLoadersError: string | null = null;
 
-	try {
-		departmentLoaders = buildDepartmentLoaderGroups(await departmentLoadersPromise);
-	} catch (error) {
+	if (departmentLoadersResult.status === 'rejected') {
+		const error = departmentLoadersResult.reason;
 		departmentLoadersError =
 			error instanceof Error ? error.message : 'Unable to load loader roster.';
 		console.error('Failed to load department loaders for dropsheet', {
 			dropSheetId,
 			error
 		});
+	} else {
+		departmentLoaders = buildDepartmentLoaderGroups(departmentLoadersResult.value);
 	}
 	const loadNumber = parseLoadNumber(
 		url.searchParams.get('loadNumber'),

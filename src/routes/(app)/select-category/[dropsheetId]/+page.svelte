@@ -373,7 +373,9 @@
 				class="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700"
 			>
 				<p class="font-semibold">Unable to load loader roster.</p>
-				<p class="mt-1 leading-6">{data.departmentLoadersError}</p>
+				{#if data.departmentLoadersError !== 'Unable to load loader roster.'}
+					<p class="mt-1 leading-6">{data.departmentLoadersError}</p>
+				{/if}
 			</div>
 		{:else}
 			<!-- Fixed three columns keep the loader roster readable and left-to-right on the shared iPad. -->
