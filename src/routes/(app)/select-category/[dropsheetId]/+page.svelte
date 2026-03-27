@@ -381,19 +381,11 @@
 		data-testid="select-category-loader-roster"
 		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
 	>
-		<div class="flex flex-wrap items-end justify-between gap-3">
-			<div>
-				<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-					Loaders by department
-				</p>
-				<h2 class="mt-1 text-xl font-bold tracking-tight text-slate-950">Current roster</h2>
-			</div>
-			<p class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-				Read-only legacy parity
-			</p>
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xl font-bold tracking-tight text-slate-950">Loaders</h2>
 		</div>
 
-		<div class="grid gap-3 xl:grid-cols-3">
+		<div data-testid="select-category-loader-grid" class="grid gap-3 md:grid-cols-3">
 			{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
 				{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
 				<section

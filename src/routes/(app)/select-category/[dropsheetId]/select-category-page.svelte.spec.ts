@@ -199,6 +199,12 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('25%')).toBeInTheDocument();
 		await expect.element(page.getByText('75%')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveTextContent(
+			'Loaders'
+		);
+		await expect.element(page.getByTestId('select-category-loader-roster')).not.toHaveTextContent(
+			'Current roster'
+		);
 		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveTextContent(
 			'Kaleb'
 		);
@@ -210,6 +216,10 @@ describe('select-category page', () => {
 		);
 		await expect.element(page.getByTestId('select-category-loader-column-Parts')).toHaveTextContent(
 			'No loaders yet for this department.'
+		);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid/);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(
+			/md:grid-cols-3/
 		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
