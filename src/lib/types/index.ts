@@ -75,6 +75,11 @@ export type Loader = {
 	isActive: boolean;
 };
 
+export type Trailer = {
+	id: number;
+	name: string;
+};
+
 export type DropSheet = {
 	id: number;
 	loadNumber: string;

@@ -10,6 +10,7 @@ import type {
 	LoaderInfo,
 	LoaderSession,
 	OperationalDepartment,
+	Trailer,
 	ScanDropAreaSummary,
 	ScanResult,
 	ScanStatus,
@@ -26,6 +27,7 @@ import type {
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
+	RawDstTrailer,
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
 import type {
@@ -143,6 +145,13 @@ export function mapDstLoader(raw: RawDstLoader): Loader {
 		id: raw.LoaderID,
 		name: raw.Loader,
 		isActive: raw.IsActive
+	};
+}
+
+export function mapDstTrailer(raw: RawDstTrailer): Trailer {
+	return {
+		id: raw.TrailerID,
+		name: raw.Trailer
 	};
 }
 

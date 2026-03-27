@@ -9,6 +9,7 @@ import {
 	type LoadViewUnion,
 	type Loader,
 	type OperationalDepartment,
+	type Trailer,
 	type StagingListItem
 } from '$lib/types';
 import type {
@@ -20,6 +21,7 @@ import type {
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
+	RawDstTrailer,
 	RawDstStagingListItem
 } from '$lib/types/raw-dst';
 import {
@@ -31,16 +33,20 @@ import {
 	mapDstLoadViewDetail,
 	mapDstLoadViewUnion,
 	mapDstLoader,
+	mapDstTrailer,
 	mapDstStagingListItem
 } from './type-mappers';
 import { fetchDst } from './proxy';
 
 const DST_ROUTES = {
 	loaders: '/api/barcode-get/get-loaders',
+	trailers: '/api/barcode-get/get-trailers',
 	insertLoader: '/api/barcode-update/insert-loader',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
 	dropsheetCategoryAvailability: '/api/barcode-update/get-percent-scanned-label-count',
+	updateDropsheetTrailer: '/api/barcode-update/update-trailer-dropsheet',
+	updateDropsheetPickedByLoader: '/api/dropsheet/update-picked-by',
 	dropArea: '/api/barcode-get/get-droparea',
 	dropAreasByDepartment: '/api/barcode-update/select-drop-area',
 	categoryList: '/api/barcode-get/category-list',
@@ -58,6 +64,14 @@ export const dropSheetDateSchema = v.pipe(
 	v.regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a date in YYYY-MM-DD format')
 );
 export const dropSheetIdSchema = v.number();
+export const dropSheetTrailerUpdateInputSchema = v.object({
+	dropSheetId: v.number(),
+	trailerId: v.number()
+});
+export const dropSheetPickedByLoaderUpdateInputSchema = v.object({
+	dropSheetId: v.number(),
+	loaderName: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name'))
+});
 export const dropAreaIdSchema = v.number();
 export const departmentSchema = v.picklist(OPERATIONAL_DEPARTMENTS);
 export const loaderNameSchema = v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name'));
@@ -91,6 +105,8 @@ type LoadViewDetailInput = v.InferOutput<typeof loadViewDetailInputSchema>;
 type LoadViewUnionInput = v.InferOutput<typeof loadViewUnionInputSchema>;
 type LoadViewDetailAllInput = v.InferOutput<typeof loadViewDetailAllInputSchema>;
 type NumberOfDropsInput = v.InferOutput<typeof numberOfDropsInputSchema>;
+type DropSheetTrailerUpdateInput = v.InferOutput<typeof dropSheetTrailerUpdateInputSchema>;
+type DropSheetPickedByLoaderUpdateInput = v.InferOutput<typeof dropSheetPickedByLoaderUpdateInputSchema>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -205,6 +221,12 @@ export async function getDstLoaders(): Promise<Loader[]> {
 	return expectListResponse<RawDstLoader>(body, DST_ROUTES.loaders).map(mapDstLoader);
 }
 
+export async function getDstTrailers(): Promise<Trailer[]> {
+	const body = await readDstJson(DST_ROUTES.trailers);
+
+	return expectListResponse<RawDstTrailer>(body, DST_ROUTES.trailers).map(mapDstTrailer);
+}
+
 export async function insertDstLoader(loaderName: string): Promise<void> {
 	await readDstJson(
 		DST_ROUTES.insertLoader,
@@ -219,6 +241,30 @@ export async function getDstDropsheets(dropSheetDate: string): Promise<DropSheet
 	const body = await readDstJson(path);
 
 	return expectListResponse<RawDstDropSheet>(body, path).map(mapDstDropSheet);
+}
+
+export async function updateDstDropSheetTrailer(
+	input: DropSheetTrailerUpdateInput
+): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.updateDropsheetTrailer,
+		jsonInit({
+			TrailerID: input.trailerId,
+			dropsheetid: input.dropSheetId
+		})
+	);
+}
+
+export async function updateDstDropSheetPickedByLoader(
+	input: DropSheetPickedByLoaderUpdateInput
+): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.updateDropsheetPickedByLoader,
+		jsonInit({
+			dropsheet_id: input.dropSheetId,
+			picked_by: input.loaderName
+		})
+	);
 }
 
 export async function getDstDropsheetStatus(dropSheetId: number): Promise<DepartmentStatus> {
