@@ -1,33 +1,69 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { workflowStores } from '$lib/workflow/stores';
-	import type { LayoutProps } from './$types';
+import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
+import { Button } from '$lib/components/ui/button';
+import { parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
+import { workflowStores } from '$lib/workflow/stores';
+import type { LayoutProps } from './$types';
 
-	let { children, data }: LayoutProps = $props();
-	const isHomeRoute = $derived(page.url.pathname === '/home');
-	const backPath = $derived(
-		page.url.pathname.startsWith('/select-category') ? '/dropsheets' : '/home'
-	);
-	const appHeaderTitle = $derived(
-		page.url.pathname === '/dropsheets'
-			? 'Dropsheets'
-			: page.url.pathname.startsWith('/select-category')
-				? 'Select Category'
-				: page.url.pathname === '/loaders'
-					? 'Add Loader'
-					: page.url.pathname === '/staging'
-						? 'Staging'
-						: page.url.pathname === '/loading'
-							? 'Loading'
-							: page.url.pathname === '/account'
-								? 'Account'
-								: page.url.pathname === '/location'
-									? 'Target'
-									: 'Stage & Load'
-	);
+let { children, data }: LayoutProps = $props();
+const isHomeRoute = $derived(page.url.pathname === '/home');
+
+function getBackHref(pathname: string, searchParams: URLSearchParams): string {
+	if (pathname.startsWith('/select-category')) {
+		return '/dropsheets';
+	}
+
+	if (pathname.startsWith('/order-status') || pathname.startsWith('/move-orders')) {
+		return parseLegacyReturnTo(searchParams.get('returnTo')) ?? '/home';
+	}
+
+	return '/home';
+}
+
+function getAppHeaderTitle(pathname: string): string {
+	if (pathname === '/dropsheets') {
+		return 'Dropsheets';
+	}
+
+	if (pathname.startsWith('/select-category')) {
+		return 'Select Category';
+	}
+
+	if (pathname.startsWith('/order-status')) {
+		return 'Order Status';
+	}
+
+	if (pathname.startsWith('/move-orders')) {
+		return 'Dropsheet';
+	}
+
+	if (pathname === '/loaders') {
+		return 'Add Loader';
+	}
+
+	if (pathname === '/staging') {
+		return 'Staging';
+	}
+
+	if (pathname === '/loading') {
+		return 'Loading';
+	}
+
+	if (pathname === '/account') {
+		return 'Account';
+	}
+
+	if (pathname === '/location') {
+		return 'Target';
+	}
+
+	return 'Stage & Load';
+}
+
+const backPath = $derived(getBackHref(page.url.pathname, page.url.searchParams));
+const appHeaderTitle = $derived(getAppHeaderTitle(page.url.pathname));
 
 	function getUserInitials(displayName: string | null | undefined, userEmail: string | null | undefined) {
 		const source = displayName?.trim() || userEmail?.split('@')[0]?.replace(/[._-]+/g, ' ') || 'DU';
@@ -49,8 +85,8 @@
 		<header class="glass-header fixed top-0 w-full z-50 shadow-sm border-b border-slate-100">
 			<div class="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
 				<div class="flex items-center gap-4">
-						<a
-						href={resolve(backPath)}
+					<a
+						href={backPath}
 						class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
 						aria-label="Back"
 					>
