@@ -385,7 +385,7 @@
 			<h2 class="text-xl font-bold tracking-tight text-slate-950">Loaders</h2>
 		</div>
 
-		<div data-testid="select-category-loader-grid" class="grid gap-3 md:grid-cols-3">
+		<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-3">
 			{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
 				{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
 				<section

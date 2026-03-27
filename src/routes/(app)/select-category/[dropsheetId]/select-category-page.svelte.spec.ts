@@ -218,9 +218,7 @@ describe('select-category page', () => {
 			'No loaders yet for this department.'
 		);
 		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid/);
-		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(
-			/md:grid-cols-3/
-		);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid-cols-3/);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
