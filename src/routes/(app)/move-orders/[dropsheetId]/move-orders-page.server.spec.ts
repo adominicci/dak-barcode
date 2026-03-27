@@ -46,4 +46,17 @@ describe('move-orders page server load', () => {
 			returnTo: null
 		});
 	});
+
+	it('drops unsafe returnTo values from the handoff payload', async () => {
+		getMoveOrdersPageLoaders.mockResolvedValue([]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/move-orders/42?returnTo=https%3A%2F%2Fevil.example.com')
+			} as never)
+		).resolves.toMatchObject({
+			returnTo: null
+		});
+	});
 });

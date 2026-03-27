@@ -149,4 +149,19 @@ describe('(app) layout workflow target sync', () => {
 		);
 		await expect.element(page.getByRole('heading', { name: 'Dropsheet' })).toBeInTheDocument();
 	});
+
+	it('rejects unsafe returnTo values and falls back to home', async () => {
+		pageState.url = new URL('https://app.local/order-status/42?returnTo=https%3A%2F%2Fevil.example.com');
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/home');
+	});
 });

@@ -165,6 +165,9 @@ describe('select-category page', () => {
 		await expect
 			.element(page.getByTestId('select-category-summary-grid').getByText('L-042', { exact: true }))
 			.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-summary-grid')).not.toHaveTextContent(
+			'lbs lbs'
+		);
 		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-2/);
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();

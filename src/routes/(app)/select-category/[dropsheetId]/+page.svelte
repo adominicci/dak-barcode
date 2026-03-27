@@ -149,7 +149,7 @@
 			return '--';
 		}
 
-		return `${WEIGHT_FORMATTER.format(value)} lbs`;
+		return WEIGHT_FORMATTER.format(value);
 	}
 
 	function closeLoaderModal() {

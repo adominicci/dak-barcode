@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { workflowStores } from '$lib/workflow/stores';
-	import type { LayoutProps } from './$types';
+import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
+import { Button } from '$lib/components/ui/button';
+import { parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
+import { workflowStores } from '$lib/workflow/stores';
+import type { LayoutProps } from './$types';
 
 let { children, data }: LayoutProps = $props();
 const isHomeRoute = $derived(page.url.pathname === '/home');
@@ -15,7 +16,7 @@ function getBackHref(pathname: string, searchParams: URLSearchParams): string {
 	}
 
 	if (pathname.startsWith('/order-status') || pathname.startsWith('/move-orders')) {
-		return searchParams.get('returnTo') ?? '/home';
+		return parseLegacyReturnTo(searchParams.get('returnTo')) ?? '/home';
 	}
 
 	return '/home';
