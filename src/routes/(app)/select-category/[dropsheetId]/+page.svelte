@@ -326,63 +326,64 @@
 			</div>
 		{/if}
 
-		<div
-			data-testid="select-category-departments-card"
-			class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
-		>
-			<div class="flex items-center justify-between gap-3">
-				<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
-			</div>
+	</div>
 
-			<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
-				{#if visibleDepartments.length === 0}
-					<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
-						<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
-						<p class="mt-2 text-sm leading-6 text-slate-600">
-							This load does not have wrap, roll, or parts labels available yet.
-						</p>
+	<div
+		data-testid="select-category-departments-card"
+		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+	>
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
+		</div>
+
+		<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
+			{#if visibleDepartments.length === 0}
+				<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
+					<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
+					<p class="mt-2 text-sm leading-6 text-slate-600">
+						This load does not have wrap, roll, or parts labels available yet.
+					</p>
+				</div>
+			{/if}
+
+			{#each visibleDepartments as entry (entry.department)}
+				{@const departmentStatus = getDepartmentStatus(currentStatus, entry.department)}
+				{@const departmentProgress = getDepartmentProgress(categoryAvailability, entry.department)}
+				<button
+					data-testid={`select-category-department-${entry.department}`}
+					type="button"
+					onclick={() => handleDepartmentSelect(entry.department)}
+					disabled={pendingDepartment !== null}
+					class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					<div class="flex items-start justify-between gap-4">
+						<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
+						<div
+							class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
+						>
+							{departmentStatus ?? '--'}
+						</div>
 					</div>
-				{/if}
 
-				{#each visibleDepartments as entry (entry.department)}
-					{@const departmentStatus = getDepartmentStatus(currentStatus, entry.department)}
-					{@const departmentProgress = getDepartmentProgress(categoryAvailability, entry.department)}
-					<button
-						data-testid={`select-category-department-${entry.department}`}
-						type="button"
-						onclick={() => handleDepartmentSelect(entry.department)}
-						disabled={pendingDepartment !== null}
-						class="group flex min-h-[7rem] flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						<div class="flex items-start justify-between gap-4">
-							<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
+					<div class="space-y-1.5">
+						<div class="h-1.5 overflow-hidden rounded-full bg-surface-container-low">
 							<div
-								class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
-							>
-								{departmentStatus ?? '--'}
-							</div>
+								class="h-full rounded-full bg-emerald-500 transition-[width]"
+								style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
+							></div>
 						</div>
 
-						<div class="space-y-1.5">
-							<div class="h-1.5 overflow-hidden rounded-full bg-surface-container-low">
-								<div
-									class="h-full rounded-full bg-emerald-500 transition-[width]"
-									style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
-								></div>
-							</div>
-
-							<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
-								<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
-									{formatDepartmentProgress(departmentProgress)}
-								</span>
-								<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
-									{selectedLoaderLabel}
-								</span>
-							</div>
+						<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
+							<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
+								{formatDepartmentProgress(departmentProgress)}
+							</span>
+							<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
+								{selectedLoaderLabel}
+							</span>
 						</div>
-					</button>
-				{/each}
-			</div>
+					</div>
+				</button>
+			{/each}
 		</div>
 	</div>
 

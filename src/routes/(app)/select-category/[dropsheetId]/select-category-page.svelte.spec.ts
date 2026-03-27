@@ -227,6 +227,12 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(
 			/bg-white\/92/
 		);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
+			/cursor-pointer/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
+			/ring-1/
+		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
