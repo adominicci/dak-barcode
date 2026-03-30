@@ -422,6 +422,56 @@ describe('loading page', () => {
 		await expect.element(page.getByText('PL-101')).not.toBeInTheDocument();
 	});
 
+	it('shows a separate empty-state message when a drop has no attached labels', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					labelCount: 0,
+					scannedCount: 0,
+					needPickCount: 0,
+					totalCountText: '0/0'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(createRemoteQuery([]));
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('No parts are attached to this drop yet.')).toBeInTheDocument();
+		await expect.element(page.getByText('All parts in this drop are scanned.')).not.toBeInTheDocument();
+	});
+
+	it('shows the completion message only when every attached label is scanned', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					labelCount: 1,
+					scannedCount: 1,
+					needPickCount: 0,
+					totalCountText: '1/1'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					partListId: 'PL-101',
+					orderSoNumber: 'SO-101',
+					scanned: true
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('All parts in this drop are scanned.')).toBeInTheDocument();
+		await expect.element(page.getByText('No parts are attached to this drop yet.')).not.toBeInTheDocument();
+	});
+
 	it('shows the need-pick summary only once for the active drop', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');

@@ -113,6 +113,22 @@
 	const dropLabels = $derived(dropLabelsQuery?.current ?? []);
 	const isLoadingDropLabels = $derived((dropLabelsQuery?.loading ?? false) && dropLabels.length === 0);
 	const unscannedDropLabels = $derived(dropLabels.filter((label) => !label.scanned));
+	const isEmptyDrop = $derived(!isLoadingDropLabels && dropLabels.length === 0);
+	const isFullyScannedDrop = $derived(
+		!isLoadingDropLabels && dropLabels.length > 0 && unscannedDropLabels.length === 0
+	);
+
+	$effect(() => {
+		if (shouldRedirectHome || loadingEntry === null || selectedDropDetail === null) {
+			workflowStores.clearCurrentLoadingHeaderContext();
+			return;
+		}
+
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: selectedDropDetail.driverName?.trim() || null,
+			dropWeight: loadingEntry.dropWeight
+		});
+	});
 
 	$effect(() => {
 		if (!isScanning && pendingTimedOutScan === null && !isLocationModalOpen) {
@@ -141,6 +157,7 @@
 		return () => {
 			unsubscribeDropArea();
 			loadingScanController?.cancelPendingScan();
+			workflowStores.clearCurrentLoadingHeaderContext();
 			loadingScanController = null;
 		};
 	});
@@ -637,7 +654,11 @@
 								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
 									Loading label list...
 								</div>
-							{:else if unscannedDropLabels.length === 0}
+							{:else if isEmptyDrop}
+								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+									No parts are attached to this drop yet.
+								</div>
+							{:else if isFullyScannedDrop}
 								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
 									All parts in this drop are scanned.
 								</div>

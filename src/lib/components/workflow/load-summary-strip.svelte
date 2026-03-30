@@ -1,7 +1,7 @@
 <script lang="ts">
 	type Props = {
 		testId: string;
-		driverName: string | null;
+		driverName?: string | null;
 		loadNumber: string;
 		dropWeight: number | null;
 		customerName?: string | null;

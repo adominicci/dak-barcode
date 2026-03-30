@@ -137,10 +137,14 @@ describe('(app) layout workflow target sync', () => {
 
 	it('renders the loading header with department, loader, driver, and weight while preserving shell actions', async () => {
 		pageState.url = new URL(
-			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4&driverName=Dylan%20Driver'
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
 		);
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Dylan Driver',
+			dropWeight: 2152.4
+		});
 
 		render(AppLayout, {
 			params: {},
@@ -159,14 +163,27 @@ describe('(app) layout workflow target sync', () => {
 		await expect.element(page.getByText('Sign out')).toBeInTheDocument();
 		await expect.element(page.getByText('Canton')).toBeInTheDocument();
 		await expect.element(page.getByText('AD')).toBeInTheDocument();
+
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Taylor Driver',
+			dropWeight: 980.1
+		});
+
+		await expect
+			.element(page.getByTestId('loading-route-header-meta'))
+			.toHaveTextContent('Taylor Driver-980.1 lbs');
 	});
 
 	it('refreshes loading data from the legacy header action', async () => {
 		pageState.url = new URL(
-			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4&driverName=Dylan%20Driver'
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
 		);
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Dylan Driver',
+			dropWeight: 2152.4
+		});
 
 		render(AppLayout, {
 			params: {},

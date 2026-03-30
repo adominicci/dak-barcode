@@ -7,12 +7,12 @@
 	import { get } from 'svelte/store';
 	import { Button } from '$lib/components/ui/button';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
-	import { parseLegacyDriverName } from '$lib/workflow/legacy-page-params';
+	import { parseLegacyDriverName, parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
 	import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
-	import { parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
 	import {
 		workflowStores,
 		type WorkflowDepartment,
+		type WorkflowLoadingHeaderContext,
 		type WorkflowLoaderSelection
 	} from '$lib/workflow/stores';
 	import type { LayoutProps } from './$types';
@@ -22,6 +22,9 @@
 	const isLoadingRoute = $derived(page.url.pathname === '/loading');
 	let currentLoader = $state<WorkflowLoaderSelection>(get(workflowStores.currentLoader));
 	let selectedDepartment = $state<WorkflowDepartment>(get(workflowStores.selectedDepartment));
+	let currentLoadingHeaderContext = $state<WorkflowLoadingHeaderContext>(
+		get(workflowStores.currentLoadingHeaderContext)
+	);
 	let isRefreshingLoadingHeader = $state(false);
 
 	function getBackHref(pathname: string, searchParams: URLSearchParams): string {
@@ -89,33 +92,28 @@
 
 	const backPath = $derived(getBackHref(page.url.pathname, page.url.searchParams));
 	const appHeaderTitle = $derived(getAppHeaderTitle(page.url.pathname));
-	const loadingHeaderDriverName = $derived(
-		parseLegacyDriverName(page.url.searchParams.get('driverName'))
-	);
-	const loadingHeaderWeight = $derived.by(() => {
-		const rawWeight = page.url.searchParams.get('dropWeight')?.trim();
-
-		if (!rawWeight || parsePositiveNumber(rawWeight) === null) {
-			return null;
-		}
-
-		return rawWeight;
-	});
 	const loadingHeaderMeta = $derived.by(() => {
 		if (!isLoadingRoute) {
 			return null;
 		}
 
 		const parts: string[] = [];
+		const driverName =
+			currentLoadingHeaderContext?.driverName?.trim() ||
+			parseLegacyDriverName(page.url.searchParams.get('driverName'));
+		const dropWeight =
+			currentLoadingHeaderContext?.dropWeight ??
+			parsePositiveNumber(page.url.searchParams.get('dropWeight'));
 
-		if (loadingHeaderDriverName) {
-			parts.push(loadingHeaderDriverName);
+		if (driverName) {
+			parts.push(driverName);
 		}
 
-		if (loadingHeaderWeight) {
-			parts.push(`${loadingHeaderWeight} lbs`);
+		if (dropWeight !== null) {
+			parts.push(`${dropWeight} lbs`);
 		}
 
+		// Match the legacy FlutterFlow header format exactly.
 		return parts.length > 0 ? parts.join('-') : null;
 	});
 
@@ -146,10 +144,16 @@
 		const unsubscribeDepartment = workflowStores.selectedDepartment.subscribe((department) => {
 			selectedDepartment = department;
 		});
+		const unsubscribeLoadingHeader = workflowStores.currentLoadingHeaderContext.subscribe(
+			(context) => {
+				currentLoadingHeaderContext = context;
+			}
+		);
 
 		return () => {
 			unsubscribeLoader();
 			unsubscribeDepartment();
+			unsubscribeLoadingHeader();
 		};
 	});
 
