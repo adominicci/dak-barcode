@@ -147,11 +147,11 @@
 				data-testid="selection-modal-scroll-area"
 				class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
 			>
-			{#if loading}
-				<div class="flex min-h-[12rem] items-center justify-center rounded-[1.5rem] bg-white">
-					<LoaderCircle class="size-7 animate-spin text-primary" />
-				</div>
-			{:else if options.length === 0}
+				{#if loading}
+					<div class="flex min-h-[12rem] items-center justify-center rounded-[1.5rem] bg-white">
+						<LoaderCircle class="size-7 animate-spin text-primary" />
+					</div>
+				{:else if options.length === 0}
 					<div class="rounded-[1.5rem] bg-white px-5 py-8 text-center shadow-[var(--shadow-soft)]">
 						<p class="text-lg font-semibold tracking-tight text-slate-950">{emptyMessage}</p>
 					</div>

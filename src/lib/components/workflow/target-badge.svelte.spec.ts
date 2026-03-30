@@ -8,12 +8,12 @@ describe('target badge', () => {
 		render(TargetBadge, {
 			props: {
 				target: 'Canton',
-				testId: 'target-badge',
-				wrapperClass: 'flex'
+				testId: 'target-badge'
 			}
 		});
 
 		await expect.element(page.getByTestId('target-badge')).toHaveTextContent('Canton');
+		await expect.element(page.getByTestId('target-badge')).toHaveClass(/flex/);
 		await expect.element(page.getByTestId('target-badge')).toHaveClass(
 			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
 		);
@@ -24,12 +24,12 @@ describe('target badge', () => {
 		render(TargetBadge, {
 			props: {
 				target: null,
-				testId: 'target-badge',
-				wrapperClass: 'flex'
+				testId: 'target-badge'
 			}
 		});
 
 		await expect.element(page.getByTestId('target-badge')).toHaveTextContent('Target required');
+		await expect.element(page.getByTestId('target-badge')).toHaveClass(/flex/);
 		await expect.element(page.getByTestId('target-badge')).toHaveClass(/bg-surface-container-low/);
 		await expect.element(page.getByTestId('target-badge')).toHaveClass(/text-slate-900/);
 	});

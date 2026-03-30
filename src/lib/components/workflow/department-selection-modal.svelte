@@ -39,7 +39,7 @@
 	];
 
 	onMount(() => {
-		closeButton?.focus();
+		modalElement?.focus();
 	});
 
 	function getFocusableElements() {

@@ -23,7 +23,7 @@
 
 <div
 	data-testid={testId}
-	class={`items-center gap-2 rounded-full px-4 py-2 ${badgeClasses} ${wrapperClass}`}
+	class={`flex items-center gap-2 rounded-full px-4 py-2 ${badgeClasses} ${wrapperClass}`}
 >
 	<MapPin class={`size-4 ${iconClasses}`} />
 	<span class={`text-sm font-semibold ${textClasses}`}>{target ?? 'Target required'}</span>

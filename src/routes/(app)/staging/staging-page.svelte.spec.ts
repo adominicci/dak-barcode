@@ -274,7 +274,21 @@ describe('staging page department gate', () => {
 	it('shows the blocking department gate and keeps scan controls disabled on entry', async () => {
 		render(StagingPage);
 
+		const gateElement = document.querySelector('[data-testid="staging-department-gate"]');
+		if (!(gateElement instanceof HTMLElement)) {
+			throw new Error('Expected staging department gate element.');
+		}
+
 		await expect.element(page.getByTestId('staging-department-gate')).toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-department-gate')).toHaveFocus();
+		gateElement.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: 'Enter',
+				bubbles: true,
+				cancelable: true
+			})
+		);
+		expect(goto).not.toHaveBeenCalled();
 		await expect
 			.element(page.getByRole('heading', { name: 'Select department' }))
 			.toBeInTheDocument();
