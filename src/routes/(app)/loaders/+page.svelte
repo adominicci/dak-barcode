@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { LoaderCircle, Plus, UserRound } from '@lucide/svelte';
-	import { createLoader, getLoaders } from '$lib/loaders.remote';
+	import { createLoader } from '$lib/loaders.remote';
+	import { getLoaders, invalidateLoadersCache } from '$lib/loaders.cached';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -34,6 +35,7 @@
 
 		try {
 			await createLoader(trimmed);
+			invalidateLoadersCache();
 			await loadersQuery.refresh();
 			loaderName = '';
 			statusTone = 'success';

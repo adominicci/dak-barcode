@@ -18,6 +18,7 @@ import {
 } from '$lib/types';
 import type {
 	RawDstCategoryListEntry,
+	RawDstDepartmentStatusOnDrop,
 	RawDstDepartmentStatusOnDropSheet,
 	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
@@ -35,6 +36,7 @@ import type {
 } from '$lib/types/raw-dst';
 import {
 	mapDstCategoryList,
+	mapDstDepartmentStatusFromDrop,
 	mapDstDepartmentStatusFromDropSheet,
 	mapDstDropSheetCategoryAvailability,
 	mapDstDropArea,
@@ -58,6 +60,7 @@ const DST_ROUTES = {
 	insertLoader: '/api/barcode-update/insert-loader',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
+	departmentStatusOnDrop: '/api/barcode-get/get-department-status-ondrop',
 	dropsheetCategoryAvailability: '/api/barcode-update/get-percent-scanned-label-count',
 	updateDropsheetTrailer: '/api/barcode-update/update-trailer-dropsheet',
 	updateDropsheetPickedByLoader: '/api/dropsheet/update-picked-by',
@@ -266,6 +269,10 @@ function hasUsableDropSheetStatus(record: Record<string, unknown>) {
 	return isFiniteNumber(record.DropSheetID);
 }
 
+function hasUsableDepartmentStatusOnDrop(record: Record<string, unknown>) {
+	return isFiniteNumber(record.CustDropSheetID);
+}
+
 function hasUsableDropSheetCategoryAvailability(record: Record<string, unknown>) {
 	return isFiniteNumber(record.DropSheetID);
 }
@@ -360,6 +367,23 @@ export async function getDstDropsheetStatus(dropSheetId: number): Promise<Depart
 			body,
 			DST_ROUTES.dropsheetStatus,
 			hasUsableDropSheetStatus
+		)
+	);
+}
+
+export async function getDstDepartmentStatusOnDrop(
+	custDropSheetId: number
+): Promise<DepartmentStatus> {
+	const path = withQuery(DST_ROUTES.departmentStatusOnDrop, {
+		CustDropSheetID: custDropSheetId
+	});
+	const body = await readDstJson(path);
+
+	return mapDstDepartmentStatusFromDrop(
+		expectRecordResponse<RawDstDepartmentStatusOnDrop>(
+			body,
+			path,
+			hasUsableDepartmentStatusOnDrop
 		)
 	);
 }

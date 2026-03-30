@@ -64,8 +64,11 @@ vi.mock('$lib/staging.remote', () => ({
 	getStagingPartsForDayRoll
 }));
 
-vi.mock('$lib/drop-areas.remote', () => ({
+vi.mock('$lib/drop-areas.cached', () => ({
 	getDropAreasByDepartment,
+}));
+
+vi.mock('$lib/drop-areas.remote', () => ({
 	getDropArea
 }));
 
@@ -456,6 +459,35 @@ describe('staging page department gate', () => {
 	});
 
 	it('opens the location modal for the selected department and loads matching drop areas', async () => {
+		const refresh = vi.fn();
+		getDropAreasByDepartment.mockReturnValue(
+			createDropAreaListQuery(
+				[
+					{
+						id: 41,
+						name: 'W12',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'W'
+					},
+					{
+						id: 42,
+						name: 'W13',
+						supportsWrap: true,
+						supportsParts: true,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'W'
+					}
+				],
+				{ refresh }
+			)
+		);
+
 		render(StagingPage);
 
 		await page.getByRole('button', { name: 'Wrap' }).click();
@@ -463,6 +495,9 @@ describe('staging page department gate', () => {
 
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
+		await expect.element(page.getByRole('button', { name: 'Refresh list' })).toBeInTheDocument();
+		await page.getByRole('button', { name: 'Refresh list' }).click();
+		expect(refresh).toHaveBeenCalledOnce();
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
@@ -526,6 +561,7 @@ describe('staging page department gate', () => {
 		await page.getByRole('button', { name: 'Wrap' }).click();
 		await page.getByTestId('staging-location-trigger').click();
 
+		const refreshButton = document.querySelector('[aria-label="Refresh list"]');
 		const closeButton = document.querySelector(
 			'[aria-label="Close location selector"]'
 		);
@@ -534,6 +570,7 @@ describe('staging page department gate', () => {
 		).at(-1);
 		const modal = document.querySelector('[data-testid="staging-location-modal"]');
 		if (
+			!(refreshButton instanceof HTMLElement) ||
 			!(closeButton instanceof HTMLElement) ||
 			!(lastTile instanceof HTMLElement) ||
 			!(modal instanceof HTMLElement)
@@ -543,9 +580,9 @@ describe('staging page department gate', () => {
 
 		lastTile.focus();
 		modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-		expect(document.activeElement).toBe(closeButton);
+		expect(document.activeElement).toBe(refreshButton);
 
-		closeButton.focus();
+		refreshButton.focus();
 		modal.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })
 		);

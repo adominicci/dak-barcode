@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { LoaderCircle, TriangleAlert, X } from '@lucide/svelte';
+	import { LoaderCircle, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
 
 	type SelectionOption = {
 		id: number;
@@ -14,9 +14,11 @@
 		loading = false,
 		error = null,
 		saving = false,
+		refreshing = false,
 		emptyMessage = 'No options available.',
 		onClose,
-		onPick
+		onPick,
+		onRefresh = null
 	}: {
 		title: string;
 		description?: string | null;
@@ -24,9 +26,11 @@
 		loading?: boolean;
 		error?: string | null;
 		saving?: boolean;
+		refreshing?: boolean;
 		emptyMessage?: string;
 		onClose: () => void;
 		onPick: (option: SelectionOption) => void;
+		onRefresh?: (() => void | Promise<void>) | null;
 	} = $props();
 
 	let modalElement: HTMLElement | null = null;
@@ -117,16 +121,30 @@
 					{/if}
 				</div>
 
-				<button
-					bind:this={closeButton}
-					type="button"
-					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-					aria-label="Close selection modal"
-					onclick={handleClose}
-					disabled={saving}
-				>
-					<X class="size-5" />
-				</button>
+				<div class="flex items-center gap-2">
+					{#if onRefresh}
+						<button
+							type="button"
+							class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+							aria-label="Refresh list"
+							onclick={() => void onRefresh?.()}
+							disabled={saving || refreshing}
+						>
+							<RefreshCw class={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
+						</button>
+					{/if}
+
+					<button
+						bind:this={closeButton}
+						type="button"
+						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+						aria-label="Close selection modal"
+						onclick={handleClose}
+						disabled={saving}
+					>
+						<X class="size-5" />
+					</button>
+				</div>
 			</div>
 
 			{#if saving}

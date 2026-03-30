@@ -2,14 +2,19 @@ import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 
-const { getLoaders, createLoader } = vi.hoisted(() => ({
+const { getLoaders, createLoader, invalidateLoadersCache } = vi.hoisted(() => ({
 	getLoaders: vi.fn(),
-	createLoader: vi.fn()
+	createLoader: vi.fn(),
+	invalidateLoadersCache: vi.fn()
+}));
+
+vi.mock('$lib/loaders.cached', () => ({
+	getLoaders,
+	invalidateLoadersCache
 }));
 
 vi.mock('$lib/loaders.remote', () => ({
 	createLoader,
-	getLoaders
 }));
 
 import LoadersPage from './+page.svelte';
@@ -35,6 +40,7 @@ describe('loaders utility page', () => {
 	beforeEach(() => {
 		getLoaders.mockReset();
 		createLoader.mockReset();
+		invalidateLoadersCache.mockReset();
 		getLoaders.mockReturnValue(
 			createLoadersQuery([
 				{ id: 1, name: 'Alex', isActive: true },
@@ -88,6 +94,7 @@ describe('loaders utility page', () => {
 		await page.getByRole('button', { name: 'Insert loader' }).click();
 
 		expect(createLoader).toHaveBeenCalledWith('Morgan');
+		expect(invalidateLoadersCache).toHaveBeenCalledOnce();
 		expect(refresh).toHaveBeenCalledOnce();
 		await expect.element(page.getByLabelText('Loader name')).toHaveValue('');
 		await expect.element(page.getByText('Morgan is now active and selectable.')).toBeInTheDocument();

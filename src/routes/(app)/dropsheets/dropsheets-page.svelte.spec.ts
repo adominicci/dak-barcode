@@ -59,12 +59,15 @@ vi.mock("$lib/dropsheets.remote", () => ({
   updateDropsheetPickedByLoader,
 }));
 
-vi.mock("$lib/loaders.remote", () => ({
+vi.mock("$lib/loaders.cached", () => ({
   getLoaders,
 }));
 
-vi.mock("$lib/trailers.remote", () => ({
+vi.mock("$lib/trailers.cached", () => ({
   getTrailers,
+}));
+
+vi.mock("$lib/trailers.remote", () => ({
   updateDropsheetTrailer,
 }));
 
@@ -189,6 +192,12 @@ describe("dropsheets page", () => {
     await expect.element(page.getByText("Go")).toBeInTheDocument();
 
     await expect.element(page.getByText("L-042")).toBeInTheDocument();
+    await expect.element(page.getByRole("cell", { name: "L-042", exact: true })).toHaveClass(
+      /border-b/
+    );
+    await expect
+      .element(page.getByRole("cell", { name: "L-042", exact: true }))
+      .toHaveClass(/border-slate-100/);
     await expect
       .element(page.getByText("042", { exact: true }))
       .toBeInTheDocument();
@@ -346,6 +355,8 @@ describe("dropsheets page", () => {
 
   it("updates trailer and loader assignments from the picker modals", async () => {
     const refresh = vi.fn();
+    const trailerRefresh = vi.fn();
+    const loaderRefresh = vi.fn();
 
     getDropsheets.mockReturnValue(
       createQueryState(
@@ -372,13 +383,13 @@ describe("dropsheets page", () => {
         { id: 1, name: "Alex", isActive: true },
         { id: 2, name: "Taylor", isActive: true },
         { id: 3, name: "Casey", isActive: false },
-      ]),
+      ], { refresh: loaderRefresh }),
     );
     getTrailers.mockReturnValue(
       createQueryState([
         { id: 9, name: "TR-9" },
         { id: 12, name: "TR-12" },
-      ]),
+      ], { refresh: trailerRefresh }),
     );
     updateDropsheetTrailer.mockResolvedValue(undefined);
     updateDropsheetPickedByLoader.mockResolvedValue(undefined);
@@ -397,6 +408,9 @@ describe("dropsheets page", () => {
     await expect
       .element(page.getByRole("dialog", { name: "Select trailer" }))
       .toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "Refresh list" })).toBeInTheDocument();
+    await page.getByRole("button", { name: "Refresh list" }).click();
+    expect(trailerRefresh).toHaveBeenCalledOnce();
     await expect
       .element(page.getByRole("button", { name: "TR-12" }))
       .toBeInTheDocument();
@@ -420,6 +434,9 @@ describe("dropsheets page", () => {
     await expect
       .element(page.getByRole("dialog", { name: "Select loader" }))
       .toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "Refresh list" })).toBeInTheDocument();
+    await page.getByRole("button", { name: "Refresh list" }).click();
+    expect(loaderRefresh).toHaveBeenCalledOnce();
     await expect
       .element(page.getByRole("button", { name: "Alex" }))
       .toBeInTheDocument();

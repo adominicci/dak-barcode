@@ -18,6 +18,7 @@
 	import { get } from 'svelte/store';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
+	import { getDepartmentStatus } from '$lib/department-status.remote';
 	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
 	import { processLoadingScan } from '$lib/scan.remote';
@@ -25,6 +26,9 @@
 		createLoadingDropNavigationState,
 		moveLoadingDropSelection
 	} from '$lib/workflow/loading-drop-navigation';
+	import {
+		getLoadingDepartmentStatusEntries
+	} from '$lib/workflow/loading-department-status';
 	import { withTimeout } from '$lib/workflow/async-timeout';
 	import { createLoadingScanController } from '$lib/workflow/loading-scan-controller';
 	import { getLoadingUnionKey } from '$lib/workflow/loading-union-key';
@@ -103,6 +107,13 @@
 	const selectedDropDetail = $derived(
 		dropNavigation.selectedIndex >= 0 ? dropDetails[dropNavigation.selectedIndex] : null
 	);
+	const departmentStatusQuery = $derived(
+		loadingEntry && hasWorkflowContext && selectedDropDetail
+			? getDepartmentStatus(selectedDropDetail.dropSheetCustomerId)
+			: null
+	);
+	const departmentStatus = $derived(departmentStatusQuery?.current ?? null);
+	const departmentStatusEntries = $derived(getLoadingDepartmentStatusEntries(departmentStatus));
 	const loadNumber = $derived(selectedDropDetail?.loadNumber ?? loadingEntry?.loadNumber ?? null);
 	const dropLabelsQuery = $derived(
 		selectedDropDetail
@@ -234,47 +245,21 @@
 		scanError = null;
 	}
 
-	function buildLegacyActionSearchParams() {
-		if (loadingEntry === null || selectedDropDetail === null) {
-			return null;
-		}
-
+	function buildLegacyActionSearchParams(input: {
+		loadNumber: string | null;
+		dropWeight: number | null;
+	}) {
 		const searchParams = new URLSearchParams({
-			loadNumber: selectedDropDetail.loadNumber,
-			returnTo: toNavigationHref(page.url)
+			loadNumber: input.loadNumber ?? ''
 		});
 
-		if (selectedDropDetail.driverName?.trim()) {
-			searchParams.set('driverName', selectedDropDetail.driverName.trim());
+		if (input.dropWeight !== null) {
+			searchParams.set('dropWeight', String(input.dropWeight));
 		}
 
-		if (loadingEntry.dropWeight !== null) {
-			searchParams.set('dropWeight', String(loadingEntry.dropWeight));
-		}
+		searchParams.set('returnTo', toNavigationHref(page.url));
 
 		return searchParams;
-	}
-
-	function openLoadingSupportPage(pageName: 'order-status' | 'move-orders') {
-		if (loadingEntry === null) {
-			return;
-		}
-
-		const searchParams = buildLegacyActionSearchParams();
-		if (searchParams === null) {
-			return;
-		}
-
-		const routeId =
-			pageName === 'order-status'
-				? (`/(app)/order-status/[dropsheetId]?${searchParams.toString()}` as const)
-				: (`/(app)/move-orders/[dropsheetId]?${searchParams.toString()}` as const);
-
-		void goto(
-			resolve(routeId, {
-				dropsheetId: String(loadingEntry.dropSheetId)
-			})
-		);
 	}
 
 	function setTransportError(message: string, retryState: LoadingRetryState | null) {
@@ -576,7 +561,7 @@
 		</div>
 	{/if}
 
-	<div class="rounded-[2rem] bg-surface-container-low p-6 sm:p-8">
+	<div class="rounded-[2rem] bg-surface-container-low p-4 sm:p-6">
 		{#if shouldRedirectHome}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<p class="text-lg font-semibold text-slate-900">Returning to Home...</p>
@@ -622,9 +607,9 @@
 				</p>
 			</div>
 			{:else}
-				<div class="space-y-6">
-					<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-						<div class="lg:col-span-2">
+				<div class="space-y-4">
+					<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+						<div class="space-y-3">
 							<LoadSummaryStrip
 								testId="loading-summary-strip"
 								driverName={loaderInfo.loaderName}
@@ -633,46 +618,96 @@
 								customerName={selectedDropDetail.customerName}
 								variant="loading"
 							/>
+
+							<div class="grid gap-2 sm:grid-cols-2" data-testid="loading-legacy-actions">
+								<button
+									type="button"
+									aria-label="Order Status"
+									data-testid="loading-order-status-button"
+									onclick={() =>
+										goto(
+											resolve(
+												`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams({
+													loadNumber,
+													dropWeight: loadingEntry?.dropWeight ?? null
+												}).toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
+												{
+													dropsheetId: String(selectedDropDetail.dropSheetId)
+												}
+											)
+										)
+									}
+									class="flex items-center justify-between gap-3 rounded-[1.5rem] bg-white px-4 py-3 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+								>
+									<div class="flex min-w-0 items-center gap-2.5">
+										<span class="flex size-9 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+											<ClipboardList class="size-4" />
+										</span>
+										<div class="min-w-0">
+											<p class="text-sm font-bold tracking-tight text-slate-950">Order Status</p>
+										</div>
+									</div>
+									<PenLine class="size-4 shrink-0 text-slate-400" />
+								</button>
+
+								<button
+									type="button"
+									aria-label="Dropsheet"
+									data-testid="loading-dropsheet-button"
+									onclick={() =>
+										goto(
+											resolve(
+												`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams({
+													loadNumber,
+													dropWeight: loadingEntry?.dropWeight ?? null
+												}).toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
+												{
+													dropsheetId: String(selectedDropDetail.dropSheetId)
+												}
+											)
+										)
+									}
+									class="flex items-center justify-between gap-3 rounded-[1.5rem] bg-white px-4 py-3 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+								>
+									<div class="flex min-w-0 items-center gap-2.5">
+										<span class="flex size-9 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+											<Truck class="size-4" />
+										</span>
+										<div class="min-w-0">
+											<p class="text-sm font-bold tracking-tight text-slate-950">Dropsheet</p>
+										</div>
+									</div>
+									<PenLine class="size-4 shrink-0 text-slate-400" />
+								</button>
+							</div>
 						</div>
 
-						<button
-							type="button"
-							onclick={() => openLoadingSupportPage('order-status')}
-							class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+						<div
+							class="rounded-[1.75rem] bg-white p-3 shadow-[var(--shadow-soft)]"
+							data-testid="loading-department-status-strip"
 						>
-							<div class="flex items-center gap-3">
-								<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-									<ClipboardList class="size-5" />
-								</span>
-								<div>
-									<p class="text-lg font-bold tracking-tight text-slate-950">Order Status</p>
-								</div>
+							<div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+								{#each departmentStatusEntries as entry (entry.testId)}
+									<div class="min-w-0 space-y-2 text-center" data-testid={entry.testId}>
+										<p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+											{entry.label}
+										</p>
+										<div
+											class={`rounded-[1rem] px-2 py-2 text-[11px] font-bold uppercase tracking-[0.16em] ${entry.className}`}
+										>
+											{entry.value ?? '--'}
+										</div>
+									</div>
+								{/each}
 							</div>
-							<PenLine class="size-5 text-slate-400" />
-						</button>
-
-						<button
-							type="button"
-							onclick={() => openLoadingSupportPage('move-orders')}
-							class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-						>
-							<div class="flex items-center gap-3">
-								<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-									<Truck class="size-5" />
-								</span>
-								<div>
-									<p class="text-lg font-bold tracking-tight text-slate-950">Dropsheet</p>
-								</div>
-							</div>
-							<PenLine class="size-5 text-slate-400" />
-						</button>
+						</div>
 					</div>
 
 					<section
 						data-testid="loading-scan-section"
-					class="flex min-h-[34rem] max-h-[calc(100dvh-14rem)] flex-col rounded-[2rem] bg-white p-6 shadow-sm"
-				>
-					<div class="shrink-0 space-y-4">
+						class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-4 shadow-sm sm:p-5"
+					>
+						<div class="shrink-0 space-y-3">
 						<div class="space-y-2">
 							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
 							<div class="relative">
@@ -688,7 +723,7 @@
 										: 'Scan a driver location or loading barcode...'}
 									disabled={isScanning || pendingTimedOutScan !== null || isLocationModalOpen}
 									onkeydown={handleScanKeydown}
-									class="h-16 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-lg transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
+									class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
 								/>
 							</div>
 
@@ -733,7 +768,7 @@
 						</div>
 					</div>
 
-					<div class="mt-4 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-3">
+					<div class="mt-3 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2.5">
 							{#if dropLabelsQuery?.error}
 								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 									{dropLabelsQuery.error.message}
@@ -772,50 +807,51 @@
 					</div>
 
 					<div
-						class="mt-5 shrink-0 rounded-[1.75rem] bg-surface-container-low p-4"
+						class="mt-4 shrink-0 rounded-[1.75rem] bg-surface-container-low p-2.5"
 						data-testid="loading-active-drop-summary"
 					>
-						<h3 class="text-2xl font-bold tracking-tight text-slate-950">
+						<h3 class="text-base font-bold tracking-tight text-slate-950" data-testid="loading-active-drop-title">
 							Drop {dropNavigation.activeDropNumber} of {dropNavigation.totalDrops}
 						</h3>
 
-						<div class="mt-4 grid items-stretch gap-3 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+						<div class="mt-2.5 grid items-stretch gap-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
 							<button
 								type="button"
 								aria-label="Previous drop"
-								class="inline-flex size-14 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+								data-testid="loading-active-drop-previous"
+								class="inline-flex h-16 w-16 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={!dropNavigation.canGoPrevious}
 								onclick={() => moveToDrop('previous')}
 							>
-								<ArrowLeft class="size-6" />
+								<ArrowLeft class="size-7" />
 							</button>
 
 							<div
 								data-testid="loading-drop-stat-labels"
-								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
 							>
-								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Labels</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
+								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Labels</p>
+								<p class="mt-1 text-lg font-bold tracking-tight text-white">
 									{selectedDropDetail.labelCount}
 								</p>
 							</div>
 
 							<div
 								data-testid="loading-drop-stat-scanned"
-								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
 							>
-								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Scanned</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
+								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Scanned</p>
+								<p class="mt-1 text-lg font-bold tracking-tight text-white">
 									{selectedDropDetail.scannedCount}
 								</p>
 							</div>
 
 							<div
 								data-testid="loading-drop-stat-need-pick"
-								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
 							>
-								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Need pick</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
+								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Need pick</p>
+								<p class="mt-1 text-lg font-bold tracking-tight text-white">
 									{selectedDropDetail.needPickCount}
 								</p>
 							</div>
@@ -823,11 +859,12 @@
 							<button
 								type="button"
 								aria-label="Next drop"
-								class="inline-flex size-14 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+								data-testid="loading-active-drop-next"
+								class="inline-flex h-16 w-16 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={!dropNavigation.canGoNext}
 								onclick={() => moveToDrop('next')}
 							>
-								<ArrowRight class="size-6" />
+								<ArrowRight class="size-7" />
 							</button>
 						</div>
 					</div>
