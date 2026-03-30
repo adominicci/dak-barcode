@@ -5,18 +5,15 @@
 	import {
 		ArrowLeft,
 		ArrowRight,
-		Clock3,
-		ClipboardList,
 		LoaderCircle,
 		PackageSearch,
 		ScanBarcode,
-		Scale,
-		TriangleAlert,
-		UserRound
+		TriangleAlert
 	} from '@lucide/svelte';
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
@@ -39,18 +36,6 @@
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
 	import type { LoadingScanRequest } from '$lib/types';
-
-	const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
-		month: 'short',
-		day: 'numeric',
-		hour: 'numeric',
-		minute: '2-digit'
-	});
-
-	const WEIGHT_FORMATTER = new Intl.NumberFormat('en-US', {
-		maximumFractionDigits: 1,
-		minimumFractionDigits: 1
-	});
 
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
@@ -127,16 +112,7 @@
 	);
 	const dropLabels = $derived(dropLabelsQuery?.current ?? []);
 	const isLoadingDropLabels = $derived((dropLabelsQuery?.loading ?? false) && dropLabels.length === 0);
-	const showSoNumberSummary = $derived(!dropLabelsQuery?.error && !isLoadingDropLabels);
-	const soNumbers = $derived(
-		Array.from(
-			new Set(
-				dropLabels
-					.map((label) => label.orderSoNumber.trim())
-					.filter((orderSoNumber) => orderSoNumber.length > 0)
-			)
-		)
-	);
+	const unscannedDropLabels = $derived(dropLabels.filter((label) => !label.scanned));
 
 	$effect(() => {
 		if (!isScanning && pendingTimedOutScan === null && !isLocationModalOpen) {
@@ -202,7 +178,7 @@
 				await endLoaderSession(endInput);
 				workflowStores.resetOperationalState();
 				allowNavigation = true;
-				await goto((resolve as (href: string) => string)(destinationHref), { replaceState: true });
+				await goto(resolve(destinationHref as any), { replaceState: true });
 			} catch (error) {
 				lifecycleError =
 					error instanceof Error ? error.message : 'Unable to end the loader session.';
@@ -211,22 +187,6 @@
 			}
 		})();
 	});
-
-	function formatTimestamp(timestamp: string | null) {
-		if (!timestamp) {
-			return 'Not recorded';
-		}
-
-		return DATE_TIME_FORMATTER.format(new Date(timestamp));
-	}
-
-	function formatWeight(weight: number | null) {
-		if (weight === null) {
-			return '--';
-		}
-
-		return `${WEIGHT_FORMATTER.format(weight)} lbs`;
-	}
 
 	async function focusScanInput() {
 		if (
@@ -541,52 +501,9 @@
 		}
 	}
 
-	function getLabelStatusClasses(scanned: boolean) {
-		return scanned
-			? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-			: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200';
-	}
 </script>
 
-<div class="space-y-8">
-	<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-		<div>
-			<h2 class="text-3xl font-bold tracking-tight text-slate-950">Loading</h2>
-			<p class="mt-2 text-sm text-on-surface-variant">
-				Keep the scanner flowing: update driver locations, load labels, and refresh the active drop without leaving this screen.
-			</p>
-		</div>
-
-		{#if loadingEntry}
-			<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-				<div class="rounded-2xl bg-surface-container-low px-5 py-4">
-					<p class="ui-label text-xs">Dropsheet</p>
-					<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-						{loadingEntry.dropSheetId}
-					</p>
-				</div>
-				<div class="rounded-2xl bg-surface-container-low px-5 py-4">
-					<p class="ui-label text-xs">Location</p>
-					<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-						{loadingEntry.locationId}
-					</p>
-				</div>
-				<div class="rounded-2xl bg-surface-container-low px-5 py-4">
-					<p class="ui-label text-xs">Load</p>
-					<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-						{loadNumber ?? '--'}
-					</p>
-				</div>
-				<div class="rounded-2xl bg-surface-container-low px-5 py-4">
-					<p class="ui-label text-xs">Weight</p>
-					<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-						{formatWeight(loadingEntry.dropWeight)}
-					</p>
-				</div>
-			</div>
-		{/if}
-	</div>
-
+<div class="space-y-6">
 	{#if lifecycleError}
 		<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 			<TriangleAlert class="mt-0.5 size-4 shrink-0" />
@@ -641,195 +558,17 @@
 			</div>
 		{:else}
 			<div class="space-y-6">
-				<div class="rounded-[2rem] bg-white p-6 shadow-sm">
-					<div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-						<div class="space-y-5">
-							<div class="flex items-center gap-3">
-								<div class="flex size-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-									<ClipboardList class="size-5" />
-								</div>
-								<div>
-									<p class="ui-label text-xs">Active drop</p>
-									<h3 class="text-2xl font-bold tracking-tight text-slate-950">
-										Drop {dropNavigation.activeDropNumber} of {dropNavigation.totalDrops}
-									</h3>
-								</div>
-							</div>
+				<LoadSummaryStrip
+					testId="loading-summary-strip"
+					driverName={loaderInfo.loaderName}
+					loadNumber={loadNumber ?? '--'}
+					dropWeight={loadingEntry?.dropWeight ?? null}
+					customerName={selectedDropDetail.customerName}
+					variant="loading"
+				/>
 
-							<div class="grid gap-3 sm:grid-cols-2">
-								<div class="rounded-2xl bg-surface-container-low px-4 py-4">
-									<p class="ui-label text-xs">Customer</p>
-									<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.customerName}
-									</p>
-								</div>
-								<div class="rounded-2xl bg-surface-container-low px-4 py-4">
-									<p class="ui-label text-xs">Driver</p>
-									<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.driverName || 'Unassigned'}
-									</p>
-								</div>
-								<div class="rounded-2xl bg-surface-container-low px-4 py-4">
-									<p class="ui-label text-xs">Load number</p>
-									<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.loadNumber}
-									</p>
-								</div>
-								<div class="rounded-2xl bg-surface-container-low px-4 py-4">
-									<p class="ui-label text-xs">Drop detail</p>
-									<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.totalCountText || 'Pending'}
-									</p>
-								</div>
-							</div>
-						</div>
-
-						<div class="rounded-[1.75rem] bg-surface-container-low p-5">
-							<div class="flex items-center gap-3">
-								<div class="flex size-11 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
-									<Clock3 class="size-5" />
-								</div>
-								<div>
-									<p class="ui-label text-xs">Started</p>
-									<p class="mt-1 text-lg font-bold tracking-tight text-slate-950">
-										{formatTimestamp(loaderInfo.startedAt)}
-									</p>
-								</div>
-							</div>
-
-							<div class="mt-5 grid gap-3">
-								<div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-									<p class="ui-label text-xs">Loader</p>
-									<p class="mt-2 text-lg font-bold tracking-tight text-slate-950">
-										{loaderInfo.loaderName}
-									</p>
-								</div>
-								<div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-									<p class="ui-label text-xs">Session ID</p>
-									<p class="mt-2 text-lg font-bold tracking-tight text-slate-950">
-										{loaderInfo.id}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="grid gap-4 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
-					<div class="rounded-[2rem] bg-white p-5 shadow-sm">
-						<p class="ui-label text-xs">Drop navigation</p>
-						<p class="mt-2 text-sm leading-6 text-slate-600">
-							Move through the active drops without leaving the loading session.
-						</p>
-
-						<div class="mt-5 grid gap-3">
-							<button
-								type="button"
-								aria-label="Previous drop"
-								class="flex items-center justify-between rounded-2xl bg-surface-container-low px-4 py-4 text-left font-semibold text-slate-900 transition disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={!dropNavigation.canGoPrevious}
-								onclick={() => moveToDrop('previous')}
-							>
-								<span class="flex items-center gap-3">
-									<ArrowLeft class="size-4" />
-									<span>Previous drop</span>
-								</span>
-								<span class="text-xs text-slate-500">
-									{dropNavigation.canGoPrevious ? `Drop ${dropNavigation.activeDropNumber - 1}` : 'First'}
-								</span>
-							</button>
-
-							<button
-								type="button"
-								aria-label="Next drop"
-								class="flex items-center justify-between rounded-2xl bg-surface-container-low px-4 py-4 text-left font-semibold text-slate-900 transition disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={!dropNavigation.canGoNext}
-								onclick={() => moveToDrop('next')}
-							>
-								<span class="flex items-center gap-3">
-									<ArrowRight class="size-4" />
-									<span>Next drop</span>
-								</span>
-								<span class="text-xs text-slate-500">
-									{dropNavigation.canGoNext ? `Drop ${dropNavigation.activeDropNumber + 1}` : 'Last'}
-								</span>
-							</button>
-						</div>
-					</div>
-
-					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-						<div class="rounded-[1.75rem] bg-white p-5 shadow-sm">
-							<div class="flex items-center gap-3">
-								<div class="flex size-10 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-									<UserRound class="size-5" />
-								</div>
-								<div>
-									<p class="ui-label text-xs">Department</p>
-									<p class="mt-1 text-lg font-bold tracking-tight text-slate-950">
-										{loaderInfo.department}
-									</p>
-								</div>
-							</div>
-						</div>
-
-						<div class="rounded-[1.75rem] bg-white p-5 shadow-sm">
-							<p class="ui-label text-xs">Labels</p>
-							<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-								{selectedDropDetail.labelCount}
-							</p>
-						</div>
-
-						<div class="rounded-[1.75rem] bg-white p-5 shadow-sm">
-							<p class="ui-label text-xs">Scanned</p>
-							<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-								{selectedDropDetail.scannedCount}
-							</p>
-						</div>
-
-						<div class="rounded-[1.75rem] bg-white p-5 shadow-sm">
-							<div class="flex items-center gap-3">
-								<div class="flex size-10 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-									<Scale class="size-5" />
-								</div>
-								<div>
-									<p class="ui-label text-xs">Need pick</p>
-									<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-										{selectedDropDetail.needPickCount}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="rounded-[2rem] bg-white p-6 shadow-sm">
-					<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-						<div class="space-y-2">
-							<p class="ui-label text-xs">Label list</p>
-							<h3 class="text-xl font-bold tracking-tight text-slate-950">
-								Union labels for the active drop
-							</h3>
-							<p class="text-sm leading-6 text-slate-600">
-								Each row shows the SO, part list, drop area, and whether the label is already scanned.
-							</p>
-						</div>
-
-						<div class="flex min-w-[16rem] items-center gap-3 rounded-[1.5rem] bg-surface-container-low px-4 py-4">
-							<div class="flex size-11 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
-								<ScanBarcode class="size-5" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold text-slate-900">Scanner ready</p>
-								<p class="text-xs text-slate-600">
-									{currentDropArea?.dropAreaLabel
-										? `Driver location ${currentDropArea.dropAreaLabel}`
-										: 'Scan a driver location or label to keep loading.'}
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
+				<section data-testid="loading-scan-section" class="rounded-[2rem] bg-white p-6 shadow-sm">
+					<div class="space-y-4">
 						<div class="space-y-2">
 							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
 							<div class="relative">
@@ -848,6 +587,7 @@
 									class="h-16 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-lg transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
 								/>
 							</div>
+
 							{#if scanError}
 								<div
 									class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
@@ -888,110 +628,93 @@
 							{/if}
 						</div>
 
-						<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-							<div class="rounded-[1.5rem] bg-surface-container-low px-4 py-4">
-								<p class="ui-label text-xs">Driver location</p>
-								<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-									{currentDropArea?.dropAreaLabel ?? 'Waiting for scan'}
-								</p>
-								<p class="mt-1 text-xs text-slate-500">
-									{loaderInfo.department === 'Roll'
-										? 'Roll clears after each successful label or pallet scan.'
-										: 'Location stays active until you scan a new one.'}
-								</p>
-							</div>
-
-							<div class="rounded-[1.5rem] bg-surface-container-low px-4 py-4">
-								<p class="ui-label text-xs">Scan state</p>
-								<p class="mt-2 text-xl font-bold tracking-tight text-slate-950">
-									{pendingTimedOutScan !== null
-										? 'Retrying'
-										: isScanning
-											? 'Processing'
-											: scanPrompt
-												? 'Need location'
-												: 'Ready'}
-								</p>
-								<p class="mt-1 text-xs text-slate-500">
-									{pendingTimedOutScan !== null
-										? 'The last request timed out but the page is still monitoring it.'
-										: scanPrompt
-											? 'Scan a numeric driver location next to retry the pending label.'
-											: 'Press Enter from the scanner to submit immediately.'}
-								</p>
-							</div>
-						</div>
-					</div>
-
-					{#if showSoNumberSummary}
-						<div class="mt-6 flex flex-wrap gap-2">
-							{#if soNumbers.length > 0}
-								{#each soNumbers as orderSoNumber (orderSoNumber)}
-									<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-700">
-										{orderSoNumber}
-									</span>
-								{/each}
+						<div class="rounded-[1.5rem] bg-surface-container-low p-3">
+							{#if dropLabelsQuery?.error}
+								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+									{dropLabelsQuery.error.message}
+								</div>
+							{:else if isLoadingDropLabels}
+								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+									Loading label list...
+								</div>
+							{:else if unscannedDropLabels.length === 0}
+								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+									All parts in this drop are scanned.
+								</div>
 							{:else}
-								<span class="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-slate-500">
-									No SO numbers available
-								</span>
-							{/if}
-						</div>
-					{/if}
-
-					{#if dropLabelsQuery?.error}
-						<div class="mt-6 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-							{dropLabelsQuery.error.message}
-						</div>
-					{:else if isLoadingDropLabels}
-						<div class="mt-6 rounded-2xl bg-surface-container-low px-4 py-8 text-center text-sm text-slate-600">
-							Loading label list...
-						</div>
-					{:else if dropLabels.length === 0}
-						<div class="mt-6 rounded-2xl bg-surface-container-low px-4 py-8 text-center text-sm text-slate-600">
-							No labels are attached to this drop yet.
-						</div>
-					{:else}
-						<div class="mt-6 grid gap-3">
-							{#each dropLabels as label, index (getLoadingUnionKey(label, index))}
-								<div class="rounded-[1.5rem] bg-surface-container-low p-4">
-									<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-										<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
-											<div>
-												<p class="ui-label text-xs">SO</p>
-												<p class="mt-1 text-sm font-bold text-slate-950">
-													{label.orderSoNumber || '--'}
-												</p>
-											</div>
-											<div>
-												<p class="ui-label text-xs">Part list</p>
-												<p class="mt-1 text-sm font-bold text-slate-950">
+								<div
+									class="max-h-[18rem] overflow-y-auto pr-1"
+									data-testid="loading-part-list-scroll"
+								>
+									<div
+										class="grid gap-3 md:grid-cols-3"
+										data-testid="loading-part-list-grid"
+									>
+										{#each unscannedDropLabels as label, index (getLoadingUnionKey(label, index))}
+											<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
+												<p class="text-sm font-semibold leading-6 text-slate-950">
 													{label.partListId || '--'}
 												</p>
 											</div>
-											<div>
-												<p class="ui-label text-xs">Drop area</p>
-												<p class="mt-1 text-sm font-bold text-slate-950">
-													{label.dropAreaName || '--'}
-												</p>
-											</div>
-											<div>
-												<p class="ui-label text-xs">Length</p>
-												<p class="mt-1 text-sm font-bold text-slate-950">
-													{label.lengthText || '--'}
-												</p>
-											</div>
-										</div>
-
-										<span class={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getLabelStatusClasses(label.scanned)}`}>
-											{label.scanned ? 'Scanned' : 'Unscanned'}
-										</span>
+										{/each}
 									</div>
 								</div>
-							{/each}
+							{/if}
 						</div>
-					{/if}
-				</div>
+					</div>
+
+					<div
+						class="sticky bottom-0 mt-5 rounded-[1.75rem] bg-surface-container-low p-4"
+						data-testid="loading-active-drop-summary"
+					>
+						<h3 class="text-2xl font-bold tracking-tight text-slate-950">
+							Drop {dropNavigation.activeDropNumber} of {dropNavigation.totalDrops}
+						</h3>
+
+						<div class="mt-4 grid items-stretch gap-3 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+							<button
+								type="button"
+								aria-label="Previous drop"
+								class="inline-flex size-14 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+								disabled={!dropNavigation.canGoPrevious}
+								onclick={() => moveToDrop('previous')}
+							>
+								<ArrowLeft class="size-6" />
+							</button>
+
+							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
+								<p class="ui-label text-xs">Labels</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+									{selectedDropDetail.labelCount}
+								</p>
+							</div>
+
+							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
+								<p class="ui-label text-xs">Scanned</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+									{selectedDropDetail.scannedCount}
+								</p>
+							</div>
+
+							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
+								<p class="ui-label text-xs">Need pick</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+									{selectedDropDetail.needPickCount}
+								</p>
+							</div>
+
+							<button
+								type="button"
+								aria-label="Next drop"
+								class="inline-flex size-14 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+								disabled={!dropNavigation.canGoNext}
+								onclick={() => moveToDrop('next')}
+							>
+								<ArrowRight class="size-6" />
+							</button>
+						</div>
+					</div>
+				</section>
 			</div>
 		{/if}
 	</div>
