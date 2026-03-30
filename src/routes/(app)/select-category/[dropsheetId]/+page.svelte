@@ -11,6 +11,7 @@
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
+	import { getLoaders } from '$lib/loaders.cached';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
 	import { getWorkflowStatusClasses } from '$lib/workflow/status-tones';
@@ -45,6 +46,7 @@
 
 	const statusQuery = $derived(getDropsheetStatus(data.dropSheetId));
 	const categoryAvailabilityQuery = $derived(getDropsheetCategoryAvailability(data.dropSheetId));
+	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
 	const currentStatus = $derived(statusQuery.current ?? null);
 	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
 	const isStatusSectionLoading = $derived(statusQuery.loading && currentStatus === null);
@@ -68,6 +70,12 @@
 	});
 	const visibleDepartments = $derived(
 		getVisibleDepartments(LOADING_ENTRY_DEPARTMENTS, categoryAvailability)
+	);
+	const loaderOptions = $derived(
+		(loadersQuery.current ?? data.loaders).map((loader) => ({
+			id: loader.id,
+			label: loader.name
+		}))
 	);
 	const selectCategoryReturnHref = $derived.by(() => {
 		const searchParams = new URLSearchParams();
@@ -509,15 +517,14 @@
 	<SelectionModal
 		title={`Select loader for ${activeDepartment}`}
 		description={`The current loader is ${selectedLoaderLabel}. Tap a loader to keep the workflow sticky and start ${activeDepartment.toLowerCase()} immediately.`}
-		options={data.loaders.map((loader) => ({
-			id: loader.id,
-			label: loader.name
-		}))}
-		loading={false}
-		error={null}
+		options={loaderOptions}
+		loading={loadersQuery.loading}
+		error={loadersQuery.error?.message ?? null}
 		saving={pendingDepartment !== null}
 		emptyMessage="No active loaders are available."
 		onClose={closeLoaderModal}
 		onPick={handleLoaderPick}
+		onRefresh={() => void loadersQuery.refresh()}
+		refreshing={loadersQuery.loading}
 	/>
 {/if}

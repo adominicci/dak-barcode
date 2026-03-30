@@ -10,4 +10,3 @@ export const getTrailers = query(async () => getDstTrailers());
 export const updateDropsheetTrailer = command(dropSheetTrailerUpdateInputSchema, async (input) =>
 	updateDstDropSheetTrailer(input)
 );
-

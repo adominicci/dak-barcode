@@ -212,6 +212,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Add new loader inline/in-dialog
 - New loader becomes active immediately
 - Refresh the loader list after create
+- Keep the active-loader list browser-cached with a manual refresh control
 
 **4.4 — Dropsheet list**
 - Date defaults to today
@@ -264,6 +265,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Wrap
 - Parts
 - Refresh after successful scans
+- Keep the drop-area list browser-cached with a manual refresh control
 
 **5.5 — Department-specific behavior**
 - Roll resets location after successful scan

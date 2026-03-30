@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { LoaderCircle, Plus, UserRound } from '@lucide/svelte';
-	import { createLoader, getLoaders } from '$lib/loaders.remote';
+	import { createLoader } from '$lib/loaders.remote';
+	import { getLoaders, invalidateLoadersCache } from '$lib/loaders.cached';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -14,7 +15,7 @@
 	const BLUE_CARD_CLASSES =
 		'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
 
-	const loadersQuery = getLoaders();
+	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
 	const activeLoaders = $derived((loadersQuery.current ?? []).filter((loader) => loader.isActive));
 
 	async function handleInsertLoader(event: SubmitEvent) {
@@ -34,6 +35,7 @@
 
 		try {
 			await createLoader(trimmed);
+			invalidateLoadersCache(data.activeTarget);
 			await loadersQuery.refresh();
 			loaderName = '';
 			statusTone = 'success';
