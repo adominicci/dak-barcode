@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { ArrowRight, CircleAlert, ShieldCheck } from '@lucide/svelte';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -74,13 +73,7 @@
 			/>
 		</div>
 
-		<div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-			<a
-				class="text-sm font-medium text-[var(--text-muted)] underline-offset-4 transition hover:text-[#0058bc] hover:underline"
-				href={resolve('/forgot-password')}
-			>
-				Forgot password?
-			</a>
+		<div class="flex flex-wrap items-center justify-end gap-3 pt-2">
 			<Button
 				class="auth-control ui-primary h-12 border-0 px-6 text-sm font-semibold text-white hover:brightness-[1.03]"
 				type="submit"
