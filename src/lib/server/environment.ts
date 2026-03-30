@@ -9,6 +9,8 @@ export function requirePublicEnv(name: PublicEnvName) {
 	const value = publicEnv[name];
 
 	if (!value) {
+		// Public Supabase config is needed before we can construct auth clients at all, so we
+		// fail with a plain error instead of converting this into an HTTP response mid-request.
 		throw new Error(`${name} is not configured.`);
 	}
 

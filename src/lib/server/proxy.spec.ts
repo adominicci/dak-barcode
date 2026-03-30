@@ -396,6 +396,41 @@ describe('fetchDst', () => {
 		expect(abortableFetch).toHaveBeenCalledOnce();
 		vi.useRealTimers();
 	});
+
+	it('preserves the caller abort signal for DST requests', async () => {
+		const abortableFetch = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					if (init?.signal?.aborted) {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+						return;
+					}
+
+					init?.signal?.addEventListener('abort', () => {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+					});
+				})
+		);
+		const { event } = createRequestEventMock();
+		event.fetch = abortableFetch as typeof event.fetch;
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDst } = await import('./proxy');
+		const callerController = new AbortController();
+		const request = fetchDst('/api/barcode-get/select-loading-dropsheet', {
+			signal: callerController.signal
+		});
+		const expectation = expect(request).rejects.toThrowError(
+			expect.objectContaining({
+				name: 'AbortError'
+			})
+		);
+
+		callerController.abort();
+
+		await expectation;
+		expect(abortableFetch).toHaveBeenCalledOnce();
+	});
 });
 
 describe('fetchDak', () => {

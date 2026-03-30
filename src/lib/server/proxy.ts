@@ -85,6 +85,9 @@ async function fetchWithTimeout(
 	upstreamLabel: 'DAK backend' | 'DST backend'
 ) {
 	const controller = new AbortController();
+	const signal = init?.signal
+		? AbortSignal.any([controller.signal, init.signal])
+		: controller.signal;
 	let timedOut = false;
 	const timeoutId = setTimeout(() => {
 		timedOut = true;
@@ -94,7 +97,7 @@ async function fetchWithTimeout(
 	try {
 		return await event.fetch(input, {
 			...init,
-			signal: controller.signal
+			signal
 		});
 	} catch (cause) {
 		if (timedOut) {

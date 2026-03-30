@@ -79,6 +79,9 @@
 		if (data.dropWeight !== null) {
 			searchParams.set('dropWeight', String(data.dropWeight));
 		}
+		if (data.returnTo) {
+			searchParams.set('returnTo', data.returnTo);
+		}
 
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});

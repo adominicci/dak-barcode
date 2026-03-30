@@ -152,6 +152,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				departmentLoaders: [
 					{ department: 'Wrap', loaderNames: ['Kaleb', 'Anthony'] },
 					{ department: 'Roll', loaderNames: ['Kaleb'] },
@@ -279,6 +280,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				departmentLoadersError: 'Roster unavailable.',
 				departmentLoaders: [
 					{ department: 'Wrap', loaderNames: [] },
@@ -323,6 +325,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: '/dropsheets?date=2026-03-24',
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -354,9 +357,9 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
 		);
-		});
+	});
 
 	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
 		render(SelectCategoryPage, {
@@ -368,6 +371,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -402,6 +406,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
