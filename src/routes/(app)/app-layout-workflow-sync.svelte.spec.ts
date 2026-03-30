@@ -5,14 +5,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { workflowStores } from '$lib/workflow/stores';
 
-const { pageState } = vi.hoisted(() => ({
+const { pageState, invalidateAll } = vi.hoisted(() => ({
 	pageState: {
 		url: new URL('https://app.local/account')
-	}
+	},
+	invalidateAll: vi.fn()
 }));
 
 vi.mock('$app/state', () => ({
 	page: pageState
+}));
+
+vi.mock('$app/navigation', () => ({
+	invalidateAll
 }));
 
 import AppLayout from './+layout.svelte';
@@ -34,6 +39,7 @@ describe('(app) layout workflow target sync', () => {
 		workflowStores.syncActiveTarget(null);
 		workflowStores.resetOperationalState();
 		pageState.url = new URL('https://app.local/account');
+		invalidateAll.mockReset();
 	});
 
 	it('hydrates the workflow active target from layout data', async () => {
@@ -127,6 +133,70 @@ describe('(app) layout workflow target sync', () => {
 			'/select-category/42?loadNumber=L-042'
 		);
 		await expect.element(page.getByRole('heading', { name: 'Order Status' })).toBeInTheDocument();
+	});
+
+	it('renders the loading header with department, loader, driver, and weight while preserving shell actions', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Dylan Driver',
+			dropWeight: 2152.4
+		});
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByTestId('app-header-title')).toHaveTextContent('Loading Wrap Alex');
+		await expect
+			.element(page.getByTestId('loading-route-header-meta'))
+			.toHaveTextContent('Dylan Driver-2152.4 lbs');
+		await expect.element(page.getByRole('button', { name: 'Refresh loading header' })).toBeInTheDocument();
+		await expect.element(page.getByText('Sign out')).toBeInTheDocument();
+		await expect.element(page.getByText('Canton')).toBeInTheDocument();
+		await expect.element(page.getByText('AD')).toBeInTheDocument();
+
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Taylor Driver',
+			dropWeight: 980.1
+		});
+
+		await expect
+			.element(page.getByTestId('loading-route-header-meta'))
+			.toHaveTextContent('Taylor Driver-980.1 lbs');
+	});
+
+	it('refreshes loading data from the legacy header action', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		workflowStores.setCurrentLoadingHeaderContext({
+			driverName: 'Dylan Driver',
+			dropWeight: 2152.4
+		});
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await page.getByRole('button', { name: 'Refresh loading header' }).click();
+
+		expect(invalidateAll).toHaveBeenCalledOnce();
 	});
 
 	it('routes move-orders back to select-category when launched from that flow', async () => {

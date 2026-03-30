@@ -13,11 +13,17 @@ export type WorkflowDropAreaSelection = {
 	dropAreaLabel: string;
 } | null;
 
+export type WorkflowLoadingHeaderContext = {
+	driverName: string | null;
+	dropWeight: number | null;
+} | null;
+
 export type WorkflowStores = {
 	activeTarget: Readable<Target | null>;
 	currentLoader: Readable<WorkflowLoaderSelection>;
 	selectedDepartment: Readable<WorkflowDepartment>;
 	currentDropArea: Readable<WorkflowDropAreaSelection>;
+	currentLoadingHeaderContext: Readable<WorkflowLoadingHeaderContext>;
 	scannedText: Readable<string>;
 	syncActiveTarget: (target: Target | null) => void;
 	setCurrentLoader: (loader: NonNullable<WorkflowLoaderSelection>) => void;
@@ -26,6 +32,8 @@ export type WorkflowStores = {
 	clearSelectedDepartment: () => void;
 	setCurrentDropArea: (dropArea: NonNullable<WorkflowDropAreaSelection>) => void;
 	clearCurrentDropArea: () => void;
+	setCurrentLoadingHeaderContext: (context: NonNullable<WorkflowLoadingHeaderContext>) => void;
+	clearCurrentLoadingHeaderContext: () => void;
 	setScannedText: (text: string) => void;
 	clearScannedText: () => void;
 	resetOperationalState: () => void;
@@ -38,22 +46,26 @@ export function createWorkflowStores(): WorkflowStores {
 	const currentLoader = writable<WorkflowLoaderSelection>(null);
 	const selectedDepartment = writable<WorkflowDepartment>(null);
 	const currentDropArea = writable<WorkflowDropAreaSelection>(null);
+	const currentLoadingHeaderContext = writable<WorkflowLoadingHeaderContext>(null);
 	const scannedText = writable('');
 
 	const clearCurrentLoader = () => currentLoader.set(null);
 	const clearSelectedDepartment = () => selectedDepartment.set(null);
 	const clearCurrentDropArea = () => currentDropArea.set(null);
+	const clearCurrentLoadingHeaderContext = () => currentLoadingHeaderContext.set(null);
 	const clearScannedText = () => scannedText.set('');
 
 	const resetOperationalState = () => {
 		clearCurrentLoader();
 		clearSelectedDepartment();
 		clearCurrentDropArea();
+		clearCurrentLoadingHeaderContext();
 		clearScannedText();
 	};
 
 	const resetTransientScanState = () => {
 		clearCurrentDropArea();
+		clearCurrentLoadingHeaderContext();
 		clearScannedText();
 	};
 
@@ -62,6 +74,7 @@ export function createWorkflowStores(): WorkflowStores {
 		currentLoader: readonly(currentLoader),
 		selectedDepartment: readonly(selectedDepartment),
 		currentDropArea: readonly(currentDropArea),
+		currentLoadingHeaderContext: readonly(currentLoadingHeaderContext),
 		scannedText: readonly(scannedText),
 		syncActiveTarget: (target) => activeTarget.set(target),
 		setCurrentLoader: (loader) => currentLoader.set(loader),
@@ -70,6 +83,8 @@ export function createWorkflowStores(): WorkflowStores {
 		clearSelectedDepartment,
 		setCurrentDropArea: (dropArea) => currentDropArea.set(dropArea),
 		clearCurrentDropArea,
+		setCurrentLoadingHeaderContext: (context) => currentLoadingHeaderContext.set(context),
+		clearCurrentLoadingHeaderContext,
 		setScannedText: (text) => scannedText.set(text),
 		clearScannedText,
 		resetOperationalState,
