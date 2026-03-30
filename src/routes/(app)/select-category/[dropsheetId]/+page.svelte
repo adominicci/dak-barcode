@@ -78,6 +78,8 @@
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});
 	const selectedLoaderLabel = $derived(currentLoader?.loaderName ?? 'Select loader');
+	const blueBadgeClasses =
+		'rounded-full bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
 
 	onMount(() => {
 		const unsubscribeCurrentLoader = workflowStores.currentLoader.subscribe((loader) => {
@@ -346,10 +348,10 @@
 						</div>
 
 						<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
-							<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
+							<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
 								{formatDepartmentProgress(departmentProgress)}
 							</span>
-							<span class="rounded-full bg-surface-container-low px-2.5 py-1 font-medium">
+							<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
 								{selectedLoaderLabel}
 							</span>
 						</div>
@@ -388,7 +390,7 @@
 					>
 						<div class="flex items-center justify-between gap-3">
 							<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
-							<span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--shadow-soft)]">
+							<span class={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${blueBadgeClasses}`}>
 								{departmentLoaderNames.length}
 							</span>
 						</div>
@@ -400,7 +402,7 @@
 						{:else}
 							<div class="mt-3 flex flex-wrap gap-2">
 								{#each departmentLoaderNames as loaderName (loaderName)}
-									<span class="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
+									<span class={`px-3 py-2 text-sm font-medium ${blueBadgeClasses}`}>
 										{loaderName}
 									</span>
 								{/each}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { ScanBarcode, ChevronDown, MapPin, TriangleAlert } from '@lucide/svelte';
@@ -335,7 +337,10 @@
 </div>
 
 {#if isDepartmentGateOpen}
-	<DepartmentSelectionModal onSelect={handleDepartmentSelect} />
+	<DepartmentSelectionModal
+		onSelect={handleDepartmentSelect}
+		onClose={() => void goto(resolve('/home'))}
+	/>
 {/if}
 
 {#if isLocationModalOpen && selectedDepartment}

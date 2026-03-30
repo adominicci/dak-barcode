@@ -11,6 +11,8 @@
 	let statusMessage = $state<string | null>(null);
 	let statusTone = $state<'success' | 'error' | null>(null);
 	let isSubmitting = $state(false);
+	const BLUE_CARD_CLASSES =
+		'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
 
 	const loadersQuery = getLoaders();
 	const activeLoaders = $derived((loadersQuery.current ?? []).filter((loader) => loader.isActive));
@@ -73,9 +75,9 @@
 			{:else}
 				<div class="grid gap-3 sm:grid-cols-2">
 					{#each activeLoaders as loader (loader.id)}
-						<div class="rounded-2xl bg-surface-container-low p-5">
-							<p class="ui-label text-xs">Loader</p>
-							<p class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+						<div class={`rounded-2xl p-5 ${BLUE_CARD_CLASSES}`}>
+							<p class="ui-label text-xs text-white/70">Loader</p>
+							<p class="mt-1 text-2xl font-bold tracking-tight text-white">
 								{loader.name}
 							</p>
 						</div>

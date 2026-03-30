@@ -215,6 +215,17 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
 			'Departments'
 		);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+			/text-white/
+		);
+		await expect.element(
+			page.getByTestId('select-category-department-Wrap').getByText('Select loader', {
+				exact: true
+			})
+		).toHaveClass(/text-white/);
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveTextContent(
 			'Loaders'
@@ -228,6 +239,12 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveTextContent(
 			'Anthony'
 		);
+		await expect.element(
+			page.getByTestId('select-category-loader-column-Wrap').getByText('2', { exact: true })
+		).toHaveClass(/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/);
+		await expect.element(
+			page.getByTestId('select-category-loader-column-Wrap').getByText('Kaleb', { exact: true })
+		).toHaveClass(/text-white/);
 		await expect.element(page.getByTestId('select-category-loader-column-Roll')).toHaveTextContent(
 			'Kaleb'
 		);

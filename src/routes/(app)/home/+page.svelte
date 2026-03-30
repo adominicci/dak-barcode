@@ -10,6 +10,7 @@
 		Truck,
 		UserRoundPlus
 	} from '@lucide/svelte';
+	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 	import type { PageProps } from './$types';
 
 	type IconComponent = typeof Grid2x2;
@@ -106,15 +107,11 @@
 			</div>
 
 			<div class="flex items-center gap-4">
-				<div
-					data-testid="home-active-target"
-					class="hidden sm:flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2"
-				>
-					<MapPin class="size-4 text-primary" />
-					<span class="text-sm font-semibold text-slate-900">
-						{data.activeTarget ?? 'Target required'}
-					</span>
-				</div>
+				<TargetBadge
+					target={data.activeTarget}
+					testId="home-active-target"
+					wrapperClass="hidden sm:flex"
+				/>
 				<div class="hidden md:flex items-center gap-2 text-slate-500 font-medium">
 					<CalendarDays class="size-4" />
 					<span class="text-sm">{homeDateLabel}</span>

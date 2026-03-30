@@ -195,6 +195,11 @@ describe("dropsheets page", () => {
     await expect
       .element(page.getByRole("button", { name: /Change trailer for L-042/i }))
       .toHaveTextContent("NA");
+    await expect
+      .element(page.getByRole("button", { name: /Change trailer for L-042/i }))
+      .toHaveClass(
+        /bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
+      );
     await expect.element(page.getByText("4.30")).toBeInTheDocument();
     await expect.element(page.getByText("87.50%")).toBeInTheDocument();
     await expect
@@ -218,6 +223,11 @@ describe("dropsheets page", () => {
     await expect
       .element(page.getByRole("button", { name: /Change loader for L-091/i }))
       .toHaveTextContent("Chris");
+    await expect
+      .element(page.getByRole("button", { name: /Change loader for L-091/i }))
+      .toHaveClass(
+        /bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
+      );
   });
 
   it("shows the shared spinner in the refresh button while dropsheets are loading", async () => {

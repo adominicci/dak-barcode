@@ -31,6 +31,8 @@
 
 	let modalElement: HTMLElement | null = null;
 	let closeButton: HTMLButtonElement | null = null;
+	const BLUE_CARD_CLASSES =
+		'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
 
 	onMount(() => {
 		closeButton?.focus();
@@ -98,10 +100,10 @@
 		aria-labelledby="selection-modal-title"
 		tabindex="-1"
 		bind:this={modalElement}
-		class="max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		class="h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
 		onkeydown={handleModalKeydown}
 	>
-		<div class="flex max-h-full flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
+		<div class="flex h-full min-h-0 flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
 			<div class="flex items-start justify-between gap-4">
 				<div class="space-y-1">
 					<p class="ui-label text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
@@ -141,7 +143,10 @@
 				</div>
 			{/if}
 
-			<div class="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+			<div
+				data-testid="selection-modal-scroll-area"
+				class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+			>
 				{#if loading}
 					<div class="flex min-h-[12rem] items-center justify-center rounded-[1.5rem] bg-white">
 						<LoaderCircle class="size-7 animate-spin text-primary" />
@@ -151,12 +156,12 @@
 						<p class="text-lg font-semibold tracking-tight text-slate-950">{emptyMessage}</p>
 					</div>
 				{:else}
-					<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+					<div data-testid="selection-modal-options-grid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 						{#each options as option (option.id)}
 							<button
 								type="button"
 								disabled={saving}
-								class="group flex min-h-20 items-center justify-center rounded-[1.5rem] bg-white px-4 py-4 text-center text-lg font-semibold tracking-tight text-slate-950 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+								class={`group flex min-h-20 items-center justify-center rounded-[1.5rem] px-4 py-4 text-center text-lg font-semibold tracking-tight shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 ${BLUE_CARD_CLASSES}`}
 								onclick={() => onPick(option)}
 							>
 								<span class="text-balance">{option.label}</span>
@@ -168,4 +173,3 @@
 		</div>
 	</div>
 </div>
-
