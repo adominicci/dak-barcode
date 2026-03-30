@@ -2,7 +2,14 @@ import { get } from 'svelte/store';
 import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { DropArea, LoadViewDetail, LoadViewUnion, LoaderInfo, ScanResult } from '$lib/types';
+import type {
+	DepartmentStatus,
+	DropArea,
+	LoadViewDetail,
+	LoadViewUnion,
+	LoaderInfo,
+	ScanResult
+} from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
 type RemoteQueryState<T> = {
@@ -24,6 +31,7 @@ const {
 	getLoaderInfo,
 	getLoadViewDetailAll,
 	getLoadViewUnion,
+	getDepartmentStatus,
 	getDropAreasByDepartment,
 	getDropArea,
 	endLoaderSession,
@@ -51,6 +59,7 @@ const {
 		getLoadViewUnion: vi.fn<
 			(input: { loadNumber: string; sequence: number; locationId: number }) => RemoteQueryState<LoadViewUnion[]>
 		>(),
+		getDepartmentStatus: vi.fn<(custDropSheetId: number) => RemoteQueryState<DepartmentStatus>>(),
 		getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => RemoteQueryState<DropArea[]>>(),
 		getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>(),
 		endLoaderSession: vi.fn(),
@@ -82,8 +91,15 @@ vi.mock('$lib/load-view.remote', () => ({
 	getLoadViewUnion
 }));
 
+vi.mock('$lib/department-status.remote', () => ({
+	getDepartmentStatus
+}));
+
+vi.mock('$lib/drop-areas.cached', () => ({
+	getDropAreasByDepartment
+}));
+
 vi.mock('$lib/drop-areas.remote', () => ({
-	getDropAreasByDepartment,
 	getDropArea
 }));
 
@@ -189,6 +205,20 @@ function createDropArea(overrides: Partial<DropArea> = {}): DropArea {
 	};
 }
 
+function createDepartmentStatus(overrides: Partial<DepartmentStatus> = {}): DepartmentStatus {
+	return {
+		scope: 'dropsheet',
+		subjectId: 84,
+		slit: 'DONE',
+		trim: 'DONE',
+		wrap: 'DUE',
+		roll: 'BOT',
+		parts: 'BOL',
+		soffit: 'NA',
+		...overrides
+	};
+}
+
 function createScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
 	return {
 		scanType: 'single_label',
@@ -248,6 +278,7 @@ describe('loading page', () => {
 		getLoaderInfo.mockReset();
 		getLoadViewDetailAll.mockReset();
 		getLoadViewUnion.mockReset();
+		getDepartmentStatus.mockReset();
 		getDropAreasByDepartment.mockReset();
 		getDropArea.mockReset();
 		endLoaderSession.mockReset();
@@ -303,6 +334,7 @@ describe('loading page', () => {
 						]
 			)
 		);
+		getDepartmentStatus.mockReturnValue(createRemoteQuery(createDepartmentStatus()));
 		getDropAreasByDepartment.mockReturnValue(
 			createRemoteQuery([
 				createDropArea({
@@ -366,47 +398,84 @@ describe('loading page', () => {
 			dropSheetId: 42,
 			locationId: 2
 		});
-			await expect
-				.element(page.getByTestId('loading-summary-strip').getByText('Delivery Number'))
-				.toBeInTheDocument();
-			await expect.element(page.getByTestId('loading-summary-strip').getByText('L-042')).toBeInTheDocument();
-			await expect
-				.element(page.getByTestId('loading-summary-strip').getByText('Customer'))
-				.toBeInTheDocument();
-			await expect
-				.element(page.getByTestId('loading-summary-strip').getByText('Acme Metals'))
-				.toBeInTheDocument();
-			await expect.element(page.getByRole('button', { name: 'Order Status' })).toBeInTheDocument();
-			await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toBeInTheDocument();
-			await expect
-				.element(page.getByTestId('loading-summary-strip').getByText('Alex'))
-				.not.toBeInTheDocument();
+		expect(getDepartmentStatus).toHaveBeenCalledWith(84);
+		await expect
+			.element(page.getByTestId('loading-summary-strip').getByText('Delivery Number'))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-summary-strip').getByText('L-042')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('loading-summary-strip').getByText('Customer'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('loading-summary-strip').getByText('Acme Metals'))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-department-status-strip')).toBeInTheDocument();
+		await expect.element(page.getByText('Slit')).toBeInTheDocument();
+		await expect.element(page.getByText('Trim')).toBeInTheDocument();
+		await expect.element(page.getByText('Wrap')).toBeInTheDocument();
+		await expect.element(page.getByText('Roll')).toBeInTheDocument();
+		await expect.element(page.getByText('Parts')).toBeInTheDocument();
+		await expect.element(page.getByText('Soffit')).toBeInTheDocument();
+		await expect.element(page.getByText('DONE', { exact: true }).first()).toBeInTheDocument();
+		await expect.element(page.getByText('DUE', { exact: true })).toBeInTheDocument();
+		await expect.element(page.getByText('BOT', { exact: true })).toBeInTheDocument();
+		await expect.element(page.getByText('BOL', { exact: true })).toBeInTheDocument();
+		await expect.element(page.getByText('NA', { exact: true })).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-legacy-actions')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Order Status' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('loading-summary-strip').getByText('Alex'))
+			.not.toBeInTheDocument();
 		await expect
 			.element(page.getByTestId('loading-summary-strip').getByText('2,152.4 lbs'))
 			.not.toBeInTheDocument();
 		await expect.element(page.getByText(/^Driver location$/)).not.toBeInTheDocument();
-			await expect.element(page.getByText(/^Scan state$/)).not.toBeInTheDocument();
-			await expect.element(page.getByTestId('loading-scan-section')).toBeInTheDocument();
-		});
+		await expect.element(page.getByText(/^Scan state$/)).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-scan-section')).toBeInTheDocument();
+	});
 
-		it('opens order-status and dropsheet pages from loading with a return path back to the current session', async () => {
-			workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
-			workflowStores.setSelectedDepartment('Wrap');
+	it('renders the legacy action shortcuts under the summary strip and routes them correctly', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
 
-			render(LoadingPage);
+		render(LoadingPage);
 
-			await page.getByRole('button', { name: 'Order Status' }).click();
-			expect(goto).toHaveBeenCalledWith(
-				'/order-status/42?loadNumber=L-042&returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26dropWeight%3D2152.4&driverName=Dylan+Driver&dropWeight=2152.4'
-			);
+		await expect.element(page.getByTestId('loading-legacy-actions')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-3/);
+		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-3/);
 
-			goto.mockClear();
+		await page.getByRole('button', { name: 'Order Status' }).click();
+		expect(goto).toHaveBeenCalledWith(
+			expect.stringContaining('/order-status/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+		);
 
-			await page.getByRole('button', { name: 'Dropsheet' }).click();
-			expect(goto).toHaveBeenCalledWith(
-				'/move-orders/42?loadNumber=L-042&returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26dropWeight%3D2152.4&driverName=Dylan+Driver&dropWeight=2152.4'
-			);
-		});
+		goto.mockReset();
+
+		await page.getByRole('button', { name: 'Dropsheet' }).click();
+		expect(goto).toHaveBeenCalledWith(
+			expect.stringContaining('/move-orders/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+		);
+	});
+
+	it('renders the active drop summary with compact footer controls', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('Drop 1 of 2')).toHaveClass(/text-base/);
+		await expect.element(page.getByTestId('loading-scan-input')).toHaveClass(/h-14/);
+		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/p-2\.5/);
+		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/rounded-\[1\.75rem\]/);
+		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/h-16/);
+		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/w-16/);
+		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/h-16/);
+		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/w-16/);
+		await expect.element(page.getByTestId('loading-drop-stat-labels')).toHaveClass(/py-2/);
+		await expect.element(page.getByTestId('loading-drop-stat-scanned')).toHaveClass(/py-2/);
+		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(/py-2/);
+	});
 
 	it('renders the active drop summary and only unscanned part-list entries under the scan input', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
@@ -733,7 +802,7 @@ describe('loading page', () => {
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /D12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /D13/i })).toBeInTheDocument();
-		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
+		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', null);
 
 		await page.getByLabelText('Scan new location').fill('42');
 		await page.getByRole('button', { name: 'Set location' }).click();

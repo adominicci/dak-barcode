@@ -306,6 +306,7 @@
 	<StagingLocationModal
 		department={selectedDepartment}
 		mode="loading"
+		target={data.activeTarget}
 		onClose={closeMoveModal}
 		onSelect={handleMoveLocationSelect}
 	/>

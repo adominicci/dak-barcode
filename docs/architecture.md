@@ -1,7 +1,7 @@
 # Architecture: Stage & Load Barcode Module Frontend
 
-**Version**: 1.4
-**Date**: 2026-03-20
+**Version**: 1.5
+**Date**: 2026-03-30
 
 ---
 
@@ -384,6 +384,12 @@ The browser should never know Heroku URLs, target normalization rules, or FastAP
 - loading labels list
 - list refresh state
 - current need-pick count
+
+### Browser-cached lookup lists
+
+- The stable loader, trailer, and drop-area lookup lists use browser-side persistent cache wrappers around their remote queries.
+- Manual refresh controls always re-run the query and replace the cached payload when the backend returns new data.
+- This cache is intentionally narrow; scan state, selection state, and session-scoped workflow data remain memory-only.
 
 ### What not to persist broadly
 

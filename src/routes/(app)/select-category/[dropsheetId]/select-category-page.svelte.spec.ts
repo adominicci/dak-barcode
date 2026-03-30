@@ -36,16 +36,35 @@ type CategoryAvailabilityQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
+type LoaderQueryState = {
+	current: Array<{
+		id: number;
+		name: string;
+		isActive: boolean;
+	}> | null;
+	loading: boolean;
+	error: Error | null;
+	refresh: ReturnType<typeof vi.fn>;
+};
+
 type DepartmentLoaderGroup = {
 	department: 'Wrap' | 'Roll' | 'Parts';
 	loaderNames: string[];
 };
 
-const { goto, getDropsheetCategoryAvailability, getDropsheetStatus, getNumberOfDrops, upsertLoaderSession } = vi.hoisted(
+const {
+	goto,
+	getDropsheetCategoryAvailability,
+	getDropsheetStatus,
+	getLoaders,
+	getNumberOfDrops,
+	upsertLoaderSession
+} = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
+		getLoaders: vi.fn<() => LoaderQueryState>(),
 		getNumberOfDrops: vi.fn(),
 		upsertLoaderSession: vi.fn()
 	})
@@ -58,6 +77,10 @@ vi.mock('$app/navigation', () => ({
 vi.mock('$lib/dropsheets.remote', () => ({
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus
+}));
+
+vi.mock('$lib/loaders.cached', () => ({
+	getLoaders
 }));
 
 vi.mock('$lib/load-view.remote', () => ({ getNumberOfDrops }));
@@ -92,6 +115,19 @@ function createCategoryAvailabilityQuery(
 	};
 }
 
+function createLoadersQuery(
+	current: NonNullable<LoaderQueryState['current']>,
+	overrides: Partial<LoaderQueryState> = {}
+): LoaderQueryState {
+	return {
+		current,
+		loading: false,
+		error: null,
+		refresh: vi.fn(),
+		...overrides
+	};
+}
+
 const layoutData = {
 	activeTarget: 'Canton' as const,
 	displayName: 'Loader One',
@@ -111,6 +147,7 @@ describe('select-category page', () => {
 		goto.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
+		getLoaders.mockReset();
 		getNumberOfDrops.mockReset();
 		upsertLoaderSession.mockReset();
 		workflowStores.resetOperationalState();
@@ -139,6 +176,12 @@ describe('select-category page', () => {
 				partsScannedPercent: 0.75,
 				allLoaded: false
 			})
+		);
+		getLoaders.mockReturnValue(
+			createLoadersQuery([
+				{ id: 7, name: 'Alex', isActive: true },
+				{ id: 9, name: 'Casey', isActive: true }
+			])
 		);
 	});
 
@@ -198,6 +241,9 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/font-semibold/);
 		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/text-\[10px\]/);
 		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/font-medium/);
+		await expect
+			.element(page.getByTestId('select-category-status-grid').getByText('DUE', { exact: true }))
+			.toHaveClass(/bg-rose-500/);
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i })).toBeInTheDocument();
@@ -305,6 +351,13 @@ describe('select-category page', () => {
 
 	it('opens the loader modal on every department tap and persists the chosen loader for the loading handoff', async () => {
 		getNumberOfDrops.mockResolvedValue(14);
+		const refresh = vi.fn();
+		getLoaders.mockReturnValue(
+			createLoadersQuery([
+				{ id: 7, name: 'Alex', isActive: true },
+				{ id: 9, name: 'Casey', isActive: true }
+			], { refresh })
+		);
 		upsertLoaderSession.mockResolvedValue({
 			id: 88,
 			dropSheetId: 42,
@@ -335,6 +388,9 @@ describe('select-category page', () => {
 
 		await page.getByRole('button', { name: /Wrap/i }).click();
 		await expect.element(page.getByTestId('selection-modal')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Refresh list' })).toBeInTheDocument();
+		await page.getByRole('button', { name: 'Refresh list' }).click();
+		expect(refresh).toHaveBeenCalledOnce();
 
 		await page.getByRole('button', { name: 'Alex' }).click();
 

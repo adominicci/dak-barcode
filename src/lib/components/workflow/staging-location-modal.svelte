@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { LoaderCircle, MapPin, TriangleAlert, X } from '@lucide/svelte';
-	import { getDropArea, getDropAreasByDepartment } from '$lib/drop-areas.remote';
+	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
+	import { getDropArea } from '$lib/drop-areas.remote';
+	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
+	import type { Target } from '$lib/auth/types';
 	import type { DropArea } from '$lib/types';
 	import type {
 		WorkflowDepartment,
@@ -11,11 +13,13 @@
 	let {
 		department,
 		mode = 'staging',
+		target = null,
 		onClose,
 		onSelect
 	}: {
 		department: WorkflowDepartment;
 		mode?: 'staging' | 'loading';
+		target?: Target | null;
 		onClose: () => void;
 		onSelect: (dropArea: NonNullable<WorkflowDropAreaSelection>) => void;
 	} = $props();
@@ -27,7 +31,9 @@
 	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
 
-	const dropAreasQuery = $derived(department ? getDropAreasByDepartment(department) : null);
+	const dropAreasQuery = $derived(
+		department ? getDropAreasByDepartment(department, target) : null
+	);
 	const departmentSupportKey = {
 		Wrap: 'supportsWrap',
 		Roll: 'supportsRoll',
@@ -191,11 +197,23 @@
 		aria-label="Staging location selector"
 		tabindex="-1"
 		bind:this={modalElement}
-		class="max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		class="h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
 		onkeydown={handleModalKeydown}
 	>
-		<div class="flex max-h-full flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
-			<div class="flex justify-end">
+		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
+			<div class="flex justify-end gap-2">
+				{#if dropAreasQuery}
+					<button
+						type="button"
+						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+						onclick={() => void dropAreasQuery.refresh()}
+						aria-label="Refresh list"
+						disabled={dropAreasQuery.loading}
+					>
+						<RefreshCw class={`size-4 ${dropAreasQuery.loading ? 'animate-spin' : ''}`} />
+					</button>
+				{/if}
+
 				<button
 					type="button"
 					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900"
@@ -206,7 +224,7 @@
 				</button>
 			</div>
 
-			<div class="mt-4 flex min-h-0 flex-1 flex-col gap-5">
+			<div class="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
 				<form
 					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]"
 					onsubmit={handleLookupSubmit}
@@ -247,10 +265,10 @@
 					{/if}
 				</form>
 
-				<div class="flex min-h-0 flex-1 flex-col rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
+				<div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
 					<div
 						data-testid="staging-location-list-scroll-region"
-						class="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
+						class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
 					>
 						{#if department === null}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-on-surface-variant/70">
@@ -272,31 +290,23 @@
 								<MapPin class="size-7 text-primary/70" />
 								<p class="text-sm font-medium">No locations are available for this department yet.</p>
 							</div>
-						{:else}
-							<div
-								data-testid="staging-location-modal-grid"
-								class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-							>
-								{#each visibleDropAreas as dropArea (dropArea.id)}
-									<button
-										type="button"
-										class="group rounded-[1.4rem] bg-surface-container-lowest px-4 py-4 text-left shadow-[0_16px_34px_-26px_rgba(29,52,91,0.18)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-										onclick={() => commitSelection(dropArea)}
-									>
-										<div class="flex items-center justify-between gap-3">
-											<div class="flex h-11 w-11 items-center justify-center rounded-[0.95rem] bg-primary/8 text-primary transition group-hover:bg-primary group-hover:text-white">
-												<MapPin class="size-4" />
-											</div>
-											<span class="ui-pill px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.15em]">
-												Select
-											</span>
-										</div>
-										<p class="mt-4 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
-											{dropArea.name}
-										</p>
-									</button>
-								{/each}
-							</div>
+					{:else}
+						<div
+							data-testid="staging-location-modal-grid"
+							class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+						>
+							{#each visibleDropAreas as dropArea (dropArea.id)}
+								<button
+									type="button"
+									class="ui-card ui-primary-gradient group flex min-h-[7.5rem] flex-col justify-center px-6 py-6 text-left text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0"
+									onclick={() => commitSelection(dropArea)}
+								>
+									<p class="text-[1.7rem] font-semibold tracking-[-0.03em] text-white">
+										{dropArea.name}
+									</p>
+								</button>
+							{/each}
+						</div>
 						{/if}
 					</div>
 				</div>

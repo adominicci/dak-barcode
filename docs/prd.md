@@ -174,6 +174,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Add Loader is a separate utility flow, not part of Staging entry
 - [ ] New loaders become active immediately
 - [ ] Newly created loaders appear in the selectable list right away
+- [ ] Loader list can be manually refreshed when backend data changes
 
 ### Story 5: Staging workflow
 
@@ -190,6 +191,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Non-numeric scans are processed as pallet or single-label scans
 - [ ] Minimal success feedback is shown, then the input is immediately ready again
 - [ ] Department-specific lists refresh after successful scans
+- [ ] The drop-area picker can be manually refreshed when backend data changes
 - [ ] Roll resets the selected drop area after each successful scan
 
 ### Story 6: Loading entry flow
@@ -204,6 +206,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Select Category shows Roll, Wrap, and Parts with department status indicators
 - [ ] Loading requires explicit loader selection before the Loading page begins
 - [ ] Loader start time is recorded before entering the Loading page
+- [ ] Trailer and loader pickers can be manually refreshed when backend data changes
 - [ ] Department-to-location mapping matches the legacy workflow:
   - Roll -> `locationId = 1`
   - Wrap -> `locationId = 2`

@@ -14,18 +14,19 @@ function baseProps() {
 		loading: false,
 		error: null,
 		saving: false,
+		refreshing: false,
 		emptyMessage: 'No options available.',
 		onClose: vi.fn(),
-		onPick: vi.fn()
+		onPick: vi.fn(),
+		onRefresh: vi.fn()
 	};
 }
 
 describe('selection modal', () => {
 	it('renders picker options as blue cards in a four-column grid on wide layouts', async () => {
+		const props = baseProps();
 		render(SelectionModal, {
-			props: {
-				...baseProps()
-			}
+			props
 		});
 
 		await expect.element(page.getByRole('dialog', { name: 'Select loader for Wrap' })).toBeInTheDocument();
@@ -42,5 +43,8 @@ describe('selection modal', () => {
 			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
 		);
 		await expect.element(page.getByRole('button', { name: 'Alick' })).toHaveClass(/text-white/);
+		await expect.element(page.getByRole('button', { name: 'Refresh list' })).toBeInTheDocument();
+		await page.getByRole('button', { name: 'Refresh list' }).click();
+		expect(props.onRefresh).toHaveBeenCalledOnce();
 	});
 });

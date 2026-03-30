@@ -224,6 +224,39 @@ describe("dst query helpers", () => {
     });
   });
 
+  it("loads drop-scoped department status through the legacy get-department-status-ondrop endpoint", async () => {
+    fetchDst.mockResolvedValue(
+      jsonResponse({
+        CustDropSheetID: 84,
+        StatusOnLoadSlit: "DONE",
+        StatusOnLoadTrim: "DUE",
+        StatusOnLoadWrap: "BOT",
+        StatusOnLoadRoll: "BOL",
+        StatusOnLoadPart: "NA",
+        StatusOnLoadSoffit: null,
+      }),
+    );
+
+    const { getDstDepartmentStatusOnDrop } = await import("./dst-queries");
+
+    await expect(getDstDepartmentStatusOnDrop(84)).resolves.toEqual({
+      scope: "drop",
+      subjectId: 84,
+      slit: "DONE",
+      trim: "DUE",
+      wrap: "BOT",
+      roll: "BOL",
+      parts: "NA",
+      soffit: null,
+    });
+
+    const [path] = getFetchCall();
+    const url = new URL(path, "https://dst.example.com");
+
+    expect(url.pathname).toBe("/api/barcode-get/get-department-status-ondrop");
+    expect(url.searchParams.get("CustDropSheetID")).toBe("84");
+  });
+
   it("loads dropsheet category availability through the legacy label-count endpoint", async () => {
     fetchDst.mockResolvedValue(
       jsonResponse({

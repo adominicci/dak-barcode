@@ -12,8 +12,9 @@
 		TriangleAlert
 	} from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
-	import { getLoaders } from '$lib/loaders.remote';
-	import { getTrailers, updateDropsheetTrailer } from '$lib/trailers.remote';
+	import { getLoaders } from '$lib/loaders.cached';
+	import { getTrailers } from '$lib/trailers.cached';
+	import { updateDropsheetTrailer } from '$lib/trailers.remote';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { Popover } from '$lib/components/ui/popover';
@@ -70,8 +71,8 @@
 	let pickerSaving = $state(false);
 
 	const dropsheetsQuery = $derived(getDropsheets(data.selectedDate));
-	const loadersQuery = getLoaders();
-	const trailersQuery = getTrailers();
+	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
+	const trailersQuery = $derived.by(() => getTrailers(data.activeTarget));
 
 	const dropsheets = $derived(dropsheetsQuery.current ?? []);
 	const activeLoaders = $derived(
@@ -416,17 +417,17 @@
 					<tbody>
 						{#each dropsheets as dropSheet (dropSheet.id)}
 							{@const isComplete = dropSheet.percentCompleted >= 1}
-							<tr class="group border-t border-slate-100 bg-white transition hover:bg-slate-50/70">
-								<td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-slate-950">
+							<tr class="group bg-white transition hover:bg-slate-50/70">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-sm font-semibold text-slate-950">
 									{dropSheet.loadNumber}
 								</td>
-								<td class="whitespace-nowrap px-3 py-4 text-center text-sm tabular-nums text-slate-700">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm tabular-nums text-slate-700">
 									{WEIGHT_FORMATTER.format(dropSheet.dropWeight)}
 								</td>
-								<td class="whitespace-nowrap px-3 py-4 text-center text-sm text-slate-700">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm text-slate-700">
 									{dropSheet.loadNumberShort ?? '--'}
 								</td>
-								<td class="px-3 py-4 text-center">
+								<td class="border-b border-slate-100 px-3 py-4 text-center">
 										<button
 											type="button"
 											class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -436,13 +437,13 @@
 											<span class="truncate">{formatTrailerLabel(dropSheet.trailer)}</span>
 										</button>
 									</td>
-								<td class="whitespace-nowrap px-3 py-4 text-center text-sm font-semibold text-slate-950">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm font-semibold text-slate-950">
 									<span class="inline-flex items-baseline justify-center gap-0.5 tabular-nums"><span>{formatPercentCompleted(dropSheet.percentCompleted)}</span><span class="text-[9px] leading-none text-slate-500">%</span></span>
 								</td>
-								<td class="whitespace-nowrap px-3 py-4 text-center text-sm text-slate-700">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm text-slate-700">
 									{formatLoadedAt(dropSheet.loadedAt, isComplete)}
 								</td>
-								<td class="px-3 py-4 text-center">
+								<td class="border-b border-slate-100 px-3 py-4 text-center">
 									<div class="flex justify-center">
 										<Checkbox
 											checked={dropSheet.allLoaded}
@@ -451,7 +452,7 @@
 										/>
 									</div>
 								</td>
-								<td class="px-3 py-4 text-center">
+								<td class="border-b border-slate-100 px-3 py-4 text-center">
 										<button
 											type="button"
 											class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -461,7 +462,7 @@
 											<span class="truncate">{formatLoaderLabel(dropSheet.loaderName)}</span>
 										</button>
 								</td>
-								<td class="whitespace-nowrap px-3 py-4 text-right">
+								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-right">
 									<button
 										type="button"
 										class="inline-flex size-12 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white"
@@ -491,5 +492,11 @@
 		emptyMessage={activePickerEmptyMessage}
 		onClose={closePicker}
 		onPick={handlePickerSelect}
+		onRefresh={
+			activePicker.kind === 'trailer'
+				? () => void trailersQuery.refresh()
+				: () => void loadersQuery.refresh()
+		}
+		refreshing={activePickerLoading}
 	/>
 {/if}

@@ -7,8 +7,9 @@ export function getWorkflowStatusTone(value: string | null): WorkflowStatusTone 
 			return 'done';
 		case 'READY':
 			return 'ready';
-		case 'WAIT':
 		case 'DUE':
+			return 'danger';
+		case 'WAIT':
 			return 'warning';
 		case 'STOP':
 			return 'danger';
