@@ -27,7 +27,18 @@ describe('home module selector', () => {
 	it('keeps the Add Loader utility treatment and the disabled Will Call state', async () => {
 		render(HomePage, { data: baseData, params: {} });
 
-		await expect.element(page.getByTestId('home-card-add-loader')).toHaveClass(/border-dashed/);
+		await expect.element(page.getByTestId('home-card-add-loader')).toHaveClass(
+			/ui-primary-gradient/
+		);
+		await expect.element(page.getByTestId('home-card-add-loader-icon')).toHaveClass(
+			/bg-white\/18/
+		);
+		await expect.element(page.getByTestId('home-card-staging')).toHaveClass(/ui-primary-gradient/);
+		await expect.element(page.getByTestId('home-card-loading')).toHaveClass(/ui-primary-gradient/);
+		await expect.element(page.getByTestId('home-card-will-call')).toHaveClass(/ui-primary-soft/);
+		await expect.element(page.getByTestId('home-card-will-call-icon')).toHaveClass(
+			/ui-primary-soft/
+		);
 		await expect.element(page.getByTestId('home-card-will-call')).toHaveAttribute(
 			'aria-disabled',
 			'true'
@@ -44,17 +55,18 @@ describe('home module selector', () => {
 		});
 
 		await expect.element(page.getByTestId('home-active-target')).toHaveTextContent('Freeport');
-		await expect.element(page.getByTestId('home-active-target')).toHaveClass(
-			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
+		await expect.element(page.getByTestId('home-active-target')).toHaveClass(/ui-primary-gradient/);
+		await expect.element(page.getByTestId('home-card-staging')).toHaveAttribute(
+			'href',
+			'/staging?returnTo=%2Fhome'
 		);
-		await expect.element(page.getByTestId('home-card-staging')).toHaveAttribute('href', '/staging');
 		await expect.element(page.getByTestId('home-card-loading')).toHaveAttribute(
 			'href',
-			'/dropsheets'
+			'/dropsheets?returnTo=%2Fhome'
 		);
 		await expect.element(page.getByTestId('home-card-add-loader')).toHaveAttribute(
 			'href',
-			'/loaders'
+			'/loaders?returnTo=%2Fhome'
 		);
 	});
 
@@ -71,7 +83,7 @@ describe('home module selector', () => {
 
 		await expect.element(page.getByRole('link', { name: 'Change target' })).toHaveAttribute(
 			'href',
-			'/location'
+			'/location?returnTo=%2Fhome'
 		);
 	});
 

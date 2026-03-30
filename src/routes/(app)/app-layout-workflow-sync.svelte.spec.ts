@@ -114,6 +114,26 @@ describe('(app) layout workflow target sync', () => {
 		);
 	});
 
+	it('routes select-category back to the exact dropsheets caller when returnTo is present', async () => {
+		pageState.url = new URL(
+			'https://app.local/select-category/42?loadNumber=L-042&returnTo=%2Fdropsheets%3Fdate%3D2026-03-25'
+		);
+
+		render(AppLayout, {
+			params: { dropsheetId: '42' },
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/dropsheets?date=2026-03-25'
+		);
+	});
+
 	it('routes order-status back to select-category when launched from that flow', async () => {
 		pageState.url = new URL(
 			'https://app.local/order-status/42?returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
@@ -174,6 +194,28 @@ describe('(app) layout workflow target sync', () => {
 			.toHaveTextContent('Taylor Driver-980.1 lbs');
 	});
 
+	it('routes loading back to select-category when launched from that flow', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/select-category/42?loadNumber=L-042'
+		);
+	});
+
 	it('refreshes loading data from the legacy header action', async () => {
 		pageState.url = new URL(
 			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
@@ -197,6 +239,48 @@ describe('(app) layout workflow target sync', () => {
 		await page.getByRole('button', { name: 'Refresh loading header' }).click();
 
 		expect(invalidateAll).toHaveBeenCalledOnce();
+	});
+
+	it('builds the account shortcut back to the active workflow page', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'LO' })).toHaveAttribute(
+			'href',
+			'/account?returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26returnTo%3D%252Fselect-category%252F42%253FloadNumber%253DL-042'
+		);
+	});
+
+	it('routes account back to the workflow caller when launched from the shell shortcut', async () => {
+		pageState.url = new URL(
+			'https://app.local/account?returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26returnTo%3D%252Fselect-category%252F42%253FloadNumber%253DL-042'
+		);
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect.element(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
+			'href',
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'
+		);
 	});
 
 	it('routes move-orders back to select-category when launched from that flow', async () => {

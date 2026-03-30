@@ -130,23 +130,23 @@
 					{@const Icon = option.icon}
 					<button
 						type="button"
-						class="group flex w-full items-center justify-between gap-5 rounded-[1.75rem] bg-white px-5 py-5 text-left shadow-[var(--shadow-soft)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] active:translate-y-0"
+						class="ui-primary-gradient group flex w-full items-center justify-between gap-5 rounded-[1.75rem] px-5 py-5 text-left text-white transition-all hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0"
 						onclick={() => onSelect(option.value)}
 					>
 						<div class="flex items-center gap-4">
-							<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] bg-primary/8 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+							<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] border border-white/18 bg-white/18 text-white transition-colors group-hover:bg-white/22">
 								<Icon class="size-6" />
 							</div>
 							<div>
-								<p class="text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+								<p class="text-2xl font-semibold tracking-[-0.03em] text-white">
 									{option.value}
 								</p>
-								<p class="mt-1 text-sm leading-6 text-on-surface-variant">
+								<p class="mt-1 text-sm leading-6 text-white/78">
 									{option.description}
 								</p>
 							</div>
 						</div>
-						<span class="ui-pill px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
+						<span class="rounded-full border border-white/22 bg-white/16 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white">
 							Select
 						</span>
 					</button>

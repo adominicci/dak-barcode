@@ -200,6 +200,9 @@ describe("dropsheets page", () => {
       .toHaveClass(
         /bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
       );
+    await expect
+      .element(page.getByRole("button", { name: /Change trailer for L-042/i }))
+      .toHaveClass(/min-h-12/);
     await expect.element(page.getByText("4.30")).toBeInTheDocument();
     await expect.element(page.getByText("87.50%")).toBeInTheDocument();
     await expect
@@ -228,6 +231,12 @@ describe("dropsheets page", () => {
       .toHaveClass(
         /bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
       );
+    await expect
+      .element(page.getByRole("button", { name: /Change loader for L-091/i }))
+      .toHaveClass(/min-h-12/);
+    await expect
+      .element(page.getByLabelText("Open select category for L-042"))
+      .toHaveClass(/size-12/);
   });
 
   it("shows the shared spinner in the refresh button while dropsheets are loading", async () => {
@@ -468,7 +477,7 @@ describe("dropsheets page", () => {
       .click();
 
     expect(goto).toHaveBeenCalledWith(
-      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4",
+      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24",
     );
   });
 

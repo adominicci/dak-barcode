@@ -4,10 +4,10 @@
 	import { onMount } from 'svelte';
 	import {
 		ClipboardList,
-		LoaderCircle,
 		PenLine,
 		Truck
 	} from '@lucide/svelte';
+	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
@@ -47,6 +47,11 @@
 	const categoryAvailabilityQuery = $derived(getDropsheetCategoryAvailability(data.dropSheetId));
 	const currentStatus = $derived(statusQuery.current ?? null);
 	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
+	const isStatusSectionLoading = $derived(statusQuery.loading && currentStatus === null);
+	const isDepartmentsSectionLoading = $derived(
+		(statusQuery.loading && currentStatus === null) ||
+			(categoryAvailabilityQuery.loading && categoryAvailability === null)
+	);
 	const statusEntries = $derived(byStatusDisplay(currentStatus));
 	const departmentLoaderGroups = $derived.by(() => {
 		const groups: Record<OperationalDepartment, string[]> = {
@@ -213,7 +218,8 @@
 				locationId: String(locationId),
 				loaderSessionId: String(session.id),
 				startedAt: session.startedAt,
-				loadNumber: data.loadNumber
+				loadNumber: data.loadNumber,
+				returnTo: selectCategoryReturnHref
 			});
 
 			if (data.dropWeight !== null) {
@@ -271,6 +277,16 @@
 				<p class="font-semibold">Unable to load department status.</p>
 				<p class="mt-1 leading-6">{statusQuery.error.message}</p>
 			</div>
+		{:else if isStatusSectionLoading}
+			<div
+				class="flex min-h-[6.5rem] items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
+				data-testid="select-category-status-loading-state"
+			>
+				<div class="flex flex-col items-center gap-3 text-center">
+					<LoadingSpinner size="md" data-testid="select-category-status-loading-spinner" />
+					<p class="text-sm font-semibold text-slate-950">Loading department status</p>
+				</div>
+			</div>
 		{:else}
 			<div
 				data-testid="select-category-status-strip"
@@ -309,56 +325,68 @@
 			<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
 		</div>
 
-		<!-- Fixed three columns keep the department cards readable and left-to-right on the shared iPad. -->
-		<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
-			{#if visibleDepartments.length === 0}
-				<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
-					<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
-					<p class="mt-2 text-sm leading-6 text-slate-600">
-						This load does not have wrap, roll, or parts labels available yet.
-					</p>
+		{#if isDepartmentsSectionLoading}
+			<div
+				class="flex min-h-[18rem] items-center justify-center rounded-[1.75rem] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
+				data-testid="select-category-departments-loading-state"
+			>
+				<div class="flex flex-col items-center gap-3 text-center">
+					<LoadingSpinner size="lg" data-testid="select-category-departments-loading-spinner" />
+					<p class="text-sm font-semibold text-slate-950">Loading category actions</p>
 				</div>
-			{/if}
-
-			{#each visibleDepartments as entry (entry.department)}
-				{@const departmentStatus = getDepartmentStatus(currentStatus, entry.department)}
-				{@const departmentProgress = getDepartmentProgress(categoryAvailability, entry.department)}
-				<button
-					data-testid={`select-category-department-${entry.department}`}
-					type="button"
-					onclick={() => handleDepartmentSelect(entry.department)}
-					disabled={pendingDepartment !== null}
-					class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					<div class="flex items-start justify-between gap-4">
-						<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
-						<div
-							class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
-						>
-							{departmentStatus ?? '--'}
-						</div>
+			</div>
+		{:else}
+			<!-- Fixed three columns keep the department cards readable and left-to-right on the shared iPad. -->
+			<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
+				{#if visibleDepartments.length === 0}
+					<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
+						<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
+						<p class="mt-2 text-sm leading-6 text-slate-600">
+							This load does not have wrap, roll, or parts labels available yet.
+						</p>
 					</div>
+				{/if}
 
-					<div class="space-y-1.5">
-						<div class="h-1.5 overflow-hidden rounded-full bg-surface-container-low">
+				{#each visibleDepartments as entry (entry.department)}
+					{@const departmentStatus = getDepartmentStatus(currentStatus, entry.department)}
+					{@const departmentProgress = getDepartmentProgress(categoryAvailability, entry.department)}
+					<button
+						data-testid={`select-category-department-${entry.department}`}
+						type="button"
+						onclick={() => handleDepartmentSelect(entry.department)}
+						disabled={pendingDepartment !== null}
+						class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						<div class="flex items-start justify-between gap-4">
+							<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
 							<div
-								class="h-full rounded-full bg-emerald-500 transition-[width]"
-								style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
-							></div>
+								class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
+							>
+								{departmentStatus ?? '--'}
+							</div>
 						</div>
 
-						<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
-							<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
-								{formatDepartmentProgress(departmentProgress)}
-							</span>
-							<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
-								{selectedLoaderLabel}
-							</span>
+						<div class="space-y-1.5">
+							<div class="h-1.5 overflow-hidden rounded-full bg-surface-container-low">
+								<div
+									class="h-full rounded-full bg-emerald-500 transition-[width]"
+									style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
+								></div>
+							</div>
+
+							<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
+								<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
+									{formatDepartmentProgress(departmentProgress)}
+								</span>
+								<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
+									{selectedLoaderLabel}
+								</span>
+							</div>
 						</div>
-					</div>
-				</button>
-			{/each}
-		</div>
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div

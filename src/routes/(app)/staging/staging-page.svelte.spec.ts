@@ -305,8 +305,17 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-scan-input')).toBeDisabled();
 		await expect.element(page.getByTestId('staging-location-trigger')).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: 'Wrap' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Wrap' })).toHaveClass(
+			/ui-primary-gradient/
+		);
 		await expect.element(page.getByRole('button', { name: 'Parts' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Parts' })).toHaveClass(
+			/ui-primary-gradient/
+		);
 		await expect.element(page.getByRole('button', { name: 'Roll' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Roll' })).toHaveClass(
+			/ui-primary-gradient/
+		);
 	});
 
 	it('lets the user close the department gate and return home', async () => {

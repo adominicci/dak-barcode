@@ -1,5 +1,4 @@
 import { getRequestEvent } from '$app/server';
-import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import type { User } from '@supabase/supabase-js';
@@ -9,6 +8,7 @@ import {
 	type FrontendTarget,
 	type ProfileWithWarehouse
 } from '$lib/types';
+import { requirePrivateEnv } from '$lib/server/environment';
 
 export type ProxyAuthContext = {
 	accessToken: string;
@@ -18,15 +18,10 @@ export type ProxyAuthContext = {
 };
 
 type ProxyRequestEvent = Pick<RequestEvent, 'fetch' | 'locals'>;
+const UPSTREAM_TIMEOUT_MS = 8_000;
 
 function requireConfiguredBaseUrl(name: 'DST_PORTAL_URL' | 'DAK_WEB_URL') {
-	const value = env[name];
-
-	if (!value) {
-		error(500, `${name} is not configured.`);
-	}
-
-	return value;
+	return requirePrivateEnv(name);
 }
 
 function requireActiveProfile(profile: ProfileWithWarehouse | null, isActive: boolean) {
@@ -83,6 +78,35 @@ export async function getAuthContext(): Promise<ProxyAuthContext> {
 	return resolveAuthContext(getRequestEvent());
 }
 
+async function fetchWithTimeout(
+	event: Pick<ProxyRequestEvent, 'fetch'>,
+	input: URL,
+	init: RequestInit | undefined,
+	upstreamLabel: 'DAK backend' | 'DST backend'
+) {
+	const controller = new AbortController();
+	let timedOut = false;
+	const timeoutId = setTimeout(() => {
+		timedOut = true;
+		controller.abort();
+	}, UPSTREAM_TIMEOUT_MS);
+
+	try {
+		return await event.fetch(input, {
+			...init,
+			signal: controller.signal
+		});
+	} catch (cause) {
+		if (timedOut) {
+			error(504, `${upstreamLabel} request timed out.`);
+		}
+
+		throw cause;
+	} finally {
+		clearTimeout(timeoutId);
+	}
+}
+
 export async function fetchDst(path: string, init?: RequestInit) {
 	const relativePath = requireRelativeProxyPath(path);
 	const baseUrl = requireConfiguredBaseUrl('DST_PORTAL_URL');
@@ -94,10 +118,15 @@ export async function fetchDst(path: string, init?: RequestInit) {
 	url.searchParams.set('db', toDstTarget(target));
 	headers.set('Authorization', `Bearer ${accessToken}`);
 
-	return event.fetch(url, {
-		...init,
-		headers
-	});
+	return fetchWithTimeout(
+		event,
+		url,
+		{
+			...init,
+			headers
+		},
+		'DST backend'
+	);
 }
 
 export async function fetchDak(path: string, init?: RequestInit) {
@@ -111,8 +140,13 @@ export async function fetchDak(path: string, init?: RequestInit) {
 	headers.set('Authorization', `Bearer ${accessToken}`);
 	headers.set('X-Db', toDakTarget(target));
 
-	return event.fetch(url, {
-		...init,
-		headers
-	});
+	return fetchWithTimeout(
+		event,
+		url,
+		{
+			...init,
+			headers
+		},
+		'DAK backend'
+	);
 }

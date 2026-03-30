@@ -354,9 +354,9 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4&dropWeight=2152.4&driverName=David+Schmidt'
 		);
-	});
+		});
 
 	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
 		render(SelectCategoryPage, {
@@ -376,5 +376,42 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/grid-cols-6/);
 		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-3/);
 		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[7rem\]/);
+	});
+
+	it('shows shared loading spinners for the remote status and department sections before data is ready', async () => {
+		getDropsheetStatus.mockReturnValue({
+			current: null,
+			loading: true,
+			error: null,
+			refresh: vi.fn()
+		});
+
+		getDropsheetCategoryAvailability.mockReturnValue({
+			current: null,
+			loading: true,
+			error: null,
+			refresh: vi.fn()
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-status-loading-spinner')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-departments-loading-spinner'))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-status-strip')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-actions')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 	});
 });

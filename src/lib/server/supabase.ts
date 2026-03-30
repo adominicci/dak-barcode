@@ -1,19 +1,6 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import { env } from '$env/dynamic/public';
 import type { RequestEvent } from '@sveltejs/kit';
-
-function getSupabasePublicEnv() {
-	const { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } = env;
-
-	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
-		throw new Error('Missing Supabase public environment variables.');
-	}
-
-	return {
-		PUBLIC_SUPABASE_ANON_KEY,
-		PUBLIC_SUPABASE_URL
-	};
-}
+import { getSupabasePublicEnv } from '$lib/server/environment';
 
 export function createSupabaseBrowserClient() {
 	const { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } = getSupabasePublicEnv();

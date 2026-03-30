@@ -198,6 +198,16 @@
 		box-shadow: var(--shadow-primary);
 	}
 
+	.ui-primary-gradient {
+		background: linear-gradient(135deg, rgba(0, 88, 188, 0.98) 0%, rgba(0, 112, 235, 0.98) 100%);
+		box-shadow: var(--shadow-primary);
+	}
+
+	.ui-primary-soft {
+		background-color: rgba(0, 88, 188, 0.06);
+		color: var(--primary);
+	}
+
 	.ui-pill {
 		border-radius: 9999px;
 		background-color: var(--surface-low);
@@ -219,7 +229,8 @@
 	}
 
 	.industrial-gradient {
-		background: linear-gradient(135deg, var(--primary) 0%, #0070eb 100%);
+		background: linear-gradient(135deg, rgba(0, 88, 188, 0.98) 0%, rgba(0, 112, 235, 0.98) 100%);
+		box-shadow: var(--shadow-primary);
 	}
 }
 
