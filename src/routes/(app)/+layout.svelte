@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-import { ArrowLeft, LogOut, MapPin } from '@lucide/svelte';
+import { ArrowLeft, LogOut } from '@lucide/svelte';
 import { Button } from '$lib/components/ui/button';
+import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 import { parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
 import { workflowStores } from '$lib/workflow/stores';
 import type { LayoutProps } from './$types';
@@ -86,7 +87,7 @@ const appHeaderTitle = $derived(getAppHeaderTitle(page.url.pathname));
 			<div class="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
 				<div class="flex items-center gap-4">
 					<a
-						href={backPath}
+						href={resolve(backPath as any)}
 						class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
 						aria-label="Back"
 					>
@@ -95,12 +96,7 @@ const appHeaderTitle = $derived(getAppHeaderTitle(page.url.pathname));
 					<h1 class="text-xl font-bold text-slate-900 tracking-tight">{appHeaderTitle}</h1>
 				</div>
 				<div class="flex items-center gap-4">
-					<div class="hidden md:flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2">
-						<MapPin class="size-4 text-primary" />
-						<span class="text-sm font-semibold text-slate-900">
-							{data.activeTarget ?? 'Target required'}
-						</span>
-					</div>
+					<TargetBadge target={data.activeTarget} wrapperClass="hidden md:flex" />
 					<a
 						href={resolve('/account')}
 						class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md"

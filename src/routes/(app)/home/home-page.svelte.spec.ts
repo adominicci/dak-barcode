@@ -44,6 +44,9 @@ describe('home module selector', () => {
 		});
 
 		await expect.element(page.getByTestId('home-active-target')).toHaveTextContent('Freeport');
+		await expect.element(page.getByTestId('home-active-target')).toHaveClass(
+			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
+		);
 		await expect.element(page.getByTestId('home-card-staging')).toHaveAttribute('href', '/staging');
 		await expect.element(page.getByTestId('home-card-loading')).toHaveAttribute(
 			'href',

@@ -60,6 +60,10 @@ describe('loaders utility page', () => {
 		await expect.element(page.getByText('Alex')).toBeInTheDocument();
 		await expect.element(page.getByText('Taylor')).toBeInTheDocument();
 		await expect.element(page.getByText('Casey')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Alex', { exact: true })).toHaveClass(/text-white/);
+		await expect.element(page.getByText('Alex', { exact: true })).toHaveClass(
+			/text-2xl/
+		);
 	});
 
 	it('creates a loader, refreshes the list, and clears the form after success', async () => {

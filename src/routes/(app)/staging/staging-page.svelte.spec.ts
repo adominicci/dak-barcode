@@ -27,14 +27,16 @@ type DropAreaListQueryState = {
 	refresh: ReturnType<typeof vi.fn>;
 };
 
-const {
-	getStagingPartsForDay,
-	getStagingPartsForDayRoll,
-	getDropAreasByDepartment,
+	const {
+		goto,
+		getStagingPartsForDay,
+		getStagingPartsForDayRoll,
+		getDropAreasByDepartment,
 	getDropArea,
 	processStagingScan
-} = vi.hoisted(() => ({
-	getStagingPartsForDay: vi.fn<() => StagingQueryState>(),
+	} = vi.hoisted(() => ({
+		goto: vi.fn(),
+		getStagingPartsForDay: vi.fn<() => StagingQueryState>(),
 	getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>(),
 	getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => DropAreaListQueryState>(),
 	getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>(),
@@ -69,6 +71,10 @@ vi.mock('$lib/drop-areas.remote', () => ({
 
 vi.mock('$lib/scan.remote', () => ({
 	processStagingScan
+}));
+
+vi.mock('$app/navigation', () => ({
+	goto
 }));
 
 vi.mock('$lib/workflow/async-timeout', () => ({
@@ -111,6 +117,8 @@ describe('staging page department gate', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
+		goto.mockReset();
+		goto.mockResolvedValue(undefined);
 		withTimeout.mockReset();
 		withTimeout.mockImplementation(async <T>(promise: Promise<T>) => promise);
 		getStagingPartsForDay.mockReset();
@@ -270,6 +278,7 @@ describe('staging page department gate', () => {
 		await expect
 			.element(page.getByRole('heading', { name: 'Select department' }))
 			.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Close department selector' })).toBeInTheDocument();
 		await expect.element(page.getByText('No department selected')).toBeInTheDocument();
 		await expect.element(page.getByText('No Location')).not.toBeInTheDocument();
 		await expect.element(page.getByRole('heading', { name: 'Select department' })).not.toHaveClass(
@@ -284,6 +293,14 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByRole('button', { name: 'Wrap' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Parts' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Roll' })).toBeInTheDocument();
+	});
+
+	it('lets the user close the department gate and return home', async () => {
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Close department selector' }).click();
+
+		expect(goto).toHaveBeenCalledWith('/home');
 	});
 
 	it('resets stale workflow state on entry and stores the new department choice', async () => {
