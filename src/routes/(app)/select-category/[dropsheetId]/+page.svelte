@@ -46,7 +46,7 @@
 
 	const statusQuery = $derived(getDropsheetStatus(data.dropSheetId));
 	const categoryAvailabilityQuery = $derived(getDropsheetCategoryAvailability(data.dropSheetId));
-	const loadersQuery = getLoaders();
+	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
 	const currentStatus = $derived(statusQuery.current ?? null);
 	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
 	const isStatusSectionLoading = $derived(statusQuery.loading && currentStatus === null);

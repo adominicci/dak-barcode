@@ -1,4 +1,5 @@
 import type { RemoteQuery } from '@sveltejs/kit';
+import type { Target } from '$lib/auth/types';
 
 const LOOKUP_CACHE_PREFIX = 'dak-lookup-cache:v1';
 
@@ -22,6 +23,12 @@ function getDefaultStorage(): LookupCacheStorage | null {
 
 export function lookupCacheKey(scope: LookupCacheScope, qualifier?: string): string {
 	return qualifier ? `${LOOKUP_CACHE_PREFIX}:${scope}:${qualifier}` : `${LOOKUP_CACHE_PREFIX}:${scope}`;
+}
+
+export function getTargetLookupCacheQualifier(target: Target | null | undefined): string | null {
+	const normalizedTarget = target?.trim();
+
+	return normalizedTarget ? normalizedTarget.toLowerCase() : null;
 }
 
 export function stableStringify(value: unknown): string {
@@ -115,22 +122,25 @@ export function createCachedRemoteQuery<T>(
 		query.set(cachedRecord.data);
 	}
 
+	let initialWritePending = storage !== null && !cachedRecord;
+
 	if (storage && !cachedRecord) {
-		if (query.ready) {
-			writeLookupCache(storage, cacheKey, query.current);
-		} else {
-			void query
-				.then((current) => {
+		void query
+			.then((current) => {
+				if (initialWritePending) {
+					initialWritePending = false;
 					writeLookupCache(storage, cacheKey, current);
-					return current;
-				})
-				.catch(() => {});
-		}
+				}
+
+				return current;
+			})
+			.catch(() => {});
 	}
 
 	const originalRefresh = query.refresh.bind(query);
 
 	query.refresh = async () => {
+		initialWritePending = false;
 		const previousValue = query.ready ? query.current : undefined;
 		const previousSignature = previousValue === undefined ? null : stableStringify(previousValue);
 

@@ -66,6 +66,7 @@
 
 	const selectedDepartment = get(workflowStores.selectedDepartment);
 	const currentLoader = get(workflowStores.currentLoader);
+	const activeTarget = $derived(page.data?.activeTarget ?? null);
 
 	let redirectHandled = $state(false);
 	let allowNavigation = $state(false);
@@ -248,6 +249,7 @@
 	function buildLegacyActionSearchParams(input: {
 		loadNumber: string | null;
 		dropWeight: number | null;
+		driverName: string | null;
 	}) {
 		const searchParams = new URLSearchParams({
 			loadNumber: input.loadNumber ?? ''
@@ -255,6 +257,10 @@
 
 		if (input.dropWeight !== null) {
 			searchParams.set('dropWeight', String(input.dropWeight));
+		}
+
+		if (input.driverName) {
+			searchParams.set('driverName', input.driverName);
 		}
 
 		searchParams.set('returnTo', toNavigationHref(page.url));
@@ -629,7 +635,8 @@
 											resolve(
 												`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams({
 													loadNumber,
-													dropWeight: loadingEntry?.dropWeight ?? null
+													dropWeight: loadingEntry?.dropWeight ?? null,
+													driverName: selectedDropDetail.driverName?.trim() ?? null
 												}).toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
 												{
 													dropsheetId: String(selectedDropDetail.dropSheetId)
@@ -659,7 +666,8 @@
 											resolve(
 												`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams({
 													loadNumber,
-													dropWeight: loadingEntry?.dropWeight ?? null
+													dropWeight: loadingEntry?.dropWeight ?? null,
+													driverName: selectedDropDetail.driverName?.trim() ?? null
 												}).toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
 												{
 													dropsheetId: String(selectedDropDetail.dropSheetId)
@@ -877,6 +885,7 @@
 		<StagingLocationModal
 			department={loaderInfo.department}
 			mode="loading"
+			target={activeTarget}
 			onClose={handleLocationModalClose}
 			onSelect={handleLocationSelect}
 		/>

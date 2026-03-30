@@ -1,8 +1,11 @@
-import { createCachedRemoteQuery, lookupCacheKey } from '$lib/browser-cache';
+import { createCachedRemoteQuery, getTargetLookupCacheQualifier, lookupCacheKey } from '$lib/browser-cache';
+import type { Target } from '$lib/auth/types';
 import { getTrailers as getTrailersRemote } from '$lib/trailers.remote';
 
-const TRAILERS_CACHE_KEY = lookupCacheKey('trailers');
+function buildTrailersCacheKey(target: Target | null | undefined) {
+	return lookupCacheKey('trailers', getTargetLookupCacheQualifier(target) ?? undefined);
+}
 
-export function getTrailers() {
-	return createCachedRemoteQuery(getTrailersRemote(), TRAILERS_CACHE_KEY);
+export function getTrailers(target: Target | null | undefined = null) {
+	return createCachedRemoteQuery(getTrailersRemote(), buildTrailersCacheKey(target));
 }

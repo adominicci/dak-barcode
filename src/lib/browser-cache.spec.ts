@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RemoteQuery } from '@sveltejs/kit';
-import { createCachedRemoteQuery, invalidateLookupCache, lookupCacheKey } from './browser-cache';
+import {
+	createCachedRemoteQuery,
+	getTargetLookupCacheQualifier,
+	invalidateLookupCache,
+	lookupCacheKey
+} from './browser-cache';
 
 function createMemoryStorage(initial: Record<string, string> = {}) {
 	const store = new Map(Object.entries(initial));
@@ -84,6 +89,7 @@ describe('browser cache helpers', () => {
 		const query = createRemoteQuery(cachedTrailers, [...cachedTrailers]);
 
 		createCachedRemoteQuery(query, cacheKey, storage);
+		await Promise.resolve();
 		await query.refresh();
 
 		expect(query.current).toBe(cachedTrailers);
@@ -110,6 +116,36 @@ describe('browser cache helpers', () => {
 
 		const cachedRecord = JSON.parse(String(storage.getItem(cacheKey)));
 		expect(cachedRecord.data).toEqual(refreshedAreas);
+	});
+
+	it('scopes cache keys by target', () => {
+		expect(lookupCacheKey('loaders', getTargetLookupCacheQualifier('Canton') ?? undefined)).toBe(
+			'dak-lookup-cache:v1:loaders:canton'
+		);
+		expect(lookupCacheKey('loaders', getTargetLookupCacheQualifier('Freeport') ?? undefined)).toBe(
+			'dak-lookup-cache:v1:loaders:freeport'
+		);
+		expect(
+			lookupCacheKey(
+				'drop-areas',
+				`Wrap:${getTargetLookupCacheQualifier('Canton') ?? 'default'}`
+			)
+		).toBe('dak-lookup-cache:v1:drop-areas:Wrap:canton');
+	});
+
+	it('defers the initial cache write until the query settles', async () => {
+		const cacheKey = lookupCacheKey('trailers', getTargetLookupCacheQualifier('Canton') ?? undefined);
+		const storage = createMemoryStorage();
+		const query = createRemoteQuery([{ id: 1, name: 'TR-1' }], [{ id: 2, name: 'TR-2' }]);
+
+		createCachedRemoteQuery(query, cacheKey, storage);
+
+		expect(storage.setItem).not.toHaveBeenCalled();
+
+		await Promise.resolve();
+
+		expect(storage.setItem).toHaveBeenCalledTimes(1);
+		expect(JSON.parse(String(storage.getItem(cacheKey))).data).toEqual([{ id: 1, name: 'TR-1' }]);
 	});
 
 	it('invalidates a cached lookup entry', () => {

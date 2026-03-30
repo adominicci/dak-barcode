@@ -494,7 +494,7 @@ describe('staging page department gate', () => {
 		await page.getByTestId('staging-location-trigger').click();
 
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
+		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', null);
 		await expect.element(page.getByRole('button', { name: 'Refresh list' })).toBeInTheDocument();
 		await page.getByRole('button', { name: 'Refresh list' }).click();
 		expect(refresh).toHaveBeenCalledOnce();

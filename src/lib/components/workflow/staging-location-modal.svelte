@@ -3,6 +3,7 @@
 	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
 	import { getDropArea } from '$lib/drop-areas.remote';
 	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
+	import type { Target } from '$lib/auth/types';
 	import type { DropArea } from '$lib/types';
 	import type {
 		WorkflowDepartment,
@@ -12,11 +13,13 @@
 	let {
 		department,
 		mode = 'staging',
+		target = null,
 		onClose,
 		onSelect
 	}: {
 		department: WorkflowDepartment;
 		mode?: 'staging' | 'loading';
+		target?: Target | null;
 		onClose: () => void;
 		onSelect: (dropArea: NonNullable<WorkflowDropAreaSelection>) => void;
 	} = $props();
@@ -28,7 +31,9 @@
 	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
 
-	const dropAreasQuery = $derived(department ? getDropAreasByDepartment(department) : null);
+	const dropAreasQuery = $derived(
+		department ? getDropAreasByDepartment(department, target) : null
+	);
 	const departmentSupportKey = {
 		Wrap: 'supportsWrap',
 		Roll: 'supportsRoll',

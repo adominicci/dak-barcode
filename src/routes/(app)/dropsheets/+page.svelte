@@ -71,8 +71,8 @@
 	let pickerSaving = $state(false);
 
 	const dropsheetsQuery = $derived(getDropsheets(data.selectedDate));
-	const loadersQuery = getLoaders();
-	const trailersQuery = getTrailers();
+	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
+	const trailersQuery = $derived.by(() => getTrailers(data.activeTarget));
 
 	const dropsheets = $derived(dropsheetsQuery.current ?? []);
 	const activeLoaders = $derived(

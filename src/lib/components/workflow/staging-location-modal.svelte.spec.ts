@@ -52,11 +52,13 @@ describe('staging location modal', () => {
 			props: {
 				department: 'Wrap',
 				mode: 'staging',
+				target: 'Canton',
 				onClose: vi.fn(),
 				onSelect: vi.fn()
 			}
 		});
 
+		await vi.waitFor(() => expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', 'Canton'));
 		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveClass(
 			/xl:grid-cols-5/
 		);

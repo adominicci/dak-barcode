@@ -446,12 +446,16 @@ describe('loading page', () => {
 		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-3/);
 
 		await page.getByRole('button', { name: 'Order Status' }).click();
-		expect(goto).toHaveBeenCalledWith(expect.stringContaining('/order-status/42?'));
+		expect(goto).toHaveBeenCalledWith(
+			expect.stringContaining('/order-status/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+		);
 
 		goto.mockReset();
 
 		await page.getByRole('button', { name: 'Dropsheet' }).click();
-		expect(goto).toHaveBeenCalledWith(expect.stringContaining('/move-orders/42?'));
+		expect(goto).toHaveBeenCalledWith(
+			expect.stringContaining('/move-orders/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+		);
 	});
 
 	it('renders the active drop summary with compact footer controls', async () => {
@@ -798,7 +802,7 @@ describe('loading page', () => {
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /D12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /D13/i })).toBeInTheDocument();
-		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap');
+		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', null);
 
 		await page.getByLabelText('Scan new location').fill('42');
 		await page.getByRole('button', { name: 'Set location' }).click();

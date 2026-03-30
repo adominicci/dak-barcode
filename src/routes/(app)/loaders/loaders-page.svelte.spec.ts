@@ -62,6 +62,7 @@ describe('loaders utility page', () => {
 			}
 		});
 
+		await vi.waitFor(() => expect(getLoaders).toHaveBeenCalledWith('Canton'));
 		await expect.element(page.getByRole('heading', { name: 'Add Loader' })).toBeInTheDocument();
 		await expect.element(page.getByText('Alex')).toBeInTheDocument();
 		await expect.element(page.getByText('Taylor')).toBeInTheDocument();
@@ -90,6 +91,7 @@ describe('loaders utility page', () => {
 			}
 		});
 
+		await vi.waitFor(() => expect(getLoaders).toHaveBeenCalledWith('Freeport'));
 		await page.getByLabelText('Loader name').fill(' Morgan ');
 		await page.getByRole('button', { name: 'Insert loader' }).click();
 

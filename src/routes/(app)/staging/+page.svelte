@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { ScanBarcode, ChevronDown, MapPin, TriangleAlert } from '@lucide/svelte';
@@ -16,6 +17,8 @@
 		type WorkflowDepartment,
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
+
+	const activeTarget = $derived(page.data?.activeTarget ?? null);
 
 	let selectedDepartment = $state<WorkflowDepartment>(null);
 	let currentDropArea = $state<WorkflowDropAreaSelection>(null);
@@ -346,6 +349,7 @@
 {#if isLocationModalOpen && selectedDepartment}
 	<StagingLocationModal
 		department={selectedDepartment}
+		target={activeTarget}
 		onClose={handleLocationModalClose}
 		onSelect={handleLocationSelect}
 	/>
