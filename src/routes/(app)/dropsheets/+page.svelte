@@ -60,7 +60,7 @@
 	});
 
 	const TABLE_SELECTION_BUTTON_CLASSES =
-		'inline-flex min-h-9 max-w-full items-center justify-center rounded-md bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-3 py-1.5 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
+		'inline-flex min-h-12 max-w-full items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-4 py-2 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
 
 	let { data }: PageProps = $props();
 	let selectedDateValue = $derived(parseDate(data.selectedDate));
@@ -188,7 +188,8 @@
 			loadNumber: dropSheet.loadNumber,
 			deliveryNumber: dropSheet.loadNumber,
 			driverName: dropSheet.driverName ?? '',
-			dropWeight: String(dropSheet.dropWeight)
+			dropWeight: String(dropSheet.dropWeight),
+			returnTo: resolve(`/dropsheets?date=${data.selectedDate}`)
 		});
 
 		return goto(resolve(`/select-category/${dropSheet.id}?${searchParams.toString()}`));
@@ -416,16 +417,16 @@
 						{#each dropsheets as dropSheet (dropSheet.id)}
 							{@const isComplete = dropSheet.percentCompleted >= 1}
 							<tr class="group border-t border-slate-100 bg-white transition hover:bg-slate-50/70">
-								<td class="whitespace-nowrap px-3 py-2.5 text-sm font-semibold text-slate-950">
+								<td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-slate-950">
 									{dropSheet.loadNumber}
 								</td>
-								<td class="whitespace-nowrap px-3 py-2.5 text-center text-sm tabular-nums text-slate-700">
+								<td class="whitespace-nowrap px-3 py-4 text-center text-sm tabular-nums text-slate-700">
 									{WEIGHT_FORMATTER.format(dropSheet.dropWeight)}
 								</td>
-								<td class="whitespace-nowrap px-3 py-2.5 text-center text-sm text-slate-700">
+								<td class="whitespace-nowrap px-3 py-4 text-center text-sm text-slate-700">
 									{dropSheet.loadNumberShort ?? '--'}
 								</td>
-								<td class="px-3 py-2.5 text-center">
+								<td class="px-3 py-4 text-center">
 										<button
 											type="button"
 											class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -435,13 +436,13 @@
 											<span class="truncate">{formatTrailerLabel(dropSheet.trailer)}</span>
 										</button>
 									</td>
-								<td class="whitespace-nowrap px-3 py-2.5 text-center text-sm font-semibold text-slate-950">
+								<td class="whitespace-nowrap px-3 py-4 text-center text-sm font-semibold text-slate-950">
 									<span class="inline-flex items-baseline justify-center gap-0.5 tabular-nums"><span>{formatPercentCompleted(dropSheet.percentCompleted)}</span><span class="text-[9px] leading-none text-slate-500">%</span></span>
 								</td>
-								<td class="whitespace-nowrap px-3 py-2.5 text-center text-sm text-slate-700">
+								<td class="whitespace-nowrap px-3 py-4 text-center text-sm text-slate-700">
 									{formatLoadedAt(dropSheet.loadedAt, isComplete)}
 								</td>
-								<td class="px-3 py-2.5 text-center">
+								<td class="px-3 py-4 text-center">
 									<div class="flex justify-center">
 										<Checkbox
 											checked={dropSheet.allLoaded}
@@ -450,7 +451,7 @@
 										/>
 									</div>
 								</td>
-								<td class="px-3 py-2.5 text-center">
+								<td class="px-3 py-4 text-center">
 										<button
 											type="button"
 											class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -460,10 +461,10 @@
 											<span class="truncate">{formatLoaderLabel(dropSheet.loaderName)}</span>
 										</button>
 								</td>
-								<td class="whitespace-nowrap px-3 py-2.5 text-right">
+								<td class="whitespace-nowrap px-3 py-4 text-right">
 									<button
 										type="button"
-										class="inline-flex size-9 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white"
+										class="inline-flex size-12 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white"
 										aria-label={`Open select category for ${dropSheet.loadNumber}`}
 										onclick={() => goToDropSheetCategory(dropSheet)}
 									>

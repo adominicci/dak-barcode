@@ -5,9 +5,12 @@
 	import {
 		ArrowLeft,
 		ArrowRight,
+		ClipboardList,
 		LoaderCircle,
 		PackageSearch,
+		PenLine,
 		ScanBarcode,
+		Truck,
 		TriangleAlert
 	} from '@lucide/svelte';
 	import { onMount, tick } from 'svelte';
@@ -167,6 +170,8 @@
 			allowNavigation ||
 			navigation.willUnload ||
 			navigation.to?.url.pathname === '/loading' ||
+			navigation.to?.url.pathname.startsWith('/order-status') ||
+			navigation.to?.url.pathname.startsWith('/move-orders') ||
 			isEndingSession ||
 			loadingEntry === null
 		) {
@@ -227,6 +232,49 @@
 
 	function clearScanError() {
 		scanError = null;
+	}
+
+	function buildLegacyActionSearchParams() {
+		if (loadingEntry === null || selectedDropDetail === null) {
+			return null;
+		}
+
+		const searchParams = new URLSearchParams({
+			loadNumber: selectedDropDetail.loadNumber,
+			returnTo: toNavigationHref(page.url)
+		});
+
+		if (selectedDropDetail.driverName?.trim()) {
+			searchParams.set('driverName', selectedDropDetail.driverName.trim());
+		}
+
+		if (loadingEntry.dropWeight !== null) {
+			searchParams.set('dropWeight', String(loadingEntry.dropWeight));
+		}
+
+		return searchParams;
+	}
+
+	function openLoadingSupportPage(pageName: 'order-status' | 'move-orders') {
+		if (loadingEntry === null) {
+			return;
+		}
+
+		const searchParams = buildLegacyActionSearchParams();
+		if (searchParams === null) {
+			return;
+		}
+
+		const routeId =
+			pageName === 'order-status'
+				? (`/(app)/order-status/[dropsheetId]?${searchParams.toString()}` as const)
+				: (`/(app)/move-orders/[dropsheetId]?${searchParams.toString()}` as const);
+
+		void goto(
+			resolve(routeId, {
+				dropsheetId: String(loadingEntry.dropSheetId)
+			})
+		);
 	}
 
 	function setTransportError(message: string, retryState: LoadingRetryState | null) {
@@ -573,19 +621,58 @@
 					No drops are ready for this loading session.
 				</p>
 			</div>
-		{:else}
-			<div class="space-y-6">
-				<LoadSummaryStrip
-					testId="loading-summary-strip"
-					driverName={loaderInfo.loaderName}
-					loadNumber={loadNumber ?? '--'}
-					dropWeight={loadingEntry?.dropWeight ?? null}
-					customerName={selectedDropDetail.customerName}
-					variant="loading"
-				/>
+			{:else}
+				<div class="space-y-6">
+					<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+						<div class="lg:col-span-2">
+							<LoadSummaryStrip
+								testId="loading-summary-strip"
+								driverName={loaderInfo.loaderName}
+								loadNumber={loadNumber ?? '--'}
+								dropWeight={loadingEntry?.dropWeight ?? null}
+								customerName={selectedDropDetail.customerName}
+								variant="loading"
+							/>
+						</div>
 
-				<section data-testid="loading-scan-section" class="rounded-[2rem] bg-white p-6 shadow-sm">
-					<div class="space-y-4">
+						<button
+							type="button"
+							onclick={() => openLoadingSupportPage('order-status')}
+							class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+						>
+							<div class="flex items-center gap-3">
+								<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+									<ClipboardList class="size-5" />
+								</span>
+								<div>
+									<p class="text-lg font-bold tracking-tight text-slate-950">Order Status</p>
+								</div>
+							</div>
+							<PenLine class="size-5 text-slate-400" />
+						</button>
+
+						<button
+							type="button"
+							onclick={() => openLoadingSupportPage('move-orders')}
+							class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+						>
+							<div class="flex items-center gap-3">
+								<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+									<Truck class="size-5" />
+								</span>
+								<div>
+									<p class="text-lg font-bold tracking-tight text-slate-950">Dropsheet</p>
+								</div>
+							</div>
+							<PenLine class="size-5 text-slate-400" />
+						</button>
+					</div>
+
+					<section
+						data-testid="loading-scan-section"
+					class="flex min-h-[34rem] max-h-[calc(100dvh-14rem)] flex-col rounded-[2rem] bg-white p-6 shadow-sm"
+				>
+					<div class="shrink-0 space-y-4">
 						<div class="space-y-2">
 							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
 							<div class="relative">
@@ -644,27 +731,28 @@
 								</div>
 							{/if}
 						</div>
+					</div>
 
-						<div class="rounded-[1.5rem] bg-surface-container-low p-3">
+					<div class="mt-4 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-3">
 							{#if dropLabelsQuery?.error}
 								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 									{dropLabelsQuery.error.message}
 								</div>
 							{:else if isLoadingDropLabels}
-								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
 									Loading label list...
 								</div>
 							{:else if isEmptyDrop}
-								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
 									No parts are attached to this drop yet.
 								</div>
 							{:else if isFullyScannedDrop}
-								<div class="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
 									All parts in this drop are scanned.
 								</div>
 							{:else}
 								<div
-									class="max-h-[18rem] overflow-y-auto pr-1"
+									class="min-h-0 flex-1 overflow-y-auto pr-1"
 									data-testid="loading-part-list-scroll"
 								>
 									<div
@@ -681,11 +769,10 @@
 									</div>
 								</div>
 							{/if}
-						</div>
 					</div>
 
 					<div
-						class="sticky bottom-0 mt-5 rounded-[1.75rem] bg-surface-container-low p-4"
+						class="mt-5 shrink-0 rounded-[1.75rem] bg-surface-container-low p-4"
 						data-testid="loading-active-drop-summary"
 					>
 						<h3 class="text-2xl font-bold tracking-tight text-slate-950">
@@ -703,23 +790,32 @@
 								<ArrowLeft class="size-6" />
 							</button>
 
-							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
-								<p class="ui-label text-xs">Labels</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+							<div
+								data-testid="loading-drop-stat-labels"
+								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+							>
+								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Labels</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
 									{selectedDropDetail.labelCount}
 								</p>
 							</div>
 
-							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
-								<p class="ui-label text-xs">Scanned</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+							<div
+								data-testid="loading-drop-stat-scanned"
+								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+							>
+								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Scanned</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
 									{selectedDropDetail.scannedCount}
 								</p>
 							</div>
 
-							<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
-								<p class="ui-label text-xs">Need pick</p>
-								<p class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+							<div
+								data-testid="loading-drop-stat-need-pick"
+								class="ui-primary-gradient rounded-[1.25rem] px-4 py-4 text-white shadow-sm"
+							>
+								<p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/78">Need pick</p>
+								<p class="mt-2 text-2xl font-bold tracking-tight text-white">
 									{selectedDropDetail.needPickCount}
 								</p>
 							</div>

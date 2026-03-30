@@ -152,6 +152,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				departmentLoaders: [
 					{ department: 'Wrap', loaderNames: ['Kaleb', 'Anthony'] },
 					{ department: 'Roll', loaderNames: ['Kaleb'] },
@@ -279,6 +280,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				departmentLoadersError: 'Roster unavailable.',
 				departmentLoaders: [
 					{ department: 'Wrap', loaderNames: [] },
@@ -323,6 +325,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: '/dropsheets?date=2026-03-24',
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -354,7 +357,7 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
 		);
 	});
 
@@ -368,6 +371,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				returnTo: null,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
 		});
@@ -376,5 +380,43 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/grid-cols-6/);
 		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-3/);
 		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[7rem\]/);
+	});
+
+	it('shows shared loading spinners for the remote status and department sections before data is ready', async () => {
+		getDropsheetStatus.mockReturnValue({
+			current: null,
+			loading: true,
+			error: null,
+			refresh: vi.fn()
+		});
+
+		getDropsheetCategoryAvailability.mockReturnValue({
+			current: null,
+			loading: true,
+			error: null,
+			refresh: vi.fn()
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				returnTo: null,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-status-loading-spinner')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-departments-loading-spinner'))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-status-strip')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-actions')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 	});
 });

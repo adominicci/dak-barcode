@@ -70,6 +70,14 @@
 		day: 'numeric'
 	}).format(new Date());
 
+	function withHomeReturnTo(pathname: string): string {
+		const searchParams = new URLSearchParams({
+			returnTo: '/home'
+		});
+
+		return resolve(`${pathname}?${searchParams.toString()}` as any);
+	}
+
 	function getUserInitials(displayName: string | null | undefined, userEmail: string | null | undefined) {
 		const source = displayName?.trim() || userEmail?.split('@')[0]?.replace(/[._-]+/g, ' ') || 'DST User';
 		const parts = source.split(/\s+/).map((p) => p.trim()).filter(Boolean);
@@ -116,12 +124,12 @@
 					<CalendarDays class="size-4" />
 					<span class="text-sm">{homeDateLabel}</span>
 				</div>
-				{#if data.isAdmin}
-					<a
-						href={resolve('/location')}
-						class="hidden sm:inline-flex h-10 items-center justify-center rounded-full bg-surface-container-low px-4 text-sm font-semibold text-slate-700 transition hover:bg-surface-container"
-					>
-						Change target
+					{#if data.isAdmin}
+						<a
+							href={withHomeReturnTo('/location')}
+							class="hidden sm:inline-flex h-10 items-center justify-center rounded-full bg-surface-container-low px-4 text-sm font-semibold text-slate-700 transition hover:bg-surface-container"
+						>
+							Change target
 					</a>
 				{/if}
 				<div class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md">
@@ -147,10 +155,13 @@
 							type="button"
 							disabled
 							aria-disabled="true"
-							class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 opacity-85 cursor-not-allowed"
+							class="ui-primary-soft group flex w-full cursor-not-allowed items-center justify-between rounded-[2rem] border border-[rgba(0,88,188,0.12)] p-8 transition-all duration-300 opacity-85"
 						>
 							<div class="flex items-center gap-6">
-								<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+								<div
+									data-testid={`${action.testId}-icon`}
+									class="ui-primary-soft flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(0,88,188,0.08)]"
+								>
 									<Icon class="size-7" />
 								</div>
 								<div class="text-left">
@@ -163,36 +174,42 @@
 					{:else if isUtility}
 						<a
 							data-testid={action.testId}
-							href={resolve(action.href as HomeActionHref)}
-							class="group w-full bg-primary/5 border-2 border-dashed border-primary/20 p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-primary/10 hover:border-primary/40 active:scale-95"
+							href={withHomeReturnTo(action.href as HomeActionHref)}
+							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] border-2 border-dashed border-white/25 p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
 						>
 							<div class="flex items-center gap-6">
-								<div class="w-16 h-16 rounded-2xl industrial-gradient flex items-center justify-center text-white">
+								<div
+									data-testid={`${action.testId}-icon`}
+									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white"
+								>
 									<Icon class="size-7" />
 								</div>
 								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-primary">{action.name}</span>
-									<span class="text-primary/60 text-sm font-medium">{action.detail}</span>
+									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
+									<span class="text-sm font-medium text-white/78">{action.detail}</span>
 								</div>
 							</div>
-							<Plus class="size-6 text-primary/40" />
+							<Plus class="size-6 text-white/72" />
 						</a>
 					{:else}
 						<a
 							data-testid={action.testId}
-							href={resolve(action.href as HomeActionHref)}
-							class="group w-full bg-surface-container-lowest p-8 rounded-[2rem] flex items-center justify-between transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 active:scale-95"
+							href={withHomeReturnTo(action.href as HomeActionHref)}
+							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
 						>
 							<div class="flex items-center gap-6">
-								<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+								<div
+									data-testid={`${action.testId}-icon`}
+									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white transition-colors duration-300 group-hover:bg-white/22"
+								>
 									<Icon class="size-7" />
 								</div>
 								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-on-surface">{action.name}</span>
-									<span class="text-on-surface-variant text-sm font-medium">{action.detail}</span>
+									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
+									<span class="text-sm font-medium text-white/78">{action.detail}</span>
 								</div>
 							</div>
-							<ChevronRight class="size-6 text-slate-300 group-hover:text-primary transition-colors" />
+							<ChevronRight class="size-6 text-white/72 transition-colors" />
 						</a>
 					{/if}
 				{/each}

@@ -1,15 +1,14 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { createServerClient } from '@supabase/ssr';
 import type { User } from '@supabase/supabase-js';
-import { env } from '$env/dynamic/public';
 import type { AuthContext } from '$lib/auth/types';
 import {
 	type AuthContextSupabaseClient,
-	createAnonymousAuthContext,
 	getAccessRedirect,
 	resolveAuthContext,
 	TARGET_COOKIE_NAME
 } from '$lib/server/auth-context';
+import { getSupabasePublicEnv } from '$lib/server/environment';
 
 type ResolveRequestAuthContext = (args: {
 	supabase: AuthContextSupabaseClient;
@@ -24,28 +23,8 @@ type SupabaseLikeEvent = {
 
 type SupabaseClientFactory = (event: SupabaseLikeEvent) => AuthContextSupabaseClient;
 
-function createAnonymousSupabaseClient(): AuthContextSupabaseClient {
-	return {
-		auth: {
-			async getUser() {
-				return {
-					data: { user: null },
-					error: null
-				};
-			}
-		},
-		from() {
-			throw new Error('Anonymous fallback client does not support database queries.');
-		}
-	};
-}
-
 function createHandleSupabaseClient(event: SupabaseLikeEvent): AuthContextSupabaseClient {
-	const { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } = env;
-
-	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
-		throw new Error('Missing Supabase public environment variables.');
-	}
+	const { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } = getSupabasePublicEnv();
 
 	return createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
 		global: {
@@ -86,6 +65,7 @@ export function createAuthHandle(
 			return resolve(event);
 		}
 
+		const supabase = createClient(event as SupabaseLikeEvent);
 		let verifiedUserPromise: Promise<User | null> | null = null;
 		let getVerifiedUser = async () => {
 			if (!verifiedUserPromise) {
@@ -96,30 +76,11 @@ export function createAuthHandle(
 
 			return verifiedUserPromise;
 		};
-		let supabase: AuthContextSupabaseClient = createAnonymousSupabaseClient();
-		let authContext: AuthContext = createAnonymousAuthContext();
-
-		try {
-			supabase = createClient(event as SupabaseLikeEvent);
-			authContext = await resolveRequestAuthContext({
-				supabase,
-				selectedTarget: event.cookies.get(TARGET_COOKIE_NAME) ?? null,
-				getVerifiedUser
-			});
-		} catch (error) {
-			const isMissingSupabaseEnv =
-				error instanceof Error &&
-				error.message === 'Missing Supabase public environment variables.';
-
-			if (!isMissingSupabaseEnv) {
-				throw error;
-			}
-
-			verifiedUserPromise = Promise.resolve(null);
-			getVerifiedUser = async () => null;
-			supabase = createAnonymousSupabaseClient();
-			authContext = createAnonymousAuthContext();
-		}
+		const authContext: AuthContext = await resolveRequestAuthContext({
+			supabase,
+			selectedTarget: event.cookies.get(TARGET_COOKIE_NAME) ?? null,
+			getVerifiedUser
+		});
 
 		event.locals.supabase = supabase as any;
 		event.locals.getVerifiedUser = getVerifiedUser as any;

@@ -43,6 +43,7 @@ describe('select-category page server load', () => {
 			loadNumber: '42',
 			driverName: null,
 			dropWeight: null,
+			returnTo: null,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
 				{ id: 9, name: 'Casey', isActive: true }
@@ -116,6 +117,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: ['Alex', 'Casey'] },
@@ -140,6 +142,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -183,6 +186,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -201,7 +205,7 @@ describe('select-category page server load', () => {
 			load({
 				params: { dropsheetId: '42' },
 				url: new URL(
-					'https://example.com/select-category/42?loadNumber=L-042&driverName=David%20Schmidt&dropWeight=2152.4'
+					'https://example.com/select-category/42?loadNumber=L-042&driverName=David%20Schmidt&dropWeight=2152.4&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24'
 				)
 			} as never)
 			).resolves.toEqual({
@@ -209,6 +213,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: 'David Schmidt',
 			dropWeight: 2152.4,
+			returnTo: '/dropsheets?date=2026-03-24',
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -233,6 +238,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: 2152.4,
+			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -257,6 +263,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
