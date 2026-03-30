@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getDstLoaders } from '$lib/server/dst-queries';
 import { getDakLoadersForDropsheet } from '$lib/server/dak-loader-sessions';
 import type { LoaderSession, OperationalDepartment } from '$lib/types';
+import { parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
 import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
 import type { PageServerLoad } from './$types';
 
@@ -119,12 +120,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	);
 	const driverName = parseDriverName(url.searchParams.get('driverName'));
 	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
+	const returnTo = parseLegacyReturnTo(url.searchParams.get('returnTo'));
 
 	return {
 		dropSheetId,
 		loadNumber,
 		driverName,
 		dropWeight,
+		returnTo,
 		loaders,
 		departmentLoaders,
 		departmentLoadersError

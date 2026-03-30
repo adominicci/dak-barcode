@@ -51,7 +51,35 @@ What is already in place:
 Deployment note:
 
 - Vercel works with Bun as the package manager through `bun.lock`
-- runtime baseline remains Node.js 24 unless a future ticket explicitly opts into the Bun runtime
+- deploys are pinned to Node.js `24.x` via `package.json`
+- the app uses `@sveltejs/adapter-vercel`
+- Bun remains the install/build tool; the deployed runtime stays on Node.js unless a future ticket explicitly opts into the Bun runtime
+
+## Vercel deployment contract
+
+- Vercel environments must define:
+  - `PUBLIC_SUPABASE_URL`
+  - `PUBLIC_SUPABASE_ANON_KEY`
+  - `DST_PORTAL_URL`
+  - `DAK_WEB_URL`
+- Missing required environment variables are treated as hard failures. The app no longer falls back to anonymous mode when Supabase config is missing.
+- Preview deployments should be validated before any production deploy.
+- Supabase Auth redirect URLs must include:
+  - the production domain
+  - the preview domain pattern used for Vercel testing
+- Keep the project on Node.js `24.x` in Vercel project settings. Bun is used for dependency installation and builds because this repo is standardized on `bun.lock`.
+
+## First deploy checklist
+
+- Push the repo to GitHub before importing it into Vercel
+- Import the repo as a SvelteKit project with the root directory set to the repository root
+- Verify Vercel build settings:
+  - Install Command: `bun install`
+  - Build Command: `bun run build`
+  - Output: framework default
+- Add the required environment variables to both `Preview` and `Production`
+- Add the Vercel preview and production URLs to Supabase Auth redirect URLs
+- Smoke test with one active admin user and one active operator user before the first production deploy
 
 ## Local development
 

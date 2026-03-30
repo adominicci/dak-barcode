@@ -28,15 +28,38 @@
 	let isRefreshingLoadingHeader = $state(false);
 
 	function getBackHref(pathname: string, searchParams: URLSearchParams): string {
+		const returnTo = parseLegacyReturnTo(searchParams.get('returnTo'));
+
 		if (pathname.startsWith('/select-category')) {
-			return '/dropsheets';
+			return returnTo ?? '/dropsheets';
 		}
 
-		if (pathname.startsWith('/order-status') || pathname.startsWith('/move-orders')) {
-			return parseLegacyReturnTo(searchParams.get('returnTo')) ?? '/home';
+		if (
+			pathname.startsWith('/loading') ||
+			pathname.startsWith('/order-status') ||
+			pathname.startsWith('/move-orders') ||
+			pathname === '/account' ||
+			pathname === '/location' ||
+			pathname === '/loaders' ||
+			pathname === '/staging' ||
+			pathname === '/dropsheets'
+		) {
+			return returnTo ?? '/home';
 		}
 
 		return '/home';
+	}
+
+	function getAccountHref(pathname: string, search: string): string {
+		if (pathname === '/account') {
+			return '/account';
+		}
+
+		const searchParams = new URLSearchParams({
+			returnTo: `${pathname}${search}`
+		});
+
+		return `/account?${searchParams.toString()}`;
 	}
 
 	function getAppHeaderTitle(pathname: string): string {
@@ -91,6 +114,7 @@
 	}
 
 	const backPath = $derived(getBackHref(page.url.pathname, page.url.searchParams));
+	const accountPath = $derived(getAccountHref(page.url.pathname, page.url.search));
 	const appHeaderTitle = $derived(getAppHeaderTitle(page.url.pathname));
 	const loadingHeaderMeta = $derived.by(() => {
 		if (!isLoadingRoute) {
@@ -204,13 +228,13 @@
 							</button>
 						</div>
 					{/if}
-					<TargetBadge target={data.activeTarget} wrapperClass="hidden md:flex" />
-					<a
-						href={resolve('/account')}
-						class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md"
-					>
-						{getUserInitials(data.displayName, data.userEmail)}
-					</a>
+						<TargetBadge target={data.activeTarget} wrapperClass="hidden md:flex" />
+						<a
+							href={resolve(accountPath as any)}
+							class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md"
+						>
+							{getUserInitials(data.displayName, data.userEmail)}
+						</a>
 					<form method="POST" action="/logout">
 						<Button
 							type="submit"

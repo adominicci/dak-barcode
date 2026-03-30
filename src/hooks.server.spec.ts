@@ -89,27 +89,21 @@ describe('createAuthHandle', () => {
 		expect(resolve).toHaveBeenCalledOnce();
 	});
 
-	it('falls back to anonymous access when Supabase envs are missing on an auth route', async () => {
-		const resolve = vi.fn(async (event: RequestEvent) => {
-			expect(event.locals.authContext.accessState).toBe('anonymous');
-			expect(event.locals.authContext.target).toBeNull();
-			expect(typeof event.locals.getVerifiedUser).toBe('function');
-			await expect(event.locals.getVerifiedUser()).resolves.toBeNull();
-			return new Response('login');
-		});
+	it('fails fast when Supabase envs are missing on an auth route', async () => {
+		const resolve = vi.fn(async () => new Response('login'));
 
 		const handle = createAuthHandle({
 			createSupabaseServerClient: vi.fn(() => {
-				throw new Error('Missing Supabase public environment variables.');
+				throw new Error('PUBLIC_SUPABASE_URL is not configured.');
 			}) as any
 		});
 
-		const response = await handle({
-			event: createRequestEvent('/login'),
-			resolve
-		});
-
-		expect(await response.text()).toBe('login');
-		expect(resolve).toHaveBeenCalledOnce();
+		await expect(
+			handle({
+				event: createRequestEvent('/login'),
+				resolve
+			})
+		).rejects.toThrow('PUBLIC_SUPABASE_URL is not configured.');
+		expect(resolve).not.toHaveBeenCalled();
 	});
 });

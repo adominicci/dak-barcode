@@ -14,7 +14,7 @@
 	const hasTarget = $derived(target !== null && target.trim().length > 0);
 	const badgeClasses = $derived(
 		hasTarget
-			? 'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]'
+			? 'ui-primary-gradient text-white'
 			: 'bg-surface-container-low text-slate-900'
 	);
 	const iconClasses = $derived(hasTarget ? 'text-white' : 'text-primary');

@@ -366,26 +366,47 @@ describe('loading page', () => {
 			dropSheetId: 42,
 			locationId: 2
 		});
-		await expect
-			.element(page.getByTestId('loading-summary-strip').getByText('Delivery Number'))
-			.toBeInTheDocument();
-		await expect.element(page.getByTestId('loading-summary-strip').getByText('L-042')).toBeInTheDocument();
-		await expect
-			.element(page.getByTestId('loading-summary-strip').getByText('Customer'))
-			.toBeInTheDocument();
-		await expect
-			.element(page.getByTestId('loading-summary-strip').getByText('Acme Metals'))
-			.toBeInTheDocument();
-		await expect
-			.element(page.getByTestId('loading-summary-strip').getByText('Alex'))
-			.not.toBeInTheDocument();
+			await expect
+				.element(page.getByTestId('loading-summary-strip').getByText('Delivery Number'))
+				.toBeInTheDocument();
+			await expect.element(page.getByTestId('loading-summary-strip').getByText('L-042')).toBeInTheDocument();
+			await expect
+				.element(page.getByTestId('loading-summary-strip').getByText('Customer'))
+				.toBeInTheDocument();
+			await expect
+				.element(page.getByTestId('loading-summary-strip').getByText('Acme Metals'))
+				.toBeInTheDocument();
+			await expect.element(page.getByRole('button', { name: 'Order Status' })).toBeInTheDocument();
+			await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toBeInTheDocument();
+			await expect
+				.element(page.getByTestId('loading-summary-strip').getByText('Alex'))
+				.not.toBeInTheDocument();
 		await expect
 			.element(page.getByTestId('loading-summary-strip').getByText('2,152.4 lbs'))
 			.not.toBeInTheDocument();
 		await expect.element(page.getByText(/^Driver location$/)).not.toBeInTheDocument();
-		await expect.element(page.getByText(/^Scan state$/)).not.toBeInTheDocument();
-		await expect.element(page.getByTestId('loading-scan-section')).toBeInTheDocument();
-	});
+			await expect.element(page.getByText(/^Scan state$/)).not.toBeInTheDocument();
+			await expect.element(page.getByTestId('loading-scan-section')).toBeInTheDocument();
+		});
+
+		it('opens order-status and dropsheet pages from loading with a return path back to the current session', async () => {
+			workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+			workflowStores.setSelectedDepartment('Wrap');
+
+			render(LoadingPage);
+
+			await page.getByRole('button', { name: 'Order Status' }).click();
+			expect(goto).toHaveBeenCalledWith(
+				'/order-status/42?loadNumber=L-042&returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26dropWeight%3D2152.4&driverName=Dylan+Driver&dropWeight=2152.4'
+			);
+
+			goto.mockClear();
+
+			await page.getByRole('button', { name: 'Dropsheet' }).click();
+			expect(goto).toHaveBeenCalledWith(
+				'/move-orders/42?loadNumber=L-042&returnTo=%2Floading%3FdropsheetId%3D42%26locationId%3D2%26loaderSessionId%3D88%26startedAt%3D2026-03-26T12%253A00%253A00.000Z%26loadNumber%3DL-042%26dropWeight%3D2152.4&driverName=Dylan+Driver&dropWeight=2152.4'
+			);
+		});
 
 	it('renders the active drop summary and only unscanned part-list entries under the scan input', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
@@ -397,6 +418,18 @@ describe('loading page', () => {
 		await expect.element(page.getByText('Acme Metals')).toBeInTheDocument();
 		await expect.element(page.getByText('L-042').first()).toBeInTheDocument();
 		await expect.element(page.getByTestId('loading-part-list-grid')).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/overflow-y-auto/);
+		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/flex-1/);
+		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/shrink-0/);
+		await expect.element(page.getByTestId('loading-drop-stat-labels')).toHaveClass(
+			/ui-primary-gradient/
+		);
+		await expect.element(page.getByTestId('loading-drop-stat-scanned')).toHaveClass(
+			/ui-primary-gradient/
+		);
+		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(
+			/ui-primary-gradient/
+		);
 		await expect.element(page.getByText('PL-101')).toBeInTheDocument();
 		await expect.element(page.getByText('PL-100')).not.toBeInTheDocument();
 		await expect.element(page.getByText('SO-100')).not.toBeInTheDocument();
@@ -405,6 +438,15 @@ describe('loading page', () => {
 		await expect.element(page.getByText('8').first()).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeEnabled();
+	});
+
+	it('focuses the scan barcode input when the loading context is ready', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByTestId('loading-scan-input')).toHaveFocus();
 	});
 
 	it('hides the empty SO-number placeholder while the label list is still loading', async () => {
@@ -1109,7 +1151,7 @@ describe('loading page', () => {
 		expect(getLoaderInfo).not.toHaveBeenCalled();
 	});
 
-	it('ends the loader session before allowing in-app navigation away from loading', async () => {
+		it('ends the loader session before allowing in-app navigation away from loading', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		endLoaderSession.mockResolvedValue(
@@ -1146,9 +1188,34 @@ describe('loading page', () => {
 			);
 		});
 		expect(goto).toHaveBeenCalledWith('/home', { replaceState: true });
-		expect(get(workflowStores.currentLoader)).toBeNull();
-		expect(get(workflowStores.selectedDepartment)).toBeNull();
-	});
+			expect(get(workflowStores.currentLoader)).toBeNull();
+			expect(get(workflowStores.selectedDepartment)).toBeNull();
+		});
+
+		it('keeps the loader session active when navigating to loading support pages', async () => {
+			workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+			workflowStores.setSelectedDepartment('Wrap');
+
+			render(LoadingPage);
+
+			const cancel = vi.fn();
+			navigationSpy.callback?.({
+				type: 'link',
+				willUnload: false,
+				to: {
+					url: new URL(
+						'https://app.local/order-status/42?loadNumber=L-042&returnTo=%2Floading%3FdropsheetId%3D42'
+					),
+					route: { id: '/order-status/[dropsheetId]' }
+				},
+				cancel
+			});
+
+			expect(cancel).not.toHaveBeenCalled();
+			expect(endLoaderSession).not.toHaveBeenCalled();
+			expect(get(workflowStores.currentLoader)).toEqual({ loaderId: 7, loaderName: 'Alex' });
+			expect(get(workflowStores.selectedDepartment)).toBe('Wrap');
+		});
 
 	it('ends the loader session on exit even before loader info finishes loading', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });

@@ -365,6 +365,72 @@ describe('fetchDst', () => {
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
 	});
+
+	it('aborts slow DST requests with a user-safe timeout error', async () => {
+		vi.useFakeTimers();
+		const abortableFetch = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () => {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+					});
+				})
+		);
+		const { event } = createRequestEventMock();
+		event.fetch = abortableFetch as typeof event.fetch;
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDst } = await import('./proxy');
+		const request = fetchDst('/api/barcode-get/select-loading-dropsheet');
+		const expectation = expect(request).rejects.toMatchObject({
+			status: 504,
+			body: {
+				message: 'DST backend request timed out.'
+			}
+		});
+
+		await vi.advanceTimersByTimeAsync(8_000);
+
+		await expectation;
+		expect(abortableFetch).toHaveBeenCalledOnce();
+		vi.useRealTimers();
+	});
+
+	it('preserves the caller abort signal for DST requests', async () => {
+		const abortableFetch = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					if (init?.signal?.aborted) {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+						return;
+					}
+
+					init?.signal?.addEventListener('abort', () => {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+					});
+				})
+		);
+		const { event } = createRequestEventMock();
+		event.fetch = abortableFetch as typeof event.fetch;
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDst } = await import('./proxy');
+		const callerController = new AbortController();
+		const request = fetchDst('/api/barcode-get/select-loading-dropsheet', {
+			signal: callerController.signal
+		});
+		const expectation = expect(request).rejects.toThrowError(
+			expect.objectContaining({
+				name: 'AbortError'
+			})
+		);
+
+		callerController.abort();
+
+		await expectation;
+		expect(abortableFetch).toHaveBeenCalledOnce();
+	});
 });
 
 describe('fetchDak', () => {
@@ -469,5 +535,36 @@ describe('fetchDak', () => {
 		expect(getRequestEvent).not.toHaveBeenCalled();
 		expect(getVerifiedUser).not.toHaveBeenCalled();
 		expect(getSession).not.toHaveBeenCalled();
+	});
+
+	it('aborts slow DAK requests with a user-safe timeout error', async () => {
+		vi.useFakeTimers();
+		const abortableFetch = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () => {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+					});
+				})
+		);
+		const { event } = createRequestEventMock();
+		event.fetch = abortableFetch as typeof event.fetch;
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDak } = await import('./proxy');
+		const request = fetchDak('/v1/scan/process-staging');
+		const expectation = expect(request).rejects.toMatchObject({
+			status: 504,
+			body: {
+				message: 'DAK backend request timed out.'
+			}
+		});
+
+		await vi.advanceTimersByTimeAsync(8_000);
+
+		await expectation;
+		expect(abortableFetch).toHaveBeenCalledOnce();
+		vi.useRealTimers();
 	});
 });

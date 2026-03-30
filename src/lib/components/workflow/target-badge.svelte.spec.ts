@@ -14,9 +14,7 @@ describe('target badge', () => {
 
 		await expect.element(page.getByTestId('target-badge')).toHaveTextContent('Canton');
 		await expect.element(page.getByTestId('target-badge')).toHaveClass(/flex/);
-		await expect.element(page.getByTestId('target-badge')).toHaveClass(
-			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
-		);
+		await expect.element(page.getByTestId('target-badge')).toHaveClass(/ui-primary-gradient/);
 		await expect.element(page.getByTestId('target-badge')).toHaveClass(/text-white/);
 	});
 
