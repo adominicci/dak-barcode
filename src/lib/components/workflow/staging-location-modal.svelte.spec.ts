@@ -121,6 +121,14 @@ describe('staging location modal', () => {
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveTextContent('Bay 2');
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).not.toHaveTextContent('Select');
 		await expect.element(page.getByRole('button', { name: 'C1' })).not.toBeInTheDocument();
+		await expect.element(page.getByRole('tab', { name: 'B' })).toHaveAttribute(
+			'aria-controls',
+			'staging-location-tabpanel'
+		);
+		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveAttribute(
+			'id',
+			'staging-location-tabpanel'
+		);
 		await page.getByRole('tab', { name: 'C' }).click();
 		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'true');
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).not.toBeInTheDocument();
@@ -132,6 +140,23 @@ describe('staging location modal', () => {
 			document.querySelectorAll('[data-testid="staging-location-modal-grid"] button p')
 		).map((element) => element.textContent?.trim());
 		expect(cardLabels).toEqual(['C1', 'C2', 'C3']);
+
+		const activeTab = document.querySelector('[role="tab"][aria-selected="true"]');
+		if (!(activeTab instanceof HTMLElement)) {
+			throw new Error('Expected an active tab.');
+		}
+
+		activeTab.focus();
+		activeTab.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: 'ArrowRight',
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await expect.element(page.getByRole('tab', { name: 'W' })).toHaveAttribute('aria-selected', 'true');
+		expect(document.activeElement).toBe(document.querySelector('[role="tab"][aria-selected="true"]'));
 
 		const firstCard = document.querySelector('[data-testid="staging-location-modal-grid"] button');
 		if (!(firstCard instanceof HTMLElement)) {
