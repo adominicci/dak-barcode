@@ -30,6 +30,11 @@
 	let lookupInput: HTMLInputElement | null = null;
 	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
+	let selectedLetterTab = $state<string | null>(null);
+	const dropAreaNameCollator = new Intl.Collator(undefined, {
+		numeric: true,
+		sensitivity: 'base'
+	});
 
 	const dropAreasQuery = $derived(
 		department ? getDropAreasByDepartment(department, target) : null
@@ -43,6 +48,43 @@
 		const availableDropAreas = dropAreasQuery?.current ?? [];
 		return availableDropAreas.filter(isSelectableDropArea);
 	});
+	const groupedDropAreas = $derived.by(() => {
+		const groups: Record<string, DropArea[]> = {};
+
+		for (const dropArea of visibleDropAreas) {
+			const groupKey = resolveDropAreaGroupKey(dropArea);
+			const existingGroup = groups[groupKey] ?? [];
+			existingGroup.push(dropArea);
+			groups[groupKey] = existingGroup;
+		}
+
+		return Object.entries(groups)
+			.sort(([leftKey], [rightKey]) => dropAreaNameCollator.compare(leftKey, rightKey))
+			.map(([key, dropAreas]) => ({
+				key,
+				dropAreas: [...dropAreas].sort(
+					(left, right) =>
+						dropAreaNameCollator.compare(left.name, right.name) || left.id - right.id
+				)
+			}));
+	});
+	const activeLetterTab = $derived.by(() => {
+		const availableGroupKeys = groupedDropAreas.map((group) => group.key);
+
+		if (availableGroupKeys.length === 0) {
+			return null;
+		}
+
+		if (selectedLetterTab !== null && availableGroupKeys.includes(selectedLetterTab)) {
+			return selectedLetterTab;
+		}
+
+		return availableGroupKeys[0];
+	});
+	const activeDropAreaOptions = $derived.by(() => {
+		const activeGroup = groupedDropAreas.find((group) => group.key === activeLetterTab);
+		return activeGroup?.dropAreas ?? [];
+	});
 
 	onMount(() => {
 		lookupInput?.focus();
@@ -54,6 +96,16 @@
 
 	function invalidateLookupRequests() {
 		activeLookupRequestToken += 1;
+	}
+
+	function resolveDropAreaGroupKey(dropArea: DropArea) {
+		const normalizedFirstCharacter = dropArea.firstCharacter?.trim().charAt(0).toUpperCase();
+		if (normalizedFirstCharacter) {
+			return normalizedFirstCharacter;
+		}
+
+		const normalizedNameCharacter = dropArea.name.trim().charAt(0).toUpperCase();
+		return normalizedNameCharacter || '#';
 	}
 
 	function isSelectableDropArea(dropArea: DropArea) {
@@ -285,17 +337,45 @@
 								<LoaderCircle class="size-7 animate-spin text-primary" />
 								<p class="text-sm font-medium">Loading locations...</p>
 							</div>
-						{:else if visibleDropAreas.length === 0}
+					{:else if visibleDropAreas.length === 0}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-on-surface-variant/70">
 								<MapPin class="size-7 text-primary/70" />
 								<p class="text-sm font-medium">No locations are available for this department yet.</p>
 							</div>
 					{:else}
 						<div
-							data-testid="staging-location-modal-grid"
-							class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+							data-testid="staging-location-letter-tabs"
+							role="tablist"
+							aria-label="Location groups"
+							class="flex gap-2 overflow-x-auto overscroll-contain pb-1"
 						>
-							{#each visibleDropAreas as dropArea (dropArea.id)}
+							{#each groupedDropAreas as group (group.key)}
+								<button
+									type="button"
+									role="tab"
+									aria-selected={group.key === activeLetterTab}
+									tabindex={group.key === activeLetterTab ? 0 : -1}
+									class={`flex h-11 min-w-11 shrink-0 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+										group.key === activeLetterTab
+											? 'ui-primary-gradient text-white shadow-[var(--shadow-primary)]'
+											: 'bg-surface-container-low text-slate-700 hover:bg-surface-container-high'
+									}`}
+									onclick={() => {
+										selectedLetterTab = group.key;
+									}}
+								>
+									{group.key}
+								</button>
+							{/each}
+						</div>
+
+						<div
+							data-testid="staging-location-modal-grid"
+							role="tabpanel"
+							aria-label={activeLetterTab ? `${activeLetterTab} locations` : 'Locations'}
+							class="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+						>
+							{#each activeDropAreaOptions as dropArea (dropArea.id)}
 								<button
 									type="button"
 									class="ui-card ui-primary-gradient group flex min-h-[7.5rem] flex-col justify-center px-6 py-6 text-left text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0"

@@ -28,11 +28,51 @@ function createQueryState(current: DropArea[]) {
 }
 
 describe('staging location modal', () => {
-	it('renders target-style location cards with a scrollable five-column list and refreshes the query when clicked', async () => {
+	it('groups drop areas into letter tabs, defaults to the first tab, and refreshes the query when clicked', async () => {
 		const refresh = vi.fn();
 		getDropAreasByDepartment.mockReturnValue(
 			{
 				...createQueryState([
+					{
+						id: 31,
+						name: 'C3',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'C'
+					},
+					{
+						id: 32,
+						name: 'C1',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'C'
+					},
+					{
+						id: 33,
+						name: 'Bay 2',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: null
+					},
+					{
+						id: 34,
+						name: 'C2',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'C'
+					},
 					{
 						id: 41,
 						name: 'W12',
@@ -59,9 +99,11 @@ describe('staging location modal', () => {
 		});
 
 		await vi.waitFor(() => expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', 'Canton'));
-		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveClass(
-			/xl:grid-cols-5/
-		);
+		await expect.element(page.getByTestId('staging-location-letter-tabs')).toBeInTheDocument();
+		await expect.element(page.getByRole('tab', { name: 'B' })).toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'false');
+		await expect.element(page.getByRole('tab', { name: 'W' })).toHaveAttribute('aria-selected', 'false');
+		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveClass(/xl:grid-cols-5/);
 		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(
 			/h-\[calc\(100dvh-2rem\)\]/
 		);
@@ -72,12 +114,25 @@ describe('staging location modal', () => {
 		await expect.element(page.getByTestId('staging-location-list-scroll-region')).toHaveClass(
 			/overflow-y-auto/
 		);
-		await expect.element(page.getByRole('button', { name: 'W12' })).toHaveClass(
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(
 			/ui-primary-gradient/
 		);
-		await expect.element(page.getByRole('button', { name: 'W12' })).toHaveClass(/text-white/);
-		await expect.element(page.getByRole('button', { name: 'W12' })).toHaveTextContent('W12');
-		await expect.element(page.getByRole('button', { name: 'W12' })).not.toHaveTextContent('Select');
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(/text-white/);
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveTextContent('Bay 2');
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).not.toHaveTextContent('Select');
+		await expect.element(page.getByRole('button', { name: 'C1' })).not.toBeInTheDocument();
+		await page.getByRole('tab', { name: 'C' }).click();
+		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'C1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'C2' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'C3' })).toBeInTheDocument();
+
+		const cardLabels = Array.from(
+			document.querySelectorAll('[data-testid="staging-location-modal-grid"] button p')
+		).map((element) => element.textContent?.trim());
+		expect(cardLabels).toEqual(['C1', 'C2', 'C3']);
+
 		const firstCard = document.querySelector('[data-testid="staging-location-modal-grid"] button');
 		if (!(firstCard instanceof HTMLElement)) {
 			throw new Error('Expected the first location card.');
