@@ -464,6 +464,26 @@ describe('staging page department gate', () => {
 			createDropAreaListQuery(
 				[
 					{
+						id: 31,
+						name: 'C3',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'C'
+					},
+					{
+						id: 32,
+						name: 'C1',
+						supportsWrap: true,
+						supportsParts: false,
+						supportsRoll: false,
+						supportsLoading: false,
+						supportsDriverLocation: false,
+						firstCharacter: 'C'
+					},
+					{
 						id: 41,
 						name: 'W12',
 						supportsWrap: true,
@@ -499,8 +519,15 @@ describe('staging page department gate', () => {
 		await page.getByRole('button', { name: 'Refresh list' }).click();
 		expect(refresh).toHaveBeenCalledOnce();
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-letter-tabs')).toBeInTheDocument();
+		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('button', { name: /C1/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /W12/i })).not.toBeInTheDocument();
+		await page.getByRole('tab', { name: 'W' }).click();
+		await expect.element(page.getByRole('tab', { name: 'W' })).toHaveAttribute('aria-selected', 'true');
 		await expect.element(page.getByRole('button', { name: /W12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /C1/i })).not.toBeInTheDocument();
 	});
 
 	it('closes the location modal when reopening the department selector', async () => {
