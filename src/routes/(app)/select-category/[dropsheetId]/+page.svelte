@@ -3,13 +3,16 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import {
+		CheckCircle2,
+		ChevronRight,
 		ClipboardList,
-		PenLine,
 		Truck
 	} from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
+	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
+	import { completeLoadingEmail } from '$lib/loading-complete.remote';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getLoaders } from '$lib/loaders.cached';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
@@ -41,6 +44,9 @@
 	let activeDepartment = $state<OperationalDepartment | null>(null);
 	let pendingDepartment = $state<OperationalDepartment | null>(null);
 	let isLoaderModalOpen = $state(false);
+	let isCompleteLoadingModalOpen = $state(false);
+	let isCompletingLoad = $state(false);
+	let completeLoadingError = $state<string | null>(null);
 	let submitError = $state<string | null>(null);
 	type LoaderSelection = Exclude<WorkflowLoaderSelection, null>;
 
@@ -87,6 +93,9 @@
 		if (data.dropWeight !== null) {
 			searchParams.set('dropWeight', String(data.dropWeight));
 		}
+		if (data.percentCompleted !== null) {
+			searchParams.set('percentCompleted', String(data.percentCompleted));
+		}
 		if (data.returnTo) {
 			searchParams.set('returnTo', data.returnTo);
 		}
@@ -94,6 +103,13 @@
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});
 	const selectedLoaderLabel = $derived(currentLoader?.loaderName ?? 'Select loader');
+	const canCompleteLoad = $derived(data.percentCompleted === 1);
+	const isCompleteLoadReady = $derived(categoryAvailability?.allLoaded === true);
+	const completeLoadAccentClasses = $derived(
+		isCompleteLoadReady
+			? 'border-emerald-500/80 text-emerald-600 bg-emerald-50/80'
+			: 'border-rose-500/80 text-rose-600 bg-rose-50/80'
+	);
 	const blueBadgeClasses =
 		'rounded-full bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
 
@@ -201,6 +217,39 @@
 		return searchParams;
 	}
 
+	function openCompleteLoadingModal() {
+		completeLoadingError = null;
+		isCompleteLoadingModalOpen = true;
+	}
+
+	function closeCompleteLoadingModal() {
+		if (isCompletingLoad) {
+			return;
+		}
+
+		completeLoadingError = null;
+		isCompleteLoadingModalOpen = false;
+	}
+
+	async function handleCompleteLoading() {
+		if (isCompletingLoad) {
+			return;
+		}
+
+		isCompletingLoad = true;
+		completeLoadingError = null;
+
+		try {
+			await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			await goto(data.returnTo ?? '/dropsheets');
+		} catch (error) {
+			completeLoadingError =
+				error instanceof Error ? error.message : 'Unable to complete loading.';
+		} finally {
+			isCompletingLoad = false;
+		}
+	}
+
 	async function beginLoading(department: OperationalDepartment, loader: LoaderSelection) {
 		const { locationId } = getLoadingEntryDepartment(department);
 		pendingDepartment = department;
@@ -274,7 +323,7 @@
 	}
 </script>
 
-<div class="space-y-6 xl:space-y-5">
+<div class="space-y-6 pb-32 xl:space-y-5">
 	<div class="space-y-3 rounded-[2.5rem] bg-white/92 p-3 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
 		<LoadSummaryStrip
 			testId="select-category-summary-grid"
@@ -453,57 +502,78 @@
 		{/if}
 	</div>
 
-	<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-		<button
-			type="button"
-			onclick={() =>
-				goto(
-					resolve(
-						`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams().toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
-						{
-							dropsheetId: String(data.dropSheetId)
-						}
+	<div
+		data-testid="select-category-action-footer"
+		class="sticky bottom-4 z-10 space-y-3 rounded-[2rem] bg-white/94 p-3 shadow-[0_-18px_50px_-30px_rgba(15,23,42,0.36)] ring-1 ring-white/80 backdrop-blur-xl"
+	>
+		<div data-testid="select-category-utility-actions" class="grid gap-3 sm:grid-cols-2">
+			<button
+				type="button"
+				onclick={() =>
+					goto(
+						resolve(
+							`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams().toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
+							{
+								dropsheetId: String(data.dropSheetId)
+							}
+						)
 					)
-				)
-			}
-			class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-		>
-			<div class="flex items-center gap-3">
-				<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-					<ClipboardList class="size-5" />
-				</span>
-				<div>
-					<p class="text-lg font-bold tracking-tight text-slate-950">Order Status</p>
+				}
+				class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+			>
+				<div class="flex items-center gap-3">
+					<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+						<ClipboardList class="size-5" />
+					</span>
+					<div>
+						<p class="text-base font-bold tracking-tight text-slate-950">Order Status</p>
+					</div>
 				</div>
-			</div>
-			<PenLine class="size-5 text-slate-400" />
-		</button>
+				<ChevronRight class="size-5 text-slate-400" />
+			</button>
 
-		<button
-			type="button"
-			onclick={() =>
-				goto(
-					resolve(
-						`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams().toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
-						{
-							dropsheetId: String(data.dropSheetId)
-						}
+			<button
+				type="button"
+				onclick={() =>
+					goto(
+						resolve(
+							`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams().toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
+							{
+								dropsheetId: String(data.dropSheetId)
+							}
+						)
 					)
-				)
-			}
-			class="flex items-center justify-between gap-4 rounded-[1.75rem] bg-white px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-		>
-			<div class="flex items-center gap-3">
-				<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-					<Truck class="size-5" />
-				</span>
-				<div>
-					<p class="text-lg font-bold tracking-tight text-slate-950">Dropsheet</p>
+				}
+				class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+			>
+				<div class="flex items-center gap-3">
+					<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+						<Truck class="size-5" />
+					</span>
+					<div>
+						<p class="text-base font-bold tracking-tight text-slate-950">Dropsheet</p>
+					</div>
 				</div>
-			</div>
-			<PenLine class="size-5 text-slate-400" />
-		</button>
+				<ChevronRight class="size-5 text-slate-400" />
+			</button>
+		</div>
 
+		{#if canCompleteLoad}
+			<div data-testid="select-category-complete-action-row" class="flex justify-center">
+				<button
+					type="button"
+					class="inline-flex min-h-16 min-w-[18rem] items-center justify-center gap-3 rounded-[1.6rem] bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-7 py-4 text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03]"
+					onclick={openCompleteLoadingModal}
+				>
+					<span
+						class={`flex size-10 items-center justify-center rounded-full border-[3px] ${completeLoadAccentClasses}`}
+					>
+						<CheckCircle2 class="size-5" />
+					</span>
+					<span class="text-lg font-black uppercase tracking-[0.18em]">Complete Load</span>
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if submitError}
@@ -526,5 +596,20 @@
 		onPick={handleLoaderPick}
 		onRefresh={() => void loadersQuery.refresh()}
 		refreshing={loadersQuery.loading}
+	/>
+{/if}
+
+{#if isCompleteLoadingModalOpen}
+	<ConfirmationModal
+		testId="complete-loading-modal"
+		title="Complete Loading"
+		description="Are you sure you want to complete this load? If you complete the load it will also send the email to the customer."
+		confirmLabel="Confirm"
+		pendingLabel="Completing loading"
+		cancelLabel="Cancel"
+		pending={isCompletingLoad}
+		error={completeLoadingError}
+		onCancel={closeCompleteLoadingModal}
+		onConfirm={handleCompleteLoading}
 	/>
 {/if}
