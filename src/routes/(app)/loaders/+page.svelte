@@ -140,10 +140,7 @@
 						onCheckedChange={(checked) => {
 							if (checked) {
 								invalidateLoadersCache(data.activeTarget);
-								void (async () => {
-									await loadersQuery.refresh();
-									await loadersQuery.refresh();
-								})();
+								void loadersQuery.refresh();
 							}
 						}}
 						aria-label="Show inactive loaders"

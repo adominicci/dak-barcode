@@ -81,7 +81,7 @@ describe('loaders utility page', () => {
 		await expect.element(page.getByRole('button', { name: 'Alex' }).getByText('Loader')).not.toBeInTheDocument();
 
 		await page.getByLabelText('Show inactive loaders').click();
-		expect(refresh).toHaveBeenCalledTimes(2);
+		expect(refresh).toHaveBeenCalledOnce();
 		await expect.element(page.getByText('Casey')).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Casey' })).toHaveClass(/bg-white/);
 	});
@@ -130,7 +130,7 @@ describe('loaders utility page', () => {
 			isActive: true
 		});
 		expect(invalidateLoadersCache).toHaveBeenCalledWith('Freeport');
-		expect(refresh).toHaveBeenCalledTimes(3);
+		expect(refresh).toHaveBeenCalledTimes(2);
 		await expect.element(page.getByText('Loader updated.')).toBeInTheDocument();
 	});
 
