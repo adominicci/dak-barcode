@@ -54,6 +54,7 @@ type DepartmentLoaderGroup = {
 
 const {
 	goto,
+	completeLoadingEmail,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
 	getLoaders,
@@ -62,6 +63,7 @@ const {
 } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
+		completeLoadingEmail: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
 		getLoaders: vi.fn<() => LoaderQueryState>(),
@@ -72,6 +74,10 @@ const {
 
 vi.mock('$app/navigation', () => ({
 	goto
+}));
+
+vi.mock('$lib/loading-complete.remote', () => ({
+	completeLoadingEmail
 }));
 
 vi.mock('$lib/dropsheets.remote', () => ({
@@ -128,12 +134,28 @@ function createLoadersQuery(
 	};
 }
 
+function createDeferred<T>() {
+	let resolvePromise!: (value: T | PromiseLike<T>) => void;
+	let rejectPromise!: (reason?: unknown) => void;
+	const promise = new Promise<T>((resolve, reject) => {
+		resolvePromise = resolve;
+		rejectPromise = reject;
+	});
+
+	return {
+		promise,
+		resolve: resolvePromise,
+		reject: rejectPromise
+	};
+}
+
 const layoutData = {
 	activeTarget: 'Canton' as const,
 	displayName: 'Loader One',
 	isAdmin: false,
 	userEmail: 'loader@dakotasteelandtrim.com',
 	userRole: 'loading' as const,
+	percentCompleted: 0.875,
 	departmentLoadersError: null,
 	departmentLoaders: [
 		{ department: 'Wrap', loaderNames: [] },
@@ -145,6 +167,7 @@ const layoutData = {
 describe('select-category page', () => {
 	beforeEach(() => {
 		goto.mockReset();
+		completeLoadingEmail.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
 		getLoaders.mockReset();
@@ -195,6 +218,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				percentCompleted: 0.875,
 				returnTo: null,
 				departmentLoaders: [
 					{ department: 'Wrap', loaderNames: ['Kaleb', 'Anthony'] },
@@ -312,6 +336,7 @@ describe('select-category page', () => {
 		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).not.toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Signature', { exact: true })).not.toBeInTheDocument();
 	});
@@ -326,6 +351,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				percentCompleted: 0.875,
 				returnTo: null,
 				departmentLoadersError: 'Roster unavailable.',
 				departmentLoaders: [
@@ -378,6 +404,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				percentCompleted: 0.875,
 				returnTo: '/dropsheets?date=2026-03-24',
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
@@ -413,7 +440,7 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
 		);
 	});
 
@@ -427,6 +454,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				percentCompleted: 0.875,
 				returnTo: null,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
@@ -462,6 +490,7 @@ describe('select-category page', () => {
 				loadNumber: 'L-042',
 				driverName: 'David Schmidt',
 				dropWeight: 2152.4,
+				percentCompleted: 0.875,
 				returnTo: null,
 				loaders: [{ id: 7, name: 'Alex', isActive: true }]
 			}
@@ -474,5 +503,93 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-status-strip')).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-actions')).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
+	});
+
+	it('shows the legacy stacked complete-load footer only when percent completed reaches one', async () => {
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-action-footer')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-utility-actions')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-complete-action-row')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Complete Load' }))
+			.toHaveTextContent('Complete Load');
+	});
+
+	it('opens the completion modal, shows the shared spinner while pending, and returns to dropsheets on success', async () => {
+		const completionRequest = createDeferred<{ ok: true }>();
+		completeLoadingEmail.mockReturnValue(completionRequest.promise);
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await expect.element(page.getByTestId('complete-loading-modal')).toBeInTheDocument();
+		await expect.element(page.getByText('Complete Loading', { exact: true })).toBeInTheDocument();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42 });
+		await expect.element(page.getByTestId('complete-loading-confirm-spinner')).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Completing loading')).toBeInTheDocument();
+
+		completionRequest.resolve({ ok: true });
+		await Promise.resolve();
+
+		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+	});
+
+	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {
+		completeLoadingEmail.mockRejectedValue(new Error('500 Internal Server Error: email dispatch failed'));
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		await expect.element(page.getByTestId('complete-loading-modal')).toBeInTheDocument();
+		await expect.element(page.getByTestId('complete-loading-error')).toHaveTextContent(
+			'500 Internal Server Error: email dispatch failed'
+		);
+		expect(goto).not.toHaveBeenCalled();
 	});
 });

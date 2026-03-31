@@ -43,6 +43,7 @@ describe('select-category page server load', () => {
 			loadNumber: '42',
 			driverName: null,
 			dropWeight: null,
+			percentCompleted: null,
 			returnTo: null,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
@@ -117,6 +118,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			percentCompleted: null,
 			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
@@ -142,6 +144,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			percentCompleted: null,
 			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
@@ -186,6 +189,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			percentCompleted: null,
 			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
@@ -213,6 +217,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: 'David Schmidt',
 			dropWeight: 2152.4,
+			percentCompleted: null,
 			returnTo: '/dropsheets?date=2026-03-24',
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
@@ -238,6 +243,7 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: 2152.4,
+			percentCompleted: null,
 			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
@@ -263,6 +269,35 @@ describe('select-category page server load', () => {
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
+			percentCompleted: null,
+			returnTo: null,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }],
+			departmentLoaders: [
+				{ department: 'Wrap', loaderNames: [] },
+				{ department: 'Roll', loaderNames: [] },
+				{ department: 'Parts', loaderNames: [] }
+			],
+			departmentLoadersError: null
+		});
+	});
+
+	it('parses the carried percent completed value from the dropsheet handoff', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+		getDakLoadersForDropsheet.mockResolvedValue([]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL(
+					'https://example.com/select-category/42?loadNumber=L-042&percentCompleted=1'
+				)
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			driverName: null,
+			dropWeight: null,
+			percentCompleted: 1,
 			returnTo: null,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [

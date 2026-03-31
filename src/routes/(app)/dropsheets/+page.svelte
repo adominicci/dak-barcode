@@ -190,6 +190,7 @@
 			deliveryNumber: dropSheet.loadNumber,
 			driverName: dropSheet.driverName ?? '',
 			dropWeight: String(dropSheet.dropWeight),
+			percentCompleted: String(dropSheet.percentCompleted),
 			returnTo: resolve(`/dropsheets?date=${data.selectedDate}`)
 		});
 

@@ -494,7 +494,7 @@ describe("dropsheets page", () => {
       .click();
 
     expect(goto).toHaveBeenCalledWith(
-      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24",
+      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4&percentCompleted=0.875&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24",
     );
   });
 
