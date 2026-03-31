@@ -46,6 +46,18 @@ function parseDriverName(driverName: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
+function parsePercentCompleted(percentCompleted: string | null | undefined): number | null {
+	const trimmed = percentCompleted?.trim();
+
+	if (!trimmed) {
+		return null;
+	}
+
+	const parsed = Number(trimmed);
+
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 function buildEmptyDepartmentLoaderGroups(): DepartmentLoaderGroup[] {
 	return DEPARTMENT_ORDER.map((department) => ({
 		department,
@@ -120,6 +132,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	);
 	const driverName = parseDriverName(url.searchParams.get('driverName'));
 	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
+	const percentCompleted = parsePercentCompleted(url.searchParams.get('percentCompleted'));
 	const returnTo = parseLegacyReturnTo(url.searchParams.get('returnTo'));
 
 	return {
@@ -127,6 +140,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		loadNumber,
 		driverName,
 		dropWeight,
+		percentCompleted,
 		returnTo,
 		loaders,
 		departmentLoaders,
