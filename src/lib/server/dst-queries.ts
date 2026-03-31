@@ -58,6 +58,7 @@ const DST_ROUTES = {
 	loaders: '/api/barcode-get/get-loaders',
 	trailers: '/api/barcode-get/get-trailers',
 	insertLoader: '/api/barcode-update/insert-loader',
+	updateLoader: '/api/barcode-get/update-loaders',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
 	departmentStatusOnDrop: '/api/barcode-get/get-department-status-ondrop',
@@ -99,6 +100,11 @@ export const dropSheetPickedByLoaderUpdateInputSchema = v.object({
 export const dropAreaIdSchema = v.number();
 export const departmentSchema = v.picklist(OPERATIONAL_DEPARTMENTS);
 export const loaderNameSchema = v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name'));
+export const loaderUpdateInputSchema = v.object({
+	loaderId: v.number(),
+	loaderName: v.pipe(v.string(), v.nonEmpty('Expected a non-empty loader name')),
+	isActive: v.boolean()
+});
 export const orderSoNumberSchema = v.nullish(
 	v.pipe(v.string(), v.nonEmpty('Expected a non-empty SO number'))
 );
@@ -177,6 +183,7 @@ type UpdateSingleLabelLoadInput = v.InferOutput<typeof updateSingleLabelLoadInpu
 type NumberOfDropsInput = v.InferOutput<typeof numberOfDropsInputSchema>;
 type DropSheetTrailerUpdateInput = v.InferOutput<typeof dropSheetTrailerUpdateInputSchema>;
 type DropSheetPickedByLoaderUpdateInput = v.InferOutput<typeof dropSheetPickedByLoaderUpdateInputSchema>;
+export type LoaderUpdateInput = v.InferOutput<typeof loaderUpdateInputSchema>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -320,6 +327,21 @@ export async function insertDstLoader(loaderName: string): Promise<void> {
 		jsonInit({
 			Loader: loaderName
 		})
+	);
+}
+
+export async function updateDstLoader(input: LoaderUpdateInput): Promise<void> {
+	const path = withQuery(DST_ROUTES.updateLoader, {
+		Loader: input.loaderName,
+		IsActive: input.isActive,
+		LoaderID: input.loaderId
+	});
+
+	await readDstJson(
+		path,
+		{
+			method: 'PUT'
+		}
 	);
 }
 

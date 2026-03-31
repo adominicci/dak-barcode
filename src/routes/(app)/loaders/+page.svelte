@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { LoaderCircle, Plus, UserRound } from '@lucide/svelte';
-	import { createLoader } from '$lib/loaders.remote';
-	import { getLoaders, invalidateLoadersCache } from '$lib/loaders.cached';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import LoaderEditorModal from '$lib/components/workflow/loader-editor-modal.svelte';
+	import { createLoader, updateLoader } from '$lib/loaders.remote';
+	import { getLoaders, invalidateLoadersCache } from '$lib/loaders.cached';
+	import type { Loader } from '$lib/types';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -12,11 +15,38 @@
 	let statusMessage = $state<string | null>(null);
 	let statusTone = $state<'success' | 'error' | null>(null);
 	let isSubmitting = $state(false);
-	const BLUE_CARD_CLASSES =
+	let showInactiveLoaders = $state(false);
+	let editorLoader = $state<Loader | null>(null);
+	let editorError = $state<string | null>(null);
+	let editorSaving = $state(false);
+	const ACTIVE_CARD_CLASSES =
 		'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
+	const INACTIVE_CARD_CLASSES =
+		'bg-white text-slate-700 ring-1 ring-slate-200 shadow-[var(--shadow-soft)]';
 
 	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
-	const activeLoaders = $derived((loadersQuery.current ?? []).filter((loader) => loader.isActive));
+	const loaders = $derived(loadersQuery.current ?? []);
+	const activeLoaders = $derived(loaders.filter((loader) => loader.isActive));
+	const inactiveLoaders = $derived(loaders.filter((loader) => !loader.isActive));
+	const visibleLoaders = $derived(
+		showInactiveLoaders ? [...activeLoaders, ...inactiveLoaders] : activeLoaders
+	);
+
+	function openEditor(loader: Loader) {
+		editorLoader = loader;
+		editorError = null;
+		editorSaving = false;
+	}
+
+	function closeEditor() {
+		if (editorSaving) {
+			return;
+		}
+
+		editorLoader = null;
+		editorError = null;
+		editorSaving = false;
+	}
 
 	async function handleInsertLoader(event: SubmitEvent) {
 		event.preventDefault();
@@ -39,7 +69,7 @@
 			await loadersQuery.refresh();
 			loaderName = '';
 			statusTone = 'success';
-			statusMessage = `${trimmed} is now active and selectable.`;
+			statusMessage = 'Loader created and marked active.';
 		} catch (error) {
 			statusTone = 'error';
 			statusMessage = error instanceof Error ? error.message : 'Unable to insert loader.';
@@ -47,51 +77,129 @@
 			isSubmitting = false;
 		}
 	}
+
+	async function handleUpdateLoader(input: { loaderName: string; isActive: boolean }) {
+		if (!editorLoader) {
+			return;
+		}
+
+		editorSaving = true;
+		editorError = null;
+
+		try {
+			await updateLoader({
+				loaderId: editorLoader.id,
+				loaderName: input.loaderName,
+				isActive: input.isActive
+			});
+			invalidateLoadersCache(data.activeTarget);
+			await loadersQuery.refresh();
+			editorLoader = null;
+			statusTone = 'success';
+			statusMessage = 'Loader updated.';
+		} catch (error) {
+			editorError = error instanceof Error ? error.message : 'Unable to update loader.';
+		} finally {
+			editorSaving = false;
+		}
+	}
 </script>
 
 <div class="space-y-8">
-	<!-- Page heading -->
 	<h1 class="text-3xl font-bold tracking-tight text-slate-950">Add Loader</h1>
 
+	{#if statusMessage}
+		<div
+			class={`rounded-[1.75rem] px-5 py-4 text-sm shadow-sm ${
+				statusTone === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-800'
+			}`}
+			role="status"
+		>
+			{statusMessage}
+		</div>
+	{/if}
+
 	<div class="grid gap-8 lg:grid-cols-2">
-		<!-- Active loader list -->
-		<div class="bg-white rounded-[2rem] p-8 shadow-sm">
-			<div class="flex items-center gap-3 mb-6">
-				<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
-					<UserRound class="size-5" />
+		<div class="rounded-[2rem] bg-white p-8 shadow-sm">
+			<div class="mb-6 flex items-start justify-between gap-4">
+				<div class="flex items-center gap-3">
+					<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+						<UserRound class="size-5" />
+					</div>
+					<div>
+						<p class="ui-label text-xs">Loader roster</p>
+						<h2 class="text-lg font-bold tracking-tight text-slate-950">Active loader list</h2>
+					</div>
 				</div>
-				<div>
-					<p class="ui-label text-xs">Selectables</p>
-					<h2 class="text-lg font-bold tracking-tight text-slate-950">Active loader list</h2>
-				</div>
+
+				<label
+					class="flex items-center gap-3 rounded-full bg-surface-container-low px-3 py-2 text-sm font-medium text-slate-700"
+				>
+					<Checkbox
+						bind:checked={showInactiveLoaders}
+						onCheckedChange={(checked) => {
+							if (checked) {
+								invalidateLoadersCache(data.activeTarget);
+								void (async () => {
+									await loadersQuery.refresh();
+									await loadersQuery.refresh();
+								})();
+							}
+						}}
+						aria-label="Show inactive loaders"
+					/>
+					<span>Show inactive loaders</span>
+				</label>
 			</div>
 
 			{#if loadersQuery.error}
 				<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 					{loadersQuery.error.message}
 				</div>
-			{:else if activeLoaders.length === 0}
+			{:else if visibleLoaders.length === 0}
 				<div class="rounded-2xl bg-surface-container-low px-4 py-5 text-sm text-on-surface-variant">
-					No active loaders are available yet. Insert one using the utility form.
+					{#if showInactiveLoaders}
+						No loaders are available yet. Insert one using the utility form.
+					{:else}
+						No active loaders are available yet. Turn on inactive loaders to review the full roster.
+					{/if}
 				</div>
 			{:else}
 				<div class="grid gap-3 sm:grid-cols-2">
-					{#each activeLoaders as loader (loader.id)}
-						<div class={`rounded-2xl p-5 ${BLUE_CARD_CLASSES}`}>
-							<p class="ui-label text-xs text-white/70">Loader</p>
-							<p class="mt-1 text-2xl font-bold tracking-tight text-white">
+					{#each visibleLoaders as loader (loader.id)}
+						<button
+							type="button"
+							class={`rounded-2xl p-5 text-left transition duration-200 hover:-translate-y-0.5 ${
+								loader.isActive ? ACTIVE_CARD_CLASSES : INACTIVE_CARD_CLASSES
+							}`}
+							onclick={() => openEditor(loader)}
+						>
+							{#if !loader.isActive}
+								<div class="flex justify-end">
+									<span
+										class="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700"
+									>
+										Inactive
+									</span>
+								</div>
+							{/if}
+
+							<p
+								class={`mt-1 text-2xl font-bold tracking-tight ${
+									loader.isActive ? 'text-white' : 'text-slate-900'
+								}`}
+							>
 								{loader.name}
 							</p>
-						</div>
+						</button>
 					{/each}
 				</div>
 			{/if}
 		</div>
 
-		<!-- Insert form -->
-		<div class="bg-white rounded-[2rem] p-8 shadow-sm">
-			<div class="flex items-center gap-3 mb-6">
-				<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+		<div class="rounded-[2rem] bg-white p-8 shadow-sm">
+			<div class="mb-6 flex items-center gap-3">
+				<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
 					<Plus class="size-5" />
 				</div>
 				<div>
@@ -112,12 +220,13 @@
 						autocomplete="off"
 						class="h-16 rounded-2xl border-none bg-surface-container-highest px-5 text-lg placeholder:text-on-surface-variant/50 focus-visible:ring-primary"
 						placeholder="Enter loader name"
+						disabled={isSubmitting}
 					/>
 				</div>
 
 				<div class="flex items-center justify-between gap-4">
 					<p class="text-sm text-on-surface-variant">
-						Added loaders become active immediately.
+						New loaders become active immediately.
 					</p>
 					<Button
 						class="h-12 rounded-full industrial-gradient border-0 px-6 text-sm font-bold text-white shadow-md hover:brightness-105"
@@ -132,17 +241,19 @@
 						{/if}
 					</Button>
 				</div>
-
-				{#if statusMessage}
-					<div
-						class={`rounded-2xl px-4 py-4 text-sm ${
-							statusTone === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-primary/5 text-slate-700'
-						}`}
-					>
-						{statusMessage}
-					</div>
-				{/if}
 			</form>
 		</div>
 	</div>
+
+	{#if editorLoader}
+		{#key editorLoader.id}
+			<LoaderEditorModal
+				loader={editorLoader}
+				error={editorError}
+				saving={editorSaving}
+				onClose={closeEditor}
+				onSave={handleUpdateLoader}
+			/>
+		{/key}
+	{/if}
 </div>

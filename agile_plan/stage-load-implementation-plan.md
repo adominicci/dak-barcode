@@ -208,10 +208,11 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Keep Home as the stable re-entry page
 
 **4.3 — Add Loader utility**
-- Display active loaders only
+- Display active loaders by default with a toggle for inactive loaders
+- Allow editing loader name and active state from the list
 - Add new loader inline/in-dialog
 - New loader becomes active immediately
-- Refresh the loader list after create
+- Refresh the loader list after create/update
 - Keep the active-loader list browser-cached with a manual refresh control
 
 **4.4 — Dropsheet list**
