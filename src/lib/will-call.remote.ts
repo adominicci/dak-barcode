@@ -15,7 +15,7 @@ const willCallLoadNumberSchema = v.pipe(
 const willCallSignatureUploadInputSchema = v.object({
 	dropSheetId: v.number(),
 	signaturePath: v.pipe(v.string(), v.trim(), v.nonEmpty('Signature path is required.')),
-	receivedBy: v.pipe(v.string(), v.trim())
+	receivedBy: v.pipe(v.string(), v.trim(), v.nonEmpty('Received By is required.'))
 });
 
 export const lookupWillCallDropsheet = query(willCallLoadNumberSchema, async (loadNumber) =>

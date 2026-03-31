@@ -5,11 +5,13 @@ import { render } from 'vitest-browser-svelte';
 const {
 	createSignedUrl,
 	upload,
+	remove,
 	createSupabaseBrowserClient,
 	uploadWillCallSignature
 } = vi.hoisted(() => ({
 	createSignedUrl: vi.fn(),
 	upload: vi.fn(),
+	remove: vi.fn(),
 	createSupabaseBrowserClient: vi.fn(),
 	uploadWillCallSignature: vi.fn()
 }));
@@ -41,6 +43,7 @@ describe('will-call signature modal', () => {
 
 		createSignedUrl.mockReset();
 		upload.mockReset();
+		remove.mockReset();
 		createSupabaseBrowserClient.mockReset();
 		uploadWillCallSignature.mockReset();
 
@@ -52,11 +55,16 @@ describe('will-call signature modal', () => {
 			data: { path: 'will-call/42/signature_123.png' },
 			error: null
 		});
+		remove.mockResolvedValue({
+			data: [],
+			error: null
+		});
 		createSupabaseBrowserClient.mockReturnValue({
 			storage: {
 				from: () => ({
 					createSignedUrl,
-					upload
+					upload,
+					remove
 				})
 			}
 		});
@@ -181,6 +189,7 @@ describe('will-call signature modal', () => {
 			onUploaded: vi.fn()
 		});
 
+		await page.getByLabelText('Received By').fill('Jordan');
 		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
 		if (!(canvasElement instanceof HTMLCanvasElement)) {
 			throw new Error('Expected will call signature canvas element.');
@@ -270,6 +279,119 @@ describe('will-call signature modal', () => {
 		await expect
 			.element(page.getByText('Unable to upload the signature right now.'))
 			.not.toBeInTheDocument();
+	});
+
+	it('blocks upload when Received By is blank after trimming', async () => {
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose: vi.fn(),
+			onUploaded: vi.fn()
+		});
+
+		await page.getByLabelText('Received By').fill('   ');
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointermove', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerup', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await page.getByRole('button', { name: 'Upload Signature' }).click();
+
+		await expect.element(page.getByText('Received By is required.')).toBeInTheDocument();
+		expect(upload).not.toHaveBeenCalled();
+		expect(uploadWillCallSignature).not.toHaveBeenCalled();
+	});
+
+	it('removes the uploaded storage object when DST persistence fails after upload succeeds', async () => {
+		uploadWillCallSignature.mockRejectedValueOnce(new Error('DST unavailable'));
+
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose: vi.fn(),
+			onUploaded: vi.fn()
+		});
+
+		await page.getByLabelText('Received By').fill('Jordan');
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointermove', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerup', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await page.getByRole('button', { name: 'Upload Signature' }).click();
+
+		expect(upload).toHaveBeenCalled();
+		expect(uploadWillCallSignature).toHaveBeenCalled();
+		expect(remove).toHaveBeenCalledWith(['will-call/42/signature_123.png']);
+		await expect.element(page.getByText('DST unavailable')).toBeInTheDocument();
 	});
 
 	afterEach(() => {

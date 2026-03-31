@@ -38,6 +38,7 @@
 	let isDrawing = $state(false);
 	let hasSignatureStroke = $state(false);
 	let lastPoint = $state<Point | null>(null);
+	const receivedByRequiredMessage = 'Received By is required.';
 
 	const isViewOnly = $derived(Boolean(signatureRecord.signaturePath?.trim()));
 
@@ -202,6 +203,13 @@
 		}
 
 		uploadError = null;
+		const trimmedReceivedBy = receivedBy.trim();
+
+		if (!trimmedReceivedBy) {
+			uploadError = receivedByRequiredMessage;
+			void focusReceivedBy();
+			return;
+		}
 
 		if (!hasSignatureStroke) {
 			uploadError = 'Signature is empty.';
@@ -209,12 +217,14 @@
 		}
 
 		isUploading = true;
+		let supabaseClient: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+		let uploadedSignaturePath: string | null = null;
 
 		try {
 			const signatureBlob = await exportSignatureBlob();
-			const supabase = createSupabaseBrowserClient();
+			supabaseClient = createSupabaseBrowserClient();
 			const signaturePath = buildWillCallSignatureStoragePath(dropSheetId);
-			const { data, error } = await supabase.storage
+			const { data, error } = await supabaseClient.storage
 				.from(WILL_CALL_SIGNATURE_BUCKET)
 				.upload(signaturePath, signatureBlob, {
 					contentType: 'image/png',
@@ -225,10 +235,12 @@
 				throw error;
 			}
 
+			uploadedSignaturePath = data.path;
+
 			await uploadWillCallSignature({
 				dropSheetId,
-				signaturePath: data.path,
-				receivedBy: receivedBy.trim()
+				signaturePath: uploadedSignaturePath,
+				receivedBy: trimmedReceivedBy
 			});
 
 			let refreshError: unknown = null;
@@ -244,6 +256,16 @@
 				console.error('Will call signature refresh failed after upload.', refreshError);
 			}
 		} catch (error) {
+			if (uploadedSignaturePath && supabaseClient) {
+				const { error: cleanupError } = await supabaseClient.storage
+					.from(WILL_CALL_SIGNATURE_BUCKET)
+					.remove([uploadedSignaturePath]);
+
+				if (cleanupError) {
+					console.error('Will call signature cleanup failed after DST persistence error.', cleanupError);
+				}
+			}
+
 			uploadError =
 				error instanceof Error ? error.message : 'Unable to upload the signature right now.';
 		} finally {
