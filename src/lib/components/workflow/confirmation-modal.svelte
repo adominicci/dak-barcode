@@ -7,6 +7,7 @@
 		title,
 		description,
 		confirmLabel = 'Confirm',
+		pendingLabel = `${confirmLabel}...`,
 		cancelLabel = 'Cancel',
 		pending = false,
 		error = null,
@@ -17,6 +18,7 @@
 		title: string;
 		description: string;
 		confirmLabel?: string;
+		pendingLabel?: string;
 		cancelLabel?: string;
 		pending?: boolean;
 		error?: string | null;
@@ -153,7 +155,7 @@
 					{#if pending}
 						<LoadingSpinner
 							size="sm"
-							label="Completing loading"
+							label={pendingLabel}
 							data-testid={`${testIdBase}-confirm-spinner`}
 						/>
 					{/if}

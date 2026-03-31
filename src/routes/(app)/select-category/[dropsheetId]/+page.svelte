@@ -605,6 +605,7 @@
 		title="Complete Loading"
 		description="Are you sure you want to complete this load? If you complete the load it will also send the email to the customer."
 		confirmLabel="Confirm"
+		pendingLabel="Completing loading"
 		cancelLabel="Cancel"
 		pending={isCompletingLoad}
 		error={completeLoadingError}

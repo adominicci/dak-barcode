@@ -557,6 +557,7 @@ describe('select-category page', () => {
 
 		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42 });
 		await expect.element(page.getByTestId('complete-loading-confirm-spinner')).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Completing loading')).toBeInTheDocument();
 
 		completionRequest.resolve({ ok: true });
 		await Promise.resolve();
