@@ -92,6 +92,30 @@ describe("dst query helpers", () => {
     });
   });
 
+  it("updates a loader through the update-loaders endpoint with canonical query params", async () => {
+    fetchDst.mockResolvedValue(jsonResponse({}));
+
+    const { updateDstLoader } = await import("./dst-queries");
+
+    await expect(
+      updateDstLoader({
+        loaderId: 7,
+        loaderName: "Alex Trimmed",
+        isActive: false,
+      }),
+    ).resolves.toBeUndefined();
+
+    const [path, init] = getFetchCall();
+    const headers = new Headers(init?.headers);
+
+    expect(path).toBe(
+      "/api/barcode-get/update-loaders?Loader=Alex+Trimmed&IsActive=false&LoaderID=7",
+    );
+    expect(init?.method).toBe("PUT");
+    expect(headers.get("Content-Type")).toBeNull();
+    expect(init?.body).toBeUndefined();
+  });
+
   it("updates trailer and picked-by assignments with the legacy payloads", async () => {
     fetchDst.mockImplementation(() => jsonResponse({}));
 
