@@ -170,10 +170,11 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 **So that** loading operations can continue without leaving the app
 
 **Acceptance Criteria**
-- [ ] Loader list shows active loaders only
+- [ ] Loader list shows active loaders by default
+- [ ] Loader list can be toggled to show inactive loaders too
+- [ ] Clicking a loader opens an editor for name and active status
 - [ ] Add Loader is a separate utility flow, not part of Staging entry
 - [ ] New loaders become active immediately
-- [ ] Newly created loaders appear in the selectable list right away
 - [ ] Loader list can be manually refreshed when backend data changes
 
 ### Story 5: Staging workflow
