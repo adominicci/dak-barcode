@@ -410,6 +410,21 @@ describe("dst query helpers", () => {
     expect(url.searchParams.get("DropSheetID")).toBe("42");
   });
 
+  it("maps an empty will call signature record response to the canonical nullable shape", async () => {
+    fetchDst.mockResolvedValue(jsonResponse({}));
+
+    const { getDstWillCallSignature } = await import("./dst-queries");
+
+    await expect(getDstWillCallSignature(42)).resolves.toEqual({
+      dropSheetCustomerId: null,
+      dropSheetId: 42,
+      receivedBy: null,
+      signaturePath: null,
+      signatureTimestamp: null,
+      signature: null,
+    });
+  });
+
   it("uploads will call signatures through the legacy endpoint with the expected payload", async () => {
     fetchDst.mockResolvedValue(jsonResponse({}));
 

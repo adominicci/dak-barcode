@@ -134,7 +134,6 @@
 		event.preventDefault();
 		isDrawing = true;
 		lastPoint = point;
-		hasSignatureStroke = true;
 		context.beginPath();
 		context.moveTo(point.x, point.y);
 	}
@@ -152,6 +151,7 @@
 		}
 
 		event.preventDefault();
+		hasSignatureStroke = true;
 		context.lineTo(point.x, point.y);
 		context.stroke();
 		lastPoint = point;
@@ -230,8 +230,19 @@
 				signaturePath: data.path,
 				receivedBy: receivedBy.trim()
 			});
-			await onUploaded();
+
+			let refreshError: unknown = null;
+			try {
+				await onUploaded();
+			} catch (error) {
+				refreshError = error;
+			}
+
 			onClose();
+
+			if (refreshError) {
+				console.error('Will call signature refresh failed after upload.', refreshError);
+			}
 		} catch (error) {
 			uploadError =
 				error instanceof Error ? error.message : 'Unable to upload the signature right now.';

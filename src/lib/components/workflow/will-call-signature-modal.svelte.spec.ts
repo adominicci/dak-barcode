@@ -166,6 +166,112 @@ describe('will-call signature modal', () => {
 		expect(onUploaded).toHaveBeenCalled();
 	});
 
+	it('rejects upload when the canvas only receives a tap without a drawn stroke', async () => {
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose: vi.fn(),
+			onUploaded: vi.fn()
+		});
+
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerup', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await page.getByRole('button', { name: 'Upload Signature' }).click();
+
+		await expect.element(page.getByText('Signature is empty.')).toBeInTheDocument();
+		expect(upload).not.toHaveBeenCalled();
+		expect(uploadWillCallSignature).not.toHaveBeenCalled();
+	});
+
+	it('closes the modal after a successful upload even when the refresh callback fails', async () => {
+		const onClose = vi.fn();
+		const onUploaded = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose,
+			onUploaded
+		});
+
+		await page.getByLabelText('Received By').fill('Jordan');
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointermove', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerup', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true
+			})
+		);
+		await page.getByRole('button', { name: 'Upload Signature' }).click();
+
+		expect(upload).toHaveBeenCalled();
+		expect(uploadWillCallSignature).toHaveBeenCalled();
+		expect(onUploaded).toHaveBeenCalled();
+		expect(onClose).toHaveBeenCalled();
+		await expect
+			.element(page.getByText('Unable to upload the signature right now.'))
+			.not.toBeInTheDocument();
+	});
+
 	afterEach(() => {
 		HTMLCanvasElement.prototype.getContext = originalGetContext;
 		HTMLCanvasElement.prototype.toBlob = originalToBlob;
