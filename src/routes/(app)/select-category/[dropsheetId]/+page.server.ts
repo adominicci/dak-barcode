@@ -46,6 +46,11 @@ function parseDriverName(driverName: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
+function parseWillCallFlag(value: string | null | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized === 'true' || normalized === '1';
+}
+
 function buildEmptyDepartmentLoaderGroups(): DepartmentLoaderGroup[] {
 	return DEPARTMENT_ORDER.map((department) => ({
 		department,
@@ -121,6 +126,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const driverName = parseDriverName(url.searchParams.get('driverName'));
 	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
 	const returnTo = parseLegacyReturnTo(url.searchParams.get('returnTo'));
+	const willCall = parseWillCallFlag(url.searchParams.get('willcall'));
 
 	return {
 		dropSheetId,
@@ -128,6 +134,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		driverName,
 		dropWeight,
 		returnTo,
+		willCall,
 		loaders,
 		departmentLoaders,
 		departmentLoadersError

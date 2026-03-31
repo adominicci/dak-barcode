@@ -44,6 +44,7 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
 				{ id: 9, name: 'Casey', isActive: true }
@@ -118,6 +119,7 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: ['Alex', 'Casey'] },
@@ -143,6 +145,7 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -187,6 +190,7 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -214,6 +218,7 @@ describe('select-category page server load', () => {
 			driverName: 'David Schmidt',
 			dropWeight: 2152.4,
 			returnTo: '/dropsheets?date=2026-03-24',
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -239,6 +244,35 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: 2152.4,
 			returnTo: null,
+			willCall: false,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }],
+			departmentLoaders: [
+				{ department: 'Wrap', loaderNames: [] },
+				{ department: 'Roll', loaderNames: [] },
+				{ department: 'Parts', loaderNames: [] }
+			],
+			departmentLoadersError: null
+		});
+	});
+
+	it('parses the willcall flag from the legacy handoff query string', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+		getDakLoadersForDropsheet.mockResolvedValue([]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL(
+					'https://example.com/select-category/42?loadNumber=L-042&driverName=WILL%20CALL&willcall=true&returnTo=%2Fhome'
+				)
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			driverName: 'WILL CALL',
+			dropWeight: null,
+			returnTo: '/home',
+			willCall: true,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -264,6 +298,7 @@ describe('select-category page server load', () => {
 			driverName: null,
 			dropWeight: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },

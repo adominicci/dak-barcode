@@ -1,7 +1,7 @@
 # Architecture: Stage & Load Barcode Module Frontend
 
-**Version**: 1.5
-**Date**: 2026-03-30
+**Version**: 1.6
+**Date**: 2026-03-31
 
 ---
 
@@ -46,9 +46,9 @@ The architecture is built around shared iPads, hardware barcode scanners, and fa
 - **dak-web** (Heroku FastAPI)
 - **Microsoft SQL Server** as the operational data store used by both FastAPI services
 
-### Future use
+### Storage
 
-- **Supabase Storage** for Phase 2 signature handling
+- **Supabase Storage** for Will Call signature uploads and signed preview URLs
 
 ---
 
@@ -71,7 +71,7 @@ flowchart TB
     subgraph SUPABASE["Supabase"]
         SBAUTH["Auth"]
         SBDB["Postgres metadata<br/>profiles · warehouses"]
-        SBSTORAGE["Storage (Phase 2)"]
+        SBSTORAGE["Storage (Will Call Signatures)"]
     end
 
     subgraph HEROKU["External FastAPI backends"]
@@ -94,7 +94,7 @@ flowchart TB
     PROXY --> DAK
     DST --> OPS
     DAK --> OPS
-    APP -. future .-> SBSTORAGE
+    APP --> SBSTORAGE
 ```
 
 ---
@@ -281,10 +281,21 @@ src/lib/
 ├── staging.remote.ts
 ├── scan.remote.ts
 ├── department-status.remote.ts
-└── loader-session.remote.ts
+├── loader-session.remote.ts
+└── will-call.remote.ts
 ```
 
 `.remote.ts` files must stay outside `$lib/server`. Shared canonical types live in `$lib/types`, while proxy helpers and raw-to-domain normalization stay in `$lib/server`.
+
+### Will Call parity contract
+
+Will Call remains on the legacy DST contract while scan staging/loading moves through `dak-web`. The frontend currently uses:
+
+- `GET /api/barcode-get/get-dropsheet-willcall-orders`
+- `GET /api/barcode-get/get-signature-will-call`
+- `POST /api/barcode-update/upload-signature-will-call`
+
+The browser uploads new signature images directly to Supabase Storage, then the app persists the stable storage object path and `ReceivedBy` back to DST through a remote command.
 
 ### Example: remote command
 

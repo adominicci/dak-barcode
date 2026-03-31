@@ -94,6 +94,25 @@ export type DropSheet = {
 	loaderName: string | null;
 };
 
+export type WillCallDropsheetLookup = {
+	dropSheetId: number;
+};
+
+export type WillCallSignatureRecord = {
+	dropSheetCustomerId: number | null;
+	dropSheetId: number;
+	signature: string | null;
+	signatureTimestamp: string | null;
+	receivedBy: string | null;
+	signaturePath: string | null;
+};
+
+export type WillCallSignatureUploadInput = {
+	dropSheetId: number;
+	signaturePath: string;
+	receivedBy: string;
+};
+
 export type DropArea = {
 	id: number;
 	name: string;

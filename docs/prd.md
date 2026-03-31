@@ -1,7 +1,7 @@
 # Product Requirements Document: Stage & Load Barcode Module Frontend
 
-**Version**: 1.2
-**Date**: 2026-03-19
+**Version**: 1.3
+**Date**: 2026-03-31
 **Author**: Sarah (Product Owner), aligned with project discovery notes
 
 ---
@@ -12,7 +12,7 @@ The Stage & Load Barcode Module is a warehouse operations tool used by DST floor
 
 This project rebuilds the frontend as a SvelteKit 5 web application optimized for shared iPads with hardware barcode scanners. The new frontend uses Supabase Auth, Supabase profile metadata, and server-side remote functions that proxy all warehouse API traffic to the existing Heroku backends. Business logic consolidation in `dak-web` remains part of the overall program, but this repository owns the frontend only.
 
-The rebuild is MVP-first. Phase 1 delivers login, access control, admin testing target selection, Home navigation, Add Loader, Staging, Dropsheet selection, Select Category, and Loading. Will Call remains visible but disabled until Phase 2.
+The rebuild is MVP-first. Phase 1 delivers login, access control, admin testing target selection, Home navigation, Add Loader, Staging, Dropsheet selection, Select Category, Loading, and Will Call parity for customer pickup signatures.
 
 ---
 
@@ -43,7 +43,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 
 - Rebuilding `dak-web` inside this repository
 - Replacing SQL Server operational data with Supabase Postgres
-- Delivering Will Call, signatures, move orders, or other Phase 2 flows in MVP
+- Delivering move orders or other post-MVP flows beyond the current warehouse and Will Call parity scope
 - Offline queueing or sync
 
 ---
@@ -160,7 +160,8 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
   - `Loading`
   - `Add Loader`
   - `Will Call`
-- [ ] `Will Call` is visible but disabled as coming soon
+- [ ] `Will Call` opens a scanner-first entry flow from Home
+- [ ] Successful Will Call scans route into Select Category with `willcall=true` and legacy context preserved
 - [ ] Home is the first page after re-entry for active sessions
 
 ### Story 4: Add Loader utility
@@ -229,6 +230,20 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Roll resets the selected drop area after each successful scan
 - [ ] Leaving the Loading page records loader end time
 
+### Story 7A: Will Call workflow
+
+**As a** warehouse operator  
+**I want to** scan a Will Call delivery number and capture or review the customer signature  
+**So that** customer pickup orders match the legacy Flutter workflow
+
+**Acceptance Criteria**
+- [ ] Will Call lookup uses the legacy DST lookup endpoint for scanned delivery numbers
+- [ ] Successful lookup routes into Select Category with `driverName=WILL CALL`
+- [ ] Select Category shows a Will Call-only `Signature` action
+- [ ] If a Will Call signature already exists, the app shows the saved image and `ReceivedBy` in read-only mode
+- [ ] If no signature exists, the app lets the user enter `ReceivedBy`, draw on a native canvas pad, upload to Supabase Storage, and persist the stable object path back to DST
+- [ ] Existing Will Call signatures are view-only from this UI
+
 ### Story 8: Scan feedback and reliability
 
 **As a** warehouse operator  
@@ -291,12 +306,12 @@ These endpoints are part of the overall project, but they are not implemented in
 - Dropsheet list
 - Select Category + loader selection
 - Loading workflow
+- Will Call lookup flow from Home
+- Will Call signature capture and review
 - Remote functions and proxy helpers
 
 ### Phase 2
 
-- Will Call workflow
-- Signature capture
 - Move Orders
 - Order status views
 - Loading-complete notifications

@@ -498,6 +498,46 @@ describe("dropsheets page", () => {
     );
   });
 
+  it("marks legacy will call rows so select-category shows the signature action when opened from dropsheets", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 56,
+          loadNumber: "03312026-1256",
+          loadNumberShort: null,
+          trailer: null,
+          percentCompleted: 0,
+          loadedAt: null,
+          dropWeight: 25,
+          driverId: 21,
+          driverName: null,
+          allLoaded: false,
+          loaderName: null,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await page
+      .getByRole("button", { name: /Open select category for 03312026-1256/i })
+      .click();
+
+    expect(goto).toHaveBeenCalledWith(
+      "/select-category/56?loadNumber=03312026-1256&deliveryNumber=03312026-1256&driverName=WILL+CALL&dropWeight=25&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24&willcall=true",
+    );
+  });
+
   it("shows the empty state when the selected date has no dropsheets", async () => {
     getDropsheets.mockReturnValue(createQueryState([]));
     getLoaders.mockReturnValue(

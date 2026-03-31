@@ -204,7 +204,9 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
   - Staging
   - Loading
   - Add Loader
-  - Will Call (disabled)
+  - Will Call
+- Open a scanner-first Will Call modal from Home
+- Route successful Will Call lookups into Select Category with `willcall=true`
 - Keep Home as the stable re-entry page
 
 **4.3 — Add Loader utility**
@@ -226,6 +228,8 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Require loader selection here before entering Loading
 - Create loader session before navigation
 - Pass `dropsheetId`, `locationId`, and `loaderId` to Loading
+- Show a Will Call-only `Signature` action when `willcall=true`
+- Support existing-signature review and new signature upload through Supabase Storage plus the legacy DST update endpoint
 
 ### Definition of Done
 
@@ -233,6 +237,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Home matches the agreed MVP action set
 - Add Loader works as a utility flow
 - Loading entry path is Dropsheets -> Select Category -> Loader -> Loading
+- Will Call can enter Select Category from Home and handle legacy signature parity
 
 ---
 
