@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 const routeExpectations = [
-	{ path: '/login', heading: 'Welcome Back' },
-	{ path: '/forgot-password', heading: 'Forgot password' },
-	{ path: '/reset-password', heading: 'Reset password' }
+	{ path: '/login', heading: 'Welcome Back', title: 'Sign In - Stage & Load' },
+	{ path: '/forgot-password', heading: 'Forgot password', title: 'Forgot Password - Stage & Load' },
+	{ path: '/reset-password', heading: 'Reset password', title: 'Reset Password - Stage & Load' }
 ];
 
 test('redirects the root route to login', async ({ page }) => {
@@ -11,6 +11,7 @@ test('redirects the root route to login', async ({ page }) => {
 
 	await expect(page).toHaveURL(/\/login$/);
 	await expect(page.getByRole('heading', { name: 'Welcome Back', exact: true })).toBeVisible();
+	await expect(page).toHaveTitle('Sign In - Stage & Load');
 });
 
 for (const route of routeExpectations) {
@@ -18,6 +19,7 @@ for (const route of routeExpectations) {
 		await page.goto(route.path);
 
 		await expect(page.getByRole('heading', { name: route.heading, exact: true })).toBeVisible();
+		await expect(page).toHaveTitle(route.title);
 	});
 }
 
