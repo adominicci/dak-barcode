@@ -107,7 +107,7 @@ bun run build
 ## Repo structure
 
 - `src/` — current SvelteKit app
-- `docs/` — product and architecture source of truth
+- `docs/` — product, architecture, and retrieval-memory source of truth
 - `agile_plan/` — milestone sequencing and implementation planning
 - `legacy_flutterflow_fe/` — read-only reference for the legacy FlutterFlow app
 
@@ -116,9 +116,14 @@ bun run build
 Use these files first when catching up:
 
 - `AGENTS.md`
+- `docs/project-state.yaml`
+- `docs/current-context.md`
+- `docs/decisions.md`
 - `docs/prd.md`
 - `docs/architecture.md`
 - `agile_plan/stage-load-implementation-plan.md`
+
+Treat dated files under `docs/handoffs/` as historical snapshots, not the default reload surface.
 
 ## Implementation guidance
 

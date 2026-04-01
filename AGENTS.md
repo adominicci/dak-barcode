@@ -102,6 +102,12 @@ When project discovery changes the scope or architecture:
 
 Do not let docs, Linear, and the implementation drift apart.
 
+### Keep retrieval memory aligned
+
+- After any repo-tracked change or issue-scope change, run a **Memory Impact Analysis (MIA)** before considering the task complete.
+- Use `docs/project-state.yaml` for canonical fast-reload truth, `docs/current-context.md` for the rolling handoff, and `docs/decisions.md` for durable decisions.
+- If new facts contradict older docs, record the contradiction in `docs/decisions.md` and update the affected memory artifact instead of silently choosing a source.
+
 ### Verify framework examples
 
 If you add or modify framework-specific code examples in docs, verify them against current official documentation first. Use Context7 for SvelteKit and Supabase examples when needed.

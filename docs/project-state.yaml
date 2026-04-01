@@ -1,0 +1,243 @@
+meta:
+  version: 1
+  purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
+  status: active
+  last_updated_at: 2026-04-01
+  default_reload_order:
+    - AGENTS.md
+    - docs/project-state.yaml
+    - docs/current-context.md
+    - docs/decisions.md
+    - active Linear issue/comments
+    - git branch, diff, and recent commits
+    - code inspection for touched areas
+  retrieval_score_formula: "0.40R + 0.25A + 0.20F + 0.15G - 0.20T - 0.30S"
+  retrieval_score_terms:
+    R: semantic relevance to the current task
+    A: authority of the source
+    F: freshness of the source
+    G: graph proximity to touched files, routes, and issues
+    T: token cost to load the source
+    S: staleness or conflict penalty
+  contradiction_trust_order:
+    - confirmed current code plus verified external behavior
+    - newest applicable entry in docs/decisions.md
+    - current docs/project-state.yaml
+    - older narrative docs
+  freshness_sensors:
+    - git branch, diff, and recent commits
+    - active Linear issue and comments
+  memory_impact_analysis:
+    triggers:
+      - repo-tracked files changed
+      - task scope changed
+      - active issue changed
+      - new backend or API behavior was discovered
+      - docs and code disagree
+      - PR review or bug report changed accepted understanding
+    outputs:
+      - No update needed
+      - Update current-context only
+      - Append decisions log and update current-context
+      - Update project-state and current-context
+      - Escalate: constitutional docs also need updates
+    ownership_rules:
+      behavior_or_runtime_change: update docs/project-state.yaml
+      temporary_focus_or_risk: update docs/current-context.md
+      durable_decision_or_tradeoff: append docs/decisions.md
+      product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
+
+product:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - AGENTS.md
+    - README.md
+    - docs/prd.md
+  confidence: high
+  repo_ownership: Frontend-only SvelteKit rebuild of the DST Stage and Load barcode module.
+  primary_device: shared iPad A16 with hardware barcode scanner input
+  secondary_device: desktop browser for debugging and implementation support
+  operating_rules:
+    - always-online app
+    - Home is the stable re-entry page for active sessions
+    - Staging does not require a loader
+    - Loading requires explicit loader selection before entry
+    - non-admin warehouse selection is resolved from the Supabase profile
+    - only admin users may access the location or environment selector
+  implemented_surfaces:
+    - auth shell plus login, logout, forgot-password, reset-password, change-password, and inactive gate
+    - profile-based routing with admin target selection and operator warehouse resolution
+    - Home, Location, Account, Add Loader, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
+    - staging and loading scan loops with hardware-scanner-first interaction
+  intentionally_limited:
+    - Will Call remains part of the intended surface but is not a live workflow route yet
+    - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
+
+architecture:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - docs/architecture.md
+    - src/lib/server/auth-context.ts
+    - src/lib/server/proxy.ts
+    - src/routes/(app)/+layout.server.ts
+  confidence: high
+  stack:
+    framework: SvelteKit 5
+    language: TypeScript strict
+    runtime: Node.js 24
+    package_manager: Bun
+    styling: Tailwind CSS 4
+    ui: shadcn-svelte on Bits UI
+    auth: Supabase Auth via @supabase/ssr
+  routing_model:
+    - authenticated requests are gated in hooks.server.ts and layout server loads
+    - the browser never calls Heroku backends directly
+    - server-side proxy helpers normalize target formatting for each backend
+  state_rules:
+    - workflow state is intentionally disposable and mostly in memory
+    - auth and target resolution are server-side concerns
+    - browser cache is limited to lookup lists such as loaders, trailers, and drop areas
+  access_states:
+    - anonymous
+    - inactive
+    - operator-ready
+    - admin-needs-target
+    - admin-ready
+
+workflows:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - AGENTS.md
+    - src/routes/(app)/staging/+page.svelte
+    - src/routes/(app)/loading/+page.svelte
+    - src/lib/workflow/staging-scan-controller.ts
+    - src/lib/workflow/loading-scan-controller.ts
+  confidence: high
+  home:
+    status: live
+    notes:
+      - exposes Staging, Loading, Add Loader, and the future-facing Will Call affordance
+      - acts as the stable landing page after re-entry
+  staging:
+    status: live
+    rules:
+      - department selection is required on entry
+      - numeric scans are location codes
+      - any valid drop area is accepted
+      - Roll resets the current location after each successful scan
+  loading:
+    status: live with mixed-source support
+    entry_flow:
+      - Dropsheets
+      - Select Category
+      - Loader selection
+      - Loader session creation
+      - Loading
+    rules:
+      - numeric scans are driver locations only
+      - non-numeric scans go through pallet or single-label processing
+      - Roll resets the current location after each successful scan
+      - leaving Loading should record loader end time
+  support_views:
+    status: live
+    included:
+      - Order Status
+      - Move Orders
+      - Add Loader
+
+integrations:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - docs/architecture.md
+    - docs/prd.md
+    - src/lib/server/proxy.ts
+    - package.json
+  confidence: high
+  backends:
+    dst_customer_portal:
+      transport: same-origin SvelteKit proxy helper
+      target_format: db=Canton|Freeport|Sandbox
+    dak_web:
+      transport: same-origin SvelteKit proxy helper
+      target_format: X-Db CANTON|FREEPORT|SANDBOX
+  required_endpoints:
+    - POST /v1/scan/process-staging
+    - POST /v1/scan/process-loading
+    - GET /v1/scan/department-status
+  required_environment_variables:
+    - PUBLIC_SUPABASE_URL
+    - PUBLIC_SUPABASE_ANON_KEY
+    - DST_PORTAL_URL
+    - DAK_WEB_URL
+
+testing:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - package.json
+    - README.md
+  confidence: high
+  standard_commands:
+    - bun install
+    - bun run dev
+    - bun run check
+    - bun run test:unit -- --run
+    - bun run test:e2e src/routes/app-shell.e2e.ts
+    - bun run build
+  key_coverage_areas:
+    - auth route and server behavior
+    - loading route, controller, and lifecycle behavior
+    - staging route and controller behavior
+    - server proxy, auth-context, and type-mapper contracts
+
+known_gaps:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - AGENTS.md
+    - README.md
+    - docs/handoffs/2026-03-26-next-ai-collaborator-prompt.md
+  confidence: medium
+  active_limits:
+    - drop-scoped dak-web department status remains a placeholder while on-load department status is live
+    - some dated handoff notes still point at DAK-209 and must not be treated as automatically current
+    - current-context must be refreshed when issue focus changes because no automation enforces it yet
+  stale_risk_signals:
+    - docs or code disagree after a task
+    - branch diff touches runtime behavior without a memory update
+    - a Linear issue changes while current-context still references the previous one
+
+canonical_paths:
+  last_verified_at: 2026-04-01
+  verified_against:
+    - README.md
+    - docs/architecture.md
+    - rg --files src/routes src/lib
+  confidence: high
+  constitutional:
+    - AGENTS.md
+  fast_reload:
+    - docs/project-state.yaml
+    - docs/current-context.md
+    - docs/decisions.md
+  narrative_docs:
+    - docs/prd.md
+    - docs/architecture.md
+    - docs/design.md
+    - agile_plan/stage-load-implementation-plan.md
+  historical_handoffs:
+    - docs/handoffs/2026-03-26-next-ai-collaborator-prompt.md
+  runtime_paths:
+    - src/routes/(app)/+layout.server.ts
+    - src/routes/(app)/home/+page.svelte
+    - src/routes/(app)/staging/+page.svelte
+    - src/routes/(app)/loading/+page.svelte
+    - src/lib/workflow/staging-scan-controller.ts
+    - src/lib/workflow/loading-scan-controller.ts
+    - src/lib/server/auth-context.ts
+    - src/lib/server/proxy.ts
+  verification_paths:
+    - src/routes/(app)/staging/staging-page.svelte.spec.ts
+    - src/routes/(app)/loading/loading-page.svelte.spec.ts
+    - src/lib/workflow/staging-scan-controller.spec.ts
+    - src/lib/workflow/loading-scan-controller.spec.ts
+    - src/lib/server/auth-context.spec.ts
+    - src/lib/server/proxy.spec.ts
