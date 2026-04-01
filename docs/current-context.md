@@ -1,5 +1,15 @@
 # Current Context
 
+## 2026-04-01 DAK-220 Refresh
+
+- Current worktree: `dev`
+- Restored the missing `DAK-220` Will Call flow additively from the closed-but-unmerged branch history instead of resetting or overwriting current local changes.
+- Runtime truth now matches the intended migrated surface: Home opens a Will Call scan modal, dropsheet handoff preserves the `willcall=true` flag, select-category exposes the signature action for Will Call, and DST helpers now cover will-call lookup/signature persistence.
+- Verification completed in this session:
+  - targeted unit/browser suite for Will Call and affected surfaces passed
+  - `bun run check` passed cleanly after widening the shared DST query helper to accept boolean query params
+- Important freshness note: the retrieval-memory rollout notes below remain useful background, but they no longer describe the active product-only focus of this worktree.
+
 ## Current Focus
 
 - Establish the retrieval memory system and make it the default reload surface for future contexts.

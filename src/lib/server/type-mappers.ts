@@ -14,6 +14,8 @@ import type {
 	LoaderSession,
 	OperationalDepartment,
 	PalletBelongsToLpidResult,
+	WillCallDropsheetLookup,
+	WillCallSignatureRecord,
 	Trailer,
 	ScanDropAreaSummary,
 	ScanResult,
@@ -28,6 +30,8 @@ import type {
 	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
+	RawDstWillCallDropSheet,
+	RawDstWillCallSignature,
 	RawDstLegacyLoadViewAllEntry,
 	RawDstLegacyMoveOrderRow,
 	RawDstLegacyOrderStatusRow,
@@ -177,6 +181,29 @@ export function mapDstDropSheet(raw: RawDstDropSheet): DropSheet {
 		driverName: nullableString(raw.DriverName),
 		allLoaded: raw.AllLoaded ?? false,
 		loaderName: nullableString(raw.Loader)
+	};
+}
+
+export function mapDstWillCallDropsheet(raw: RawDstWillCallDropSheet): WillCallDropsheetLookup {
+	return {
+		dropSheetId: requiredNumber(
+			raw.DropSheetID,
+			'mapDstWillCallDropsheet: missing required DropSheetID'
+		)
+	};
+}
+
+export function mapDstWillCallSignature(
+	raw: RawDstWillCallSignature,
+	dropSheetId: number
+): WillCallSignatureRecord {
+	return {
+		dropSheetCustomerId: nullableNumber(raw.DropSheetCustID),
+		dropSheetId: raw.fkDropSheetID ?? dropSheetId,
+		signature: nullableString(raw.Signature),
+		signatureTimestamp: nullableString(raw.SignatureTS),
+		receivedBy: nullableString(raw.ReceivedBy),
+		signaturePath: nullableString(raw.Signature_Path)
 	};
 }
 

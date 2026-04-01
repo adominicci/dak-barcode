@@ -14,6 +14,9 @@ import {
 	type OperationalDepartment,
 	type PalletBelongsToLpidResult,
 	type Trailer,
+	type WillCallDropsheetLookup,
+	type WillCallSignatureRecord,
+	type WillCallSignatureUploadInput,
 	type StagingListItem
 } from '$lib/types';
 import type {
@@ -23,6 +26,8 @@ import type {
 	RawDstDropSheetCategoryAvailability,
 	RawDstDropArea,
 	RawDstDropSheet,
+	RawDstWillCallDropSheet,
+	RawDstWillCallSignature,
 	RawDstLegacyLoadViewAllEntry,
 	RawDstLegacyMoveOrderRow,
 	RawDstLegacyOrderStatusRow,
@@ -41,6 +46,8 @@ import {
 	mapDstDropSheetCategoryAvailability,
 	mapDstDropArea,
 	mapDstDropSheet,
+	mapDstWillCallDropsheet,
+	mapDstWillCallSignature,
 	mapDstLegacyLoadViewAllEntry,
 	mapDstLegacyMoveOrderRow,
 	mapDstLegacyOrderStatusRow,
@@ -60,9 +67,12 @@ const DST_ROUTES = {
 	insertLoader: '/api/barcode-update/insert-loader',
 	updateLoader: '/api/barcode-get/update-loaders',
 	dropsheets: '/api/barcode-get/select-loading-dropsheet',
+	willCallDropsheet: '/api/barcode-get/get-dropsheet-willcall-orders',
 	dropsheetStatus: '/api/barcode-update/check-onload-statusDS-departments',
 	departmentStatusOnDrop: '/api/barcode-get/get-department-status-ondrop',
 	dropsheetCategoryAvailability: '/api/barcode-update/get-percent-scanned-label-count',
+	willCallSignature: '/api/barcode-get/get-signature-will-call',
+	uploadWillCallSignature: '/api/barcode-update/upload-signature-will-call',
 	updateDropsheetTrailer: '/api/barcode-update/update-trailer-dropsheet',
 	updateDropsheetPickedByLoader: '/api/dropsheet/update-picked-by',
 	dropArea: '/api/barcode-get/get-droparea',
@@ -199,7 +209,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function withQuery(
 	path: string,
-	params: Record<string, string | number | null | undefined>
+	params: Record<string, string | number | boolean | null | undefined>
 ): string {
 	const url = new URL(path, 'https://dst.internal');
 
@@ -273,6 +283,10 @@ function hasUsableDropArea(record: Record<string, unknown>) {
 }
 
 function hasUsableDropSheetStatus(record: Record<string, unknown>) {
+	return isFiniteNumber(record.DropSheetID);
+}
+
+function hasUsableWillCallDropSheet(record: Record<string, unknown>) {
 	return isFiniteNumber(record.DropSheetID);
 }
 
@@ -350,6 +364,47 @@ export async function getDstDropsheets(dropSheetDate: string): Promise<DropSheet
 	const body = await readDstJson(path);
 
 	return expectListResponse<RawDstDropSheet>(body, path).map(mapDstDropSheet);
+}
+
+export async function getDstWillCallDropsheet(
+	loadNumber: string
+): Promise<WillCallDropsheetLookup> {
+	const path = withQuery(DST_ROUTES.willCallDropsheet, {
+		LoadNumber: loadNumber
+	});
+	const body = await readDstJson(path);
+
+	return mapDstWillCallDropsheet(
+		expectRecordResponse<RawDstWillCallDropSheet>(body, path, hasUsableWillCallDropSheet)
+	);
+}
+
+export async function getDstWillCallSignature(
+	dropSheetId: number
+): Promise<WillCallSignatureRecord> {
+	const path = withQuery(DST_ROUTES.willCallSignature, {
+		DropSheetID: dropSheetId
+	});
+	const body = await readDstJson(path);
+
+	if (!isRecord(body)) {
+		throw new Error(`DST route ${path} returned an invalid record response.`);
+	}
+
+	return mapDstWillCallSignature(body as RawDstWillCallSignature, dropSheetId);
+}
+
+export async function uploadDstWillCallSignature(
+	input: WillCallSignatureUploadInput
+): Promise<void> {
+	await readDstJson(
+		DST_ROUTES.uploadWillCallSignature,
+		jsonInit({
+			DropSheetID: input.dropSheetId,
+			Signature_Path: input.signaturePath,
+			ReceivedBy: input.receivedBy
+		})
+	);
 }
 
 export async function updateDstDropSheetTrailer(

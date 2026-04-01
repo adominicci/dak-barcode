@@ -46,6 +46,11 @@ function parseDriverName(driverName: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
+function parseWillCallFlag(value: string | null | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized === 'true' || normalized === '1';
+}
+
 function parsePercentCompleted(percentCompleted: string | null | undefined): number | null {
 	const trimmed = percentCompleted?.trim();
 
@@ -134,6 +139,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const dropWeight = parsePositiveNumber(url.searchParams.get('dropWeight'));
 	const percentCompleted = parsePercentCompleted(url.searchParams.get('percentCompleted'));
 	const returnTo = parseLegacyReturnTo(url.searchParams.get('returnTo'));
+	const willCall = parseWillCallFlag(url.searchParams.get('willcall'));
 
 	return {
 		dropSheetId,
@@ -142,6 +148,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		dropWeight,
 		percentCompleted,
 		returnTo,
+		willCall,
 		loaders,
 		departmentLoaders,
 		departmentLoadersError

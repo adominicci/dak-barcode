@@ -1,6 +1,20 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+
+const { goto, lookupWillCallDropsheet } = vi.hoisted(() => ({
+	goto: vi.fn(),
+	lookupWillCallDropsheet: vi.fn()
+}));
+
+vi.mock('$app/navigation', () => ({
+	goto
+}));
+
+vi.mock('$lib/will-call.remote', () => ({
+	lookupWillCallDropsheet
+}));
+
 import HomePage from './+page.svelte';
 
 const baseData = {
@@ -12,6 +26,11 @@ const baseData = {
 };
 
 describe('home module selector', () => {
+	beforeEach(() => {
+		goto.mockReset();
+		lookupWillCallDropsheet.mockReset();
+	});
+
 	it('renders the screenshot-style home chrome and two-column module surface', async () => {
 		render(HomePage, { data: baseData, params: {} });
 
@@ -24,7 +43,7 @@ describe('home module selector', () => {
 		await expect.element(page.getByTestId('home-card-add-loader')).toBeInTheDocument();
 	});
 
-	it('keeps the Add Loader utility treatment and the disabled Will Call state', async () => {
+	it('keeps the Add Loader utility treatment and turns Will Call into an active workflow entry', async () => {
 		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByTestId('home-card-add-loader')).toHaveClass(
@@ -35,14 +54,75 @@ describe('home module selector', () => {
 		);
 		await expect.element(page.getByTestId('home-card-staging')).toHaveClass(/ui-primary-gradient/);
 		await expect.element(page.getByTestId('home-card-loading')).toHaveClass(/ui-primary-gradient/);
-		await expect.element(page.getByTestId('home-card-will-call')).toHaveClass(/ui-primary-soft/);
+		await expect.element(page.getByTestId('home-card-will-call')).toHaveClass(/ui-primary-gradient/);
 		await expect.element(page.getByTestId('home-card-will-call-icon')).toHaveClass(
-			/ui-primary-soft/
+			/bg-white\/18/
 		);
-		await expect.element(page.getByTestId('home-card-will-call')).toHaveAttribute(
-			'aria-disabled',
-			'true'
+
+		await page.getByTestId('home-card-will-call').click();
+
+		await expect.element(page.getByTestId('will-call-scan-modal')).toBeInTheDocument();
+		await expect.element(page.getByTestId('will-call-scan-input')).toHaveFocus();
+	});
+
+	it('routes a successful will call scan into select-category with the legacy handoff payload', async () => {
+		lookupWillCallDropsheet.mockResolvedValue({
+			dropSheetId: 42
+		});
+
+		render(HomePage, { data: baseData, params: {} });
+
+		await page.getByTestId('home-card-will-call').click();
+		await page.getByTestId('will-call-scan-input').fill('WC-042');
+		const inputElement = document.querySelector('[data-testid="will-call-scan-input"]');
+		if (!(inputElement instanceof HTMLInputElement)) {
+			throw new Error('Expected will call scan input element.');
+		}
+
+		inputElement.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: 'Enter',
+				bubbles: true,
+				cancelable: true
+			})
 		);
+
+		await vi.waitFor(() => {
+			expect(lookupWillCallDropsheet).toHaveBeenCalledWith('WC-042');
+			expect(goto).toHaveBeenCalledWith(
+				'/select-category/42?loadNumber=WC-042&deliveryNumber=WC-042&driverName=WILL+CALL&willcall=true&returnTo=%2Fhome'
+			);
+		});
+	});
+
+	it('shows an inline scanner-safe error and keeps the scan field ready when a will call lookup fails', async () => {
+		lookupWillCallDropsheet.mockRejectedValue(
+			new Error('Load number WC-404 is not a will call order.')
+		);
+
+		render(HomePage, { data: baseData, params: {} });
+
+		await page.getByTestId('home-card-will-call').click();
+		await page.getByTestId('will-call-scan-input').fill('WC-404');
+		const inputElement = document.querySelector('[data-testid="will-call-scan-input"]');
+		if (!(inputElement instanceof HTMLInputElement)) {
+			throw new Error('Expected will call scan input element.');
+		}
+
+		inputElement.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: 'Enter',
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await expect.element(page.getByTestId('will-call-scan-error')).toHaveTextContent(
+			'Load number WC-404 is not a will call order.'
+		);
+		await expect.element(page.getByTestId('will-call-scan-input')).toHaveValue('');
+		await expect.element(page.getByTestId('will-call-scan-input')).toHaveFocus();
+		expect(goto).not.toHaveBeenCalled();
 	});
 
 	it('shows the resolved target and workflow destinations on the home surface', async () => {

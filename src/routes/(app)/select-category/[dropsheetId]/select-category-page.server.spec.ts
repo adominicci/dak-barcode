@@ -38,13 +38,14 @@ describe('select-category page server load', () => {
 				params: { dropsheetId: '42' },
 				url: new URL('https://example.com/select-category/42')
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: '42',
 			driverName: null,
 			dropWeight: null,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
 				{ id: 9, name: 'Casey', isActive: true }
@@ -113,13 +114,14 @@ describe('select-category page server load', () => {
 				params: { dropsheetId: '42' },
 				url: new URL('https://example.com/select-category/42?loadNumber=L-042')
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: ['Alex', 'Casey'] },
@@ -146,6 +148,7 @@ describe('select-category page server load', () => {
 			dropWeight: null,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -184,13 +187,14 @@ describe('select-category page server load', () => {
 				params: { dropsheetId: '42' },
 				url: new URL('https://example.com/select-category/42?deliveryNumber=L-042')
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -212,13 +216,14 @@ describe('select-category page server load', () => {
 					'https://example.com/select-category/42?loadNumber=L-042&driverName=David%20Schmidt&dropWeight=2152.4&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24'
 				)
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
 			driverName: 'David Schmidt',
 			dropWeight: 2152.4,
 			percentCompleted: null,
 			returnTo: '/dropsheets?date=2026-03-24',
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -238,13 +243,14 @@ describe('select-category page server load', () => {
 				params: { dropsheetId: '42' },
 				url: new URL('https://example.com/select-category/42?loadNumber=L-042&dropWeight=2152.4')
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: 2152.4,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -264,13 +270,14 @@ describe('select-category page server load', () => {
 				params: { dropsheetId: '42' },
 				url: new URL('https://example.com/select-category/42?loadNumber=L-042&dropWeight=0')
 			} as never)
-			).resolves.toEqual({
+		).resolves.toEqual({
 			dropSheetId: 42,
 			loadNumber: 'L-042',
 			driverName: null,
 			dropWeight: null,
 			percentCompleted: null,
 			returnTo: null,
+			willCall: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -299,6 +306,36 @@ describe('select-category page server load', () => {
 			dropWeight: null,
 			percentCompleted: 1,
 			returnTo: null,
+			willCall: false,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }],
+			departmentLoaders: [
+				{ department: 'Wrap', loaderNames: [] },
+				{ department: 'Roll', loaderNames: [] },
+				{ department: 'Parts', loaderNames: [] }
+			],
+			departmentLoadersError: null
+		});
+	});
+
+	it('parses the willcall flag from the legacy handoff query string', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+		getDakLoadersForDropsheet.mockResolvedValue([]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL(
+					'https://example.com/select-category/42?loadNumber=L-042&driverName=WILL%20CALL&willcall=true&returnTo=%2Fhome'
+				)
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			driverName: 'WILL CALL',
+			dropWeight: null,
+			percentCompleted: null,
+			returnTo: '/home',
+			willCall: true,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },

@@ -24,6 +24,7 @@
 		updateDropsheetPickedByLoader
 	} from '$lib/dropsheets.remote';
 	import type { DropSheet } from '$lib/types';
+	import { isLegacyWillCallDriver } from '$lib/will-call';
 	import type { PageProps } from './$types';
 
 	type PickerKind = 'trailer' | 'loader';
@@ -185,14 +186,19 @@
 	}
 
 	function goToDropSheetCategory(dropSheet: DropSheet) {
+		const isWillCall = isLegacyWillCallDriver(dropSheet.driverId);
 		const searchParams = new URLSearchParams({
 			loadNumber: dropSheet.loadNumber,
 			deliveryNumber: dropSheet.loadNumber,
-			driverName: dropSheet.driverName ?? '',
+			driverName: isWillCall ? 'WILL CALL' : dropSheet.driverName ?? '',
 			dropWeight: String(dropSheet.dropWeight),
 			percentCompleted: String(dropSheet.percentCompleted),
 			returnTo: resolve(`/dropsheets?date=${data.selectedDate}`)
 		});
+
+		if (isWillCall) {
+			searchParams.set('willcall', 'true');
+		}
 
 		return goto(resolve(`/select-category/${dropSheet.id}?${searchParams.toString()}`));
 	}

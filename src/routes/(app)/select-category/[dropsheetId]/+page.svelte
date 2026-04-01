@@ -6,22 +6,27 @@
 		CheckCircle2,
 		ChevronRight,
 		ClipboardList,
+		LoaderCircle,
+		PenLine,
 		Truck
 	} from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
+	import WillCallSignatureModal from '$lib/components/workflow/will-call-signature-modal.svelte';
 	import { completeLoadingEmail } from '$lib/loading-complete.remote';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getLoaders } from '$lib/loaders.cached';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
+	import { getWillCallSignature } from '$lib/will-call.remote';
 	import { getWorkflowStatusClasses } from '$lib/workflow/status-tones';
 	import type {
 		DepartmentStatus,
 		DropSheetCategoryAvailability,
 		OperationalDepartment,
+		WillCallSignatureRecord
 	} from '$lib/types';
 	import type { WorkflowLoaderSelection } from '$lib/workflow/stores';
 	import { LOADING_ENTRY_DEPARTMENTS, getLoadingEntryDepartment } from '$lib/workflow/loading-entry';
@@ -48,6 +53,9 @@
 	let isCompletingLoad = $state(false);
 	let completeLoadingError = $state<string | null>(null);
 	let submitError = $state<string | null>(null);
+	let isWillCallSignatureModalOpen = $state(false);
+	let isLoadingWillCallSignature = $state(false);
+	let willCallSignatureRecord = $state<WillCallSignatureRecord | null>(null);
 	type LoaderSelection = Exclude<WorkflowLoaderSelection, null>;
 
 	const statusQuery = $derived(getDropsheetStatus(data.dropSheetId));
@@ -98,6 +106,9 @@
 		}
 		if (data.returnTo) {
 			searchParams.set('returnTo', data.returnTo);
+		}
+		if (data.willCall) {
+			searchParams.set('willcall', 'true');
 		}
 
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
@@ -213,6 +224,9 @@
 		if (data.dropWeight !== null) {
 			searchParams.set('dropWeight', String(data.dropWeight));
 		}
+		if (data.willCall) {
+			searchParams.set('willcall', 'true');
+		}
 
 		return searchParams;
 	}
@@ -320,6 +334,25 @@
 		activeDepartment = null;
 
 		await beginLoading(department, loader);
+	}
+
+	async function openWillCallSignatureModal() {
+		if (isLoadingWillCallSignature) {
+			return;
+		}
+
+		isLoadingWillCallSignature = true;
+		submitError = null;
+
+		try {
+			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId);
+			isWillCallSignatureModalOpen = true;
+		} catch (error) {
+			submitError =
+				error instanceof Error ? error.message : 'Unable to load the current signature.';
+		} finally {
+			isLoadingWillCallSignature = false;
+		}
 	}
 </script>
 
@@ -506,7 +539,10 @@
 		data-testid="select-category-action-footer"
 		class="sticky bottom-4 z-10 space-y-3 rounded-[2rem] bg-white/94 p-3 shadow-[0_-18px_50px_-30px_rgba(15,23,42,0.36)] ring-1 ring-white/80 backdrop-blur-xl"
 	>
-		<div data-testid="select-category-utility-actions" class="grid gap-3 sm:grid-cols-2">
+		<div
+			data-testid="select-category-utility-actions"
+			class={`grid gap-3 ${data.willCall ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+		>
 			<button
 				type="button"
 				onclick={() =>
@@ -556,6 +592,29 @@
 				</div>
 				<ChevronRight class="size-5 text-slate-400" />
 			</button>
+
+			{#if data.willCall}
+				<button
+					type="button"
+					onclick={openWillCallSignatureModal}
+					class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
+					disabled={isLoadingWillCallSignature}
+				>
+					<div class="flex items-center gap-3">
+						<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+							<PenLine class="size-5" />
+						</span>
+						<div>
+							<p class="text-base font-bold tracking-tight text-slate-950">Signature</p>
+						</div>
+					</div>
+					{#if isLoadingWillCallSignature}
+						<LoaderCircle class="size-5 animate-spin text-slate-400" />
+					{:else}
+						<ChevronRight class="size-5 text-slate-400" />
+					{/if}
+				</button>
+			{/if}
 		</div>
 
 		{#if canCompleteLoad}
@@ -611,5 +670,19 @@
 		error={completeLoadingError}
 		onCancel={closeCompleteLoadingModal}
 		onConfirm={handleCompleteLoading}
+	/>
+{/if}
+
+{#if isWillCallSignatureModalOpen && willCallSignatureRecord}
+	<WillCallSignatureModal
+		dropSheetId={data.dropSheetId}
+		signatureRecord={willCallSignatureRecord}
+		onClose={() => {
+			isWillCallSignatureModalOpen = false;
+			willCallSignatureRecord = null;
+		}}
+		onUploaded={async () => {
+			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId);
+		}}
 	/>
 {/if}

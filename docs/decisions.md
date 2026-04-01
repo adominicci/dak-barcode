@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-01 - Restore Will Call as a live migrated workflow
+
+- Tags: product, workflow, legacy-parity
+- Decision: Reproduce the missing `DAK-220` Will Call flow additively on `dev` by restoring the home entry point, dropsheet handoff flagging, legacy DST lookup/signature helpers, and the select-category signature action without removing current worktree changes.
+- Rationale: Linear marked `DAK-220` done, but the original feature branch and PR were closed without merge, leaving the repo in a contradictory state where docs and tests partially assumed Will Call existed while the runtime still disabled it.
+- Impacted areas: `src/routes/(app)/home/+page.svelte`, `src/routes/(app)/dropsheets/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/*`, `src/lib/server/dst-queries.ts`, `src/lib/server/type-mappers.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the temporary assumption that Will Call should stay visible but disabled in the migrated surface
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: partial; retrieval memory is updated in this turn and broader product docs still need a separate pass if they continue to describe Will Call as Phase 2
+
 ## 2026-04-01 - Make Memory Impact Analysis mandatory
 
 - Tags: process, freshness, docs
