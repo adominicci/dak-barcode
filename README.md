@@ -18,22 +18,27 @@ Current MVP rules:
 - Home is the safe re-entry page for active sessions
 - Staging does not require a loader
 - Loading requires explicit loader selection before entry
-- `Will Call` stays visible but disabled in MVP
+- `Will Call` is part of the migrated app surface
 - only `admin` users may access the location/environment selector
 - non-admin warehouse selection is resolved from the Supabase profile
 
 ## Current repo state
 
-The project is scaffolded and ready for feature work.
+The app has moved beyond the initial scaffold and now covers the main Stage & Load operator flows.
 
 What is already in place:
 
-- SvelteKit 5 + Svelte 5 + TypeScript
-- Tailwind CSS 4
-- shadcn-svelte
-- Playwright + Vitest test setup
-- initial auth/app shell routes
-- Bun as the package-manager standard
+- authenticated app shell with profile-gated routing, inactive-user blocking, and fixed-domain auth flows
+- admin target selection plus operator warehouse resolution
+- Home, Location, Account, Add Loader, Dropsheets, Select Category, Staging, and Loading pages
+- Order Status and Move Orders support pages connected to the loading flow
+- live remote actions and queries for staging scans, loading scans, dropsheet lists, loader sessions, load detail views, and loading-complete notifications
+- shared workflow stores/controllers plus route and server test coverage with Vitest and Playwright
+- SvelteKit 5 + Svelte 5 + TypeScript, Tailwind CSS 4, shadcn-svelte, and Bun as the package-manager standard
+
+Known intentional limits:
+
+- some legacy support views still depend on DST-backed read models while the new loading flow mixes DST and `dak-web` data sources
 
 ## Tech stack
 

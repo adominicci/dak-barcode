@@ -62,18 +62,20 @@ This repo does **not** own the new `dak-web` scan endpoints. Backend work happen
 
 ### Current implementation snapshot
 
-Keep these status notes in mind so you do not treat scaffolded flows as completed:
+Keep these status notes in mind so you do not treat intentionally limited areas as broader than they are:
 
 - Implemented now:
   - auth shell and account flows (`login`, `logout`, `forgot-password`, `reset-password`, `change password`, inactive gate)
   - profile-based routing plus admin target selection and operator warehouse resolution
-  - authenticated shell pages for `Home`, `Location`, `Account`, `Add Loader`, `Dropsheets`, and `Select Category`
-  - staging list read models and the department gate UI
-- Still scaffolded or dependency-blocked:
-  - staging scan submission and location assignment are not wired end-to-end yet
-  - the loading route currently receives the handoff payload but the live scan workflow is not implemented yet
-  - `dak-web` scan POST integration remains pending for staging (`DAK-193`) and loading (`DAK-194`)
-  - `Will Call` remains intentionally disabled
+  - authenticated shell pages for `Home`, `Location`, `Account`, `Add Loader`, `Dropsheets`, `Select Category`, `Staging`, `Loading`, `Order Status`, and `Move Orders`
+  - staging scan submission with department gating, location prompting, active-list refreshes, and scan timeout handling
+  - loading entry from `Dropsheets -> Select Category -> Loader selection -> Loader session -> Loading`
+  - loading scan submission with department-status visibility, drop navigation, loader-session teardown on exit, and loading-complete notification support
+  - live `dak-web` proxy helpers for staging scans, loading scans, loader-session upserts/end, on-load department status, and dropsheet notify actions
+  - legacy DST-backed support views and mutations for dropsheet lists, category availability, order status, move orders, and pallet/single-label move actions
+- Still intentionally limited or mixed-source:
+  - some support pages still rely on legacy DST read models while the new loading workflow combines DST and `dak-web` sources
+  - the drop-scoped `dak-web` department-status helper remains a placeholder; only the on-load department-status route is live
 
 ---
 
@@ -216,7 +218,7 @@ Home should expose:
 
 Rules:
 
-- `Will Call` is visible but disabled as coming soon
+- `Will Call` is part of the migrated app surface
 - `Add Loader` is a separate utility flow
 - Home is the stable landing page for active sessions
 
