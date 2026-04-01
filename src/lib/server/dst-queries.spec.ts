@@ -211,6 +211,95 @@ describe("dst query helpers", () => {
     expect(url.searchParams.get("dropSheetDate")).toBe("2026-03-23");
   });
 
+  it("looks up a will call dropsheet by scanned load number through the legacy endpoint", async () => {
+    fetchDst.mockResolvedValue(
+      jsonResponse({
+        DropSheetID: 42,
+      }),
+    );
+
+    const { getDstWillCallDropsheet } = await import("./dst-queries");
+
+    await expect(getDstWillCallDropsheet("WC-042")).resolves.toEqual({
+      dropSheetId: 42,
+    });
+
+    const [path] = getFetchCall();
+    const url = new URL(path, "https://dst.example.com");
+
+    expect(url.pathname).toBe("/api/barcode-get/get-dropsheet-willcall-orders");
+    expect(url.searchParams.get("LoadNumber")).toBe("WC-042");
+  });
+
+  it("loads the will call signature record and keeps optional legacy fields nullable", async () => {
+    fetchDst.mockResolvedValue(
+      jsonResponse({
+        DropSheetCustID: 84,
+        fkDropSheetID: 42,
+        ReceivedBy: "Jordan",
+        Signature_Path: "will-call/42/signature_1.png",
+      }),
+    );
+
+    const { getDstWillCallSignature } = await import("./dst-queries");
+
+    await expect(getDstWillCallSignature(42)).resolves.toEqual({
+      dropSheetCustomerId: 84,
+      dropSheetId: 42,
+      receivedBy: "Jordan",
+      signaturePath: "will-call/42/signature_1.png",
+      signatureTimestamp: null,
+      signature: null,
+    });
+
+    const [path] = getFetchCall();
+    const url = new URL(path, "https://dst.example.com");
+
+    expect(url.pathname).toBe("/api/barcode-get/get-signature-will-call");
+    expect(url.searchParams.get("DropSheetID")).toBe("42");
+  });
+
+  it("maps an empty will call signature record response to the canonical nullable shape", async () => {
+    fetchDst.mockResolvedValue(jsonResponse({}));
+
+    const { getDstWillCallSignature } = await import("./dst-queries");
+
+    await expect(getDstWillCallSignature(42)).resolves.toEqual({
+      dropSheetCustomerId: null,
+      dropSheetId: 42,
+      receivedBy: null,
+      signaturePath: null,
+      signatureTimestamp: null,
+      signature: null,
+    });
+  });
+
+  it("uploads will call signatures through the legacy endpoint with the expected payload", async () => {
+    fetchDst.mockResolvedValue(jsonResponse({}));
+
+    const { uploadDstWillCallSignature } = await import("./dst-queries");
+
+    await expect(
+      uploadDstWillCallSignature({
+        dropSheetId: 42,
+        signaturePath: "will-call/42/signature_1.png",
+        receivedBy: "Jordan",
+      }),
+    ).resolves.toBeUndefined();
+
+    const [path, init] = getFetchCall();
+    const headers = new Headers(init?.headers);
+
+    expect(path).toBe("/api/barcode-update/upload-signature-will-call");
+    expect(init?.method).toBe("POST");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      DropSheetID: 42,
+      Signature_Path: "will-call/42/signature_1.png",
+      ReceivedBy: "Jordan",
+    });
+  });
+
   it("loads dropsheet status through the POST endpoint with a JSON body", async () => {
     fetchDst.mockResolvedValue(
       jsonResponse({

@@ -498,6 +498,46 @@ describe("dropsheets page", () => {
     );
   });
 
+  it("marks legacy will call dropsheets with the willcall flag and driver label on navigation", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 21,
+          loadNumber: "WC-021",
+          loadNumberShort: "021",
+          trailer: "NA",
+          percentCompleted: 0,
+          loadedAt: null,
+          dropWeight: 0,
+          driverId: 21,
+          driverName: null,
+          allLoaded: false,
+          loaderName: null,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await page
+      .getByRole("button", { name: /Open select category for WC-021/i })
+      .click();
+
+    expect(goto).toHaveBeenCalledWith(
+      "/select-category/21?loadNumber=WC-021&deliveryNumber=WC-021&driverName=WILL+CALL&dropWeight=0&percentCompleted=0&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24&willcall=true",
+    );
+  });
+
   it("shows the empty state when the selected date has no dropsheets", async () => {
     getDropsheets.mockReturnValue(createQueryState([]));
     getLoaders.mockReturnValue(

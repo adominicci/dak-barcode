@@ -23,6 +23,19 @@ export type RawDstDropSheet = {
 	Loader?: string | null;
 };
 
+export type RawDstWillCallDropSheet = {
+	DropSheetID?: number | null;
+};
+
+export type RawDstWillCallSignature = {
+	DropSheetCustID?: number | null;
+	fkDropSheetID?: number | null;
+	Signature?: string | null;
+	SignatureTS?: string | null;
+	ReceivedBy?: string | null;
+	Signature_Path?: string | null;
+};
+
 export type RawDstDropArea = {
 	DropAreaID: number;
 	DropArea: string;

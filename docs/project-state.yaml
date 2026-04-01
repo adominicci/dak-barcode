@@ -67,10 +67,9 @@ product:
   implemented_surfaces:
     - auth shell plus login, logout, forgot-password, reset-password, change-password, and inactive gate
     - profile-based routing with admin target selection and operator warehouse resolution
-    - Home, Location, Account, Add Loader, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
+    - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
   intentionally_limited:
-    - Will Call remains part of the intended surface but is not a live workflow route yet
     - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
 
 architecture:
@@ -116,7 +115,7 @@ workflows:
   home:
     status: live
     notes:
-      - exposes Staging, Loading, Add Loader, and the future-facing Will Call affordance
+      - exposes Staging, Loading, Add Loader, and the live Will Call workflow entry
       - acts as the stable landing page after re-entry
   staging:
     status: live

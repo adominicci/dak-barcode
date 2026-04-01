@@ -57,8 +57,11 @@ const {
 	completeLoadingEmail,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
+	getWillCallSignature,
 	getLoaders,
 	getNumberOfDrops,
+	uploadWillCallSignature,
+	createSupabaseBrowserClient,
 	upsertLoaderSession
 } = vi.hoisted(
 	() => ({
@@ -66,8 +69,11 @@ const {
 		completeLoadingEmail: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
+		getWillCallSignature: vi.fn(),
 		getLoaders: vi.fn<() => LoaderQueryState>(),
 		getNumberOfDrops: vi.fn(),
+		uploadWillCallSignature: vi.fn(),
+		createSupabaseBrowserClient: vi.fn(),
 		upsertLoaderSession: vi.fn()
 	})
 );
@@ -92,6 +98,10 @@ vi.mock('$lib/loaders.cached', () => ({
 vi.mock('$lib/load-view.remote', () => ({ getNumberOfDrops }));
 
 vi.mock('$lib/loader-session.remote', () => ({ upsertLoaderSession }));
+
+vi.mock('$lib/will-call.remote', () => ({ getWillCallSignature, uploadWillCallSignature }));
+
+vi.mock('$lib/supabase/client', () => ({ createSupabaseBrowserClient }));
 
 import SelectCategoryPage from './+page.svelte';
 
@@ -155,6 +165,7 @@ const layoutData = {
 	isAdmin: false,
 	userEmail: 'loader@dakotasteelandtrim.com',
 	userRole: 'loading' as const,
+	willCall: false,
 	percentCompleted: 0.875,
 	departmentLoadersError: null,
 	departmentLoaders: [
@@ -172,6 +183,9 @@ describe('select-category page', () => {
 		getDropsheetStatus.mockReset();
 		getLoaders.mockReset();
 		getNumberOfDrops.mockReset();
+		getWillCallSignature.mockReset();
+		uploadWillCallSignature.mockReset();
+		createSupabaseBrowserClient.mockReset();
 		upsertLoaderSession.mockReset();
 		workflowStores.resetOperationalState();
 
@@ -206,6 +220,51 @@ describe('select-category page', () => {
 				{ id: 9, name: 'Casey', isActive: true }
 			])
 		);
+	});
+
+	it('shows the Signature action only when the current select-category handoff is will call', async () => {
+		const willCallRender = render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'WC-042',
+				driverName: 'WILL CALL',
+				dropWeight: null,
+				percentCompleted: 0,
+				returnTo: '/home',
+				willCall: true,
+				loaders: [
+					{ id: 7, name: 'Alex', isActive: true },
+					{ id: 9, name: 'Casey', isActive: true }
+				]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Signature' })).toBeInTheDocument();
+		willCallRender.unmount();
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: null,
+				willCall: false,
+				loaders: [
+					{ id: 7, name: 'Alex', isActive: true },
+					{ id: 9, name: 'Casey', isActive: true }
+				]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Signature' })).not.toBeInTheDocument();
 	});
 
 	it('renders the compact summary cards and department actions without the old sidebar or heading block', async () => {

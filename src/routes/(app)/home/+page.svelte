@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import {
 		ArrowLeft,
@@ -11,6 +12,7 @@
 		UserRoundPlus
 	} from '@lucide/svelte';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
+	import WillCallScanModal from '$lib/components/workflow/will-call-scan-modal.svelte';
 	import type { PageProps } from './$types';
 
 	type IconComponent = typeof Grid2x2;
@@ -23,10 +25,11 @@
 		href: HomeActionHref | null;
 		testId: string;
 		variant: 'default' | 'utility';
-		disabled?: boolean;
+		action: 'link' | 'will-call';
 	};
 
 	let { data }: PageProps = $props();
+	let isWillCallModalOpen = $state(false);
 
 	const actions: HomeCard[] = [
 		{
@@ -35,7 +38,8 @@
 			icon: Grid2x2,
 			href: '/staging',
 			testId: 'home-card-staging',
-			variant: 'default'
+			variant: 'default',
+			action: 'link'
 		},
 		{
 			name: 'Loading',
@@ -43,7 +47,8 @@
 			icon: Truck,
 			href: '/dropsheets',
 			testId: 'home-card-loading',
-			variant: 'default'
+			variant: 'default',
+			action: 'link'
 		},
 		{
 			name: 'Will Call',
@@ -52,7 +57,7 @@
 			href: null,
 			testId: 'home-card-will-call',
 			variant: 'default',
-			disabled: true
+			action: 'will-call'
 		},
 		{
 			name: 'Add Loader',
@@ -60,7 +65,8 @@
 			icon: UserRoundPlus,
 			href: '/loaders',
 			testId: 'home-card-add-loader',
-			variant: 'utility'
+			variant: 'utility',
+			action: 'link'
 		}
 	];
 
@@ -83,6 +89,18 @@
 		const parts = source.split(/\s+/).map((p) => p.trim()).filter(Boolean);
 		if (parts.length === 0) return 'DU';
 		return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+	}
+
+	async function handleWillCallResolved(dropSheetId: number, loadNumber: string) {
+		const searchParams = new URLSearchParams({
+			loadNumber,
+			deliveryNumber: loadNumber,
+			driverName: 'WILL CALL',
+			willcall: 'true',
+			returnTo: '/home'
+		});
+
+		await goto(resolve(`/select-category/${dropSheetId}?${searchParams.toString()}`));
 	}
 </script>
 
@@ -147,29 +165,30 @@
 				{#each actions as action (action.name)}
 					{@const Icon = action.icon}
 					{@const isUtility = action.variant === 'utility'}
-					{@const isDisabled = action.disabled}
+					{@const isWillCall = action.action === 'will-call'}
 
-					{#if isDisabled}
+					{#if isWillCall}
 						<button
 							data-testid={action.testId}
 							type="button"
-							disabled
-							aria-disabled="true"
-							class="ui-primary-soft group flex w-full cursor-not-allowed items-center justify-between rounded-[2rem] border border-[rgba(0,88,188,0.12)] p-8 transition-all duration-300 opacity-85"
+							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
+							onclick={() => {
+								isWillCallModalOpen = true;
+							}}
 						>
 							<div class="flex items-center gap-6">
 								<div
 									data-testid={`${action.testId}-icon`}
-									class="ui-primary-soft flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(0,88,188,0.08)]"
+									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white transition-colors duration-300 group-hover:bg-white/22"
 								>
 									<Icon class="size-7" />
 								</div>
 								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-on-surface">{action.name}</span>
-									<span class="text-on-surface-variant text-sm font-medium">{action.detail}</span>
+									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
+									<span class="text-sm font-medium text-white/78">{action.detail}</span>
 								</div>
 							</div>
-							<ChevronRight class="size-6 text-slate-300" />
+							<ChevronRight class="size-6 text-white/72 transition-colors" />
 						</button>
 					{:else if isUtility}
 						<a
@@ -217,3 +236,12 @@
 		</div>
 	</div>
 </section>
+
+{#if isWillCallModalOpen}
+	<WillCallScanModal
+		onClose={() => {
+			isWillCallModalOpen = false;
+		}}
+		onResolved={handleWillCallResolved}
+	/>
+{/if}
