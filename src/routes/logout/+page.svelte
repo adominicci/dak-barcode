@@ -1,3 +1,3 @@
 <svelte:head>
-	<title>Logout</title>
+	<title>Logout - Stage & Load</title>
 </svelte:head>
