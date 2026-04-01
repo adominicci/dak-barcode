@@ -15,9 +15,14 @@
 	let errorMessage = $state<string | null>(null);
 	let isSubmitting = $state(false);
 	let inputElement = $state<HTMLInputElement | null>(null);
+	let isActive = true;
 
 	onMount(() => {
 		void focusInput();
+
+		return () => {
+			isActive = false;
+		};
 	});
 
 	async function focusInput() {
@@ -48,6 +53,10 @@
 
 		try {
 			const result = await lookupWillCallDropsheet(loadNumber);
+			if (!isActive) {
+				return;
+			}
+
 			await onResolved(result.dropSheetId, loadNumber);
 		} catch (error) {
 			errorMessage =
@@ -69,6 +78,14 @@
 
 		event.preventDefault();
 		await submitScan();
+	}
+
+	function handleClose() {
+		if (isSubmitting) {
+			return;
+		}
+
+		onClose();
 	}
 </script>
 
@@ -97,7 +114,8 @@
 					type="button"
 					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900"
 					aria-label="Close will call scan modal"
-					onclick={onClose}
+					disabled={isSubmitting}
+					onclick={handleClose}
 				>
 					<X class="size-5" />
 				</button>

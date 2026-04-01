@@ -29,17 +29,10 @@ import WillCallSignatureModal from './will-call-signature-modal.svelte';
 describe('will-call signature modal', () => {
 	const originalGetContext = HTMLCanvasElement.prototype.getContext;
 	const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+	let canvasRenderingContext: ReturnType<typeof createCanvasRenderingContextMock>;
 
 	beforeEach(() => {
-		const canvasRenderingContext = {
-			beginPath: vi.fn(),
-			lineCap: 'round',
-			lineJoin: 'round',
-			lineTo: vi.fn(),
-			moveTo: vi.fn(),
-			stroke: vi.fn(),
-			clearRect: vi.fn()
-		} as unknown as CanvasRenderingContext2D;
+		canvasRenderingContext = createCanvasRenderingContextMock();
 
 		createSignedUrl.mockReset();
 		upload.mockReset();
@@ -170,6 +163,61 @@ describe('will-call signature modal', () => {
 			receivedBy: 'Jordan'
 		});
 		expect(onUploaded).toHaveBeenCalled();
+	});
+
+	it('scales pointer coordinates to the canvas resolution before drawing', async () => {
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose: vi.fn(),
+			onUploaded: vi.fn()
+		});
+
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		vi.spyOn(canvasElement, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			right: 480,
+			bottom: 180,
+			width: 480,
+			height: 180,
+			toJSON: () => ({})
+		});
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 18,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointermove', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+
+		expect(canvasRenderingContext.moveTo).toHaveBeenCalledWith(48, 36);
+		expect(canvasRenderingContext.lineTo).toHaveBeenCalledWith(192, 144);
 	});
 
 	it('rejects upload when the canvas only receives a tap without a drawn stroke', async () => {
@@ -397,3 +445,17 @@ describe('will-call signature modal', () => {
 		HTMLCanvasElement.prototype.toBlob = originalToBlob;
 	});
 });
+
+function createCanvasRenderingContextMock() {
+	return {
+		beginPath: vi.fn(),
+		lineCap: 'round',
+		lineJoin: 'round',
+		lineTo: vi.fn(),
+		moveTo: vi.fn(),
+		stroke: vi.fn(),
+		clearRect: vi.fn(),
+		lineWidth: 0,
+		strokeStyle: ''
+	};
+}

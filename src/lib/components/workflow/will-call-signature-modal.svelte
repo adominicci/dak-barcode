@@ -114,9 +114,12 @@
 		}
 
 		const rect = canvasElement.getBoundingClientRect();
+		const widthScale = rect.width === 0 ? 1 : canvasElement.width / rect.width;
+		const heightScale = rect.height === 0 ? 1 : canvasElement.height / rect.height;
+
 		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top
+			x: (event.clientX - rect.left) * widthScale,
+			y: (event.clientY - rect.top) * heightScale
 		};
 	}
 
