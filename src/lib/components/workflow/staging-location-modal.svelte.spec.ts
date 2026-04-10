@@ -169,4 +169,162 @@ describe('staging location modal', () => {
 
 		expect(refresh).toHaveBeenCalledOnce();
 	});
+
+	it('adds a second letter filter only for Freeport Roll staging groups', async () => {
+		getDropAreasByDepartment.mockReturnValue(
+			createQueryState([
+				{
+					id: 101,
+					name: 'A-R-1',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 102,
+					name: 'A-R-2',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 103,
+					name: 'A-D-1',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 104,
+					name: 'A-M-1',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 105,
+					name: 'A-12',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 106,
+					name: 'B-R-1',
+					supportsWrap: false,
+					supportsParts: false,
+					supportsRoll: true,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'B'
+				}
+			])
+		);
+
+		render(StagingLocationModal, {
+			props: {
+				department: 'Roll',
+				mode: 'staging',
+				target: 'Freeport',
+				onClose: vi.fn(),
+				onSelect: vi.fn()
+			}
+		});
+
+		await vi.waitFor(() => expect(getDropAreasByDepartment).toHaveBeenCalledWith('Roll', 'Freeport'));
+		await expect
+			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'A' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect
+			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'B' }))
+			.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-second-letter-tabs')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'All' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'D' }))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'M' }))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }))
+			.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-12' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-D-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-M-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'B-R-1' })).not.toBeInTheDocument();
+
+		await page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }).click();
+
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-D-1' })).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-M-1' })).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-12' })).not.toBeInTheDocument();
+	});
+
+	it('keeps the single letter tabs outside Freeport Roll staging', async () => {
+		getDropAreasByDepartment.mockReturnValue(
+			createQueryState([
+				{
+					id: 201,
+					name: 'A-R-1',
+					supportsWrap: true,
+					supportsParts: false,
+					supportsRoll: false,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				},
+				{
+					id: 202,
+					name: 'A-D-1',
+					supportsWrap: true,
+					supportsParts: false,
+					supportsRoll: false,
+					supportsLoading: false,
+					supportsDriverLocation: false,
+					firstCharacter: 'A'
+				}
+			])
+		);
+
+		render(StagingLocationModal, {
+			props: {
+				department: 'Wrap',
+				mode: 'staging',
+				target: 'Freeport',
+				onClose: vi.fn(),
+				onSelect: vi.fn()
+			}
+		});
+
+		await vi.waitFor(() => expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', 'Freeport'));
+		await expect.element(page.getByTestId('staging-location-letter-tabs')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs'))
+			.not.toBeInTheDocument();
+	});
 });

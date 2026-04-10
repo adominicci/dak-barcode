@@ -53,6 +53,14 @@ const { withTimeout } = vi.hoisted(() => ({
 	withTimeout: vi.fn(async <T>(promise: Promise<T>) => promise)
 }));
 
+const { pageState } = vi.hoisted(() => ({
+	pageState: {
+		data: {
+			activeTarget: 'Canton' as const
+		}
+	}
+}));
+
 const { toast } = vi.hoisted(() => ({
 	toast: {
 		success: vi.fn<(message: string) => void>()
@@ -78,6 +86,10 @@ vi.mock('$lib/scan.remote', () => ({
 
 vi.mock('$app/navigation', () => ({
 	goto
+}));
+
+vi.mock('$app/state', () => ({
+	page: pageState
 }));
 
 vi.mock('$lib/workflow/async-timeout', () => ({
@@ -120,6 +132,9 @@ describe('staging page department gate', () => {
 	beforeEach(() => {
 		workflowStores.syncActiveTarget('Canton');
 		workflowStores.resetOperationalState();
+		pageState.data = {
+			activeTarget: 'Canton'
+		};
 		goto.mockReset();
 		goto.mockResolvedValue(undefined);
 		withTimeout.mockReset();
@@ -514,12 +529,15 @@ describe('staging page department gate', () => {
 		await page.getByTestId('staging-location-trigger').click();
 
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', null);
+		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', 'Canton');
 		await expect.element(page.getByRole('button', { name: 'Refresh list' })).toBeInTheDocument();
 		await page.getByRole('button', { name: 'Refresh list' }).click();
 		expect(refresh).toHaveBeenCalledOnce();
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
 		await expect.element(page.getByTestId('staging-location-letter-tabs')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs'))
+			.not.toBeInTheDocument();
 		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'true');
 		await expect.element(page.getByRole('button', { name: /C1/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W12/i })).not.toBeInTheDocument();
@@ -528,6 +546,95 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByRole('button', { name: /W12/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /W13/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /C1/i })).not.toBeInTheDocument();
+	});
+
+	it('shows second-letter location filters only for Freeport Roll staging', async () => {
+		pageState.data = {
+			activeTarget: 'Freeport'
+		};
+		workflowStores.syncActiveTarget('Freeport');
+		getDropAreasByDepartment.mockImplementation((department) =>
+			createDropAreaListQuery(
+				department === 'Roll'
+					? [
+							{
+								id: 301,
+								name: 'A-R-1',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'A'
+							},
+							{
+								id: 302,
+								name: 'A-D-1',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'A'
+							},
+							{
+								id: 303,
+								name: 'A-R-2',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'A'
+							},
+							{
+								id: 304,
+								name: 'B-R-1',
+								supportsWrap: false,
+								supportsParts: false,
+								supportsRoll: true,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'B'
+							}
+						]
+					: [
+							{
+								id: 41,
+								name: 'W12',
+								supportsWrap: true,
+								supportsParts: false,
+								supportsRoll: false,
+								supportsLoading: false,
+								supportsDriverLocation: false,
+								firstCharacter: 'W'
+							}
+						]
+			)
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Roll' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+
+		await expect.element(page.getByTestId('staging-location-second-letter-tabs')).toBeInTheDocument();
+		await expect.element(page.getByRole('tab', { name: 'All' })).toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('tab', { name: 'D' })).toBeInTheDocument();
+		await expect.element(page.getByRole('tab', { name: 'R' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-D-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'B-R-1' })).not.toBeInTheDocument();
+
+		await page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }).click();
+
+		await expect
+			.element(page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'A-D-1' })).not.toBeInTheDocument();
 	});
 
 	it('closes the location modal when reopening the department selector', async () => {

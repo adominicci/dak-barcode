@@ -1,5 +1,27 @@
 # Current Context
 
+## 2026-04-10 Freeport Roll Staging Filter Refresh
+
+- Current worktree: `features/enhancements`
+- The staging location modal now adds a second tab row only for `Freeport + Roll + staging`.
+- The first row stays grouped by first letter; the second row exposes `All` plus second-letter buckets derived from location names while ignoring dashes.
+- Locations without a usable second letter still remain available under `All`.
+- Verification completed in this session:
+  - `bun run test:unit src/lib/components/workflow/staging-location-modal.svelte.spec.ts --run`
+  - `bun run test:unit src/routes/(app)/staging/staging-page.svelte.spec.ts --run`
+  - Svelte autofixer passed for `src/lib/components/workflow/staging-location-modal.svelte`
+- Important freshness note: this is a scoped runtime rule, not a global staging behavior. Canton and non-Roll staging still use the existing single-row tab flow.
+
+## 2026-04-10 Home Session Action Refresh
+
+- Current worktree: `dev`
+- Home now exposes a header-level `Sign out` action that reuses the existing shared `POST /logout` flow instead of adding a new auth path.
+- The shared fixed-domain auth field placeholder is normalized to lowercase `username`, so login and forgot-password now match the requested copy.
+- Verification completed in this session:
+  - `bun run test:unit src/routes/(app)/home/home-page.svelte.spec.ts --run`
+  - `bunx playwright test src/routes/app-shell.e2e.ts --grep "generic username placeholder"`
+- Important freshness note: this update changes live runtime behavior on `Home`, so use the current code and this note over older snapshots when evaluating the authenticated shell.
+
 ## 2026-04-01 DAK-220 Refresh
 
 - Current worktree: `dev`

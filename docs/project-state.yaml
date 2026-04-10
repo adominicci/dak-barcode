@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-04-01
+  last_updated_at: 2026-04-10
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - AGENTS.md
     - README.md
@@ -73,7 +73,7 @@ product:
     - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
 
 architecture:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
@@ -104,7 +104,7 @@ architecture:
     - admin-ready
 
 workflows:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - AGENTS.md
     - src/routes/(app)/staging/+page.svelte
@@ -117,6 +117,7 @@ workflows:
     notes:
       - exposes Staging, Loading, Add Loader, and the live Will Call workflow entry
       - acts as the stable landing page after re-entry
+      - includes a header-level sign out action that posts to the shared `/logout` route
   staging:
     status: live
     rules:
@@ -124,6 +125,7 @@ workflows:
       - numeric scans are location codes
       - any valid drop area is accepted
       - Roll resets the current location after each successful scan
+      - Freeport Roll location selection adds a second tab row by the next alphabetic segment after the first letter, with an `All` fallback bucket
   loading:
     status: live with mixed-source support
     entry_flow:
@@ -145,7 +147,7 @@ workflows:
       - Add Loader
 
 integrations:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - docs/architecture.md
     - docs/prd.md
@@ -170,7 +172,7 @@ integrations:
     - DAK_WEB_URL
 
 testing:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - package.json
     - README.md
@@ -189,7 +191,7 @@ testing:
     - server proxy, auth-context, and type-mapper contracts
 
 known_gaps:
-  last_verified_at: 2026-04-01
+  last_verified_at: 2026-04-10
   verified_against:
     - AGENTS.md
     - README.md

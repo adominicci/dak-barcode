@@ -6,11 +6,13 @@
 		CalendarDays,
 		ChevronRight,
 		Grid2x2,
+		LogOut,
 		MapPin,
 		Plus,
 		Truck,
 		UserRoundPlus
 	} from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 	import WillCallScanModal from '$lib/components/workflow/will-call-scan-modal.svelte';
 	import type { PageProps } from './$types';
@@ -150,6 +152,17 @@
 							Change target
 					</a>
 				{/if}
+				<form method="POST" action="/logout" data-testid="home-sign-out-form">
+					<Button
+						type="submit"
+						variant="outline"
+						size="sm"
+						class="h-10 rounded-full border-transparent bg-[rgba(139,36,54,0.08)] px-4 text-sm font-semibold whitespace-nowrap text-[#8b2436] hover:bg-[rgba(139,36,54,0.14)]"
+					>
+						<LogOut class="size-4" />
+						Sign out
+					</Button>
+				</form>
 				<div class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md">
 					{getUserInitials(data.displayName, data.userEmail)}
 				</div>
