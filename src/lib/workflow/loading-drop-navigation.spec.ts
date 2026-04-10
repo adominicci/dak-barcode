@@ -8,8 +8,8 @@ import {
 describe('loading drop navigation helpers', () => {
 	it('creates the initial navigation state from the available drop count', () => {
 		expect(createLoadingDropNavigationState(3)).toEqual({
-			selectedIndex: 0,
-			activeDropNumber: 1,
+			selectedIndex: 2,
+			activeDropNumber: 3,
 			totalDrops: 3,
 			canGoPrevious: false,
 			canGoNext: true
@@ -31,11 +31,11 @@ describe('loading drop navigation helpers', () => {
 		expect(clampLoadingDropIndex(0, 0)).toBe(-1);
 	});
 
-	it('moves forward and backward without crossing the first or last drop', () => {
-		expect(moveLoadingDropSelection({ selectedIndex: 0, totalDrops: 3, direction: 'previous' })).toBe(0);
-		expect(moveLoadingDropSelection({ selectedIndex: 0, totalDrops: 3, direction: 'next' })).toBe(1);
-		expect(moveLoadingDropSelection({ selectedIndex: 2, totalDrops: 3, direction: 'next' })).toBe(2);
-		expect(moveLoadingDropSelection({ selectedIndex: 2, totalDrops: 3, direction: 'previous' })).toBe(1);
+	it('moves through drops in reverse numeric order without crossing the first or last drop', () => {
+		expect(moveLoadingDropSelection({ selectedIndex: 2, totalDrops: 3, direction: 'previous' })).toBe(2);
+		expect(moveLoadingDropSelection({ selectedIndex: 2, totalDrops: 3, direction: 'next' })).toBe(1);
+		expect(moveLoadingDropSelection({ selectedIndex: 0, totalDrops: 3, direction: 'next' })).toBe(0);
+		expect(moveLoadingDropSelection({ selectedIndex: 0, totalDrops: 3, direction: 'previous' })).toBe(1);
 		expect(moveLoadingDropSelection({ selectedIndex: -1, totalDrops: 0, direction: 'next' })).toBe(-1);
 	});
 });

@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-10 - Start loading on the final drop and navigate backward
+
+- Tags: product, loading, workflow
+- Decision: Change the loading workflow to open on the last available drop and make the footer navigation follow reverse numeric order so `Next` moves to lower-numbered drops while `Previous` moves to higher-numbered drops.
+- Rationale: Operators are loading trucks from the tail end first, and starting on the final drop removes the extra taps previously required to reach the working position. The requested floor behavior is more important here than preserving the legacy FlutterFlow starting point.
+- Impacted areas: `src/lib/workflow/loading-drop-navigation.ts`, `src/lib/workflow/loading-drop-navigation.spec.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior assumption that loading should always initialize on drop `1` and progress upward with the `Next` button
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-10 - Scope nested staging location filters to Freeport Roll only
 
 - Tags: product, staging, freeport

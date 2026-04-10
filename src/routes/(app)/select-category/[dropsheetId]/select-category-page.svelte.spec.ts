@@ -345,11 +345,20 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
 			'Departments'
 		);
-		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+		await expect.element(page.getByTestId('select-category-department-header-Wrap')).toHaveTextContent(
+			/Wrap\s+50%\s+WAIT/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
 			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
 		);
-		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
 			/text-white/
+		);
+		await expect.element(page.getByTestId('select-category-department-progress-row-Wrap')).not.toHaveTextContent(
+			'50%'
+		);
+		await expect.element(page.getByTestId('select-category-department-loader-row-Wrap')).toHaveTextContent(
+			'Select loader'
 		);
 		await expect.element(
 			page.getByTestId('select-category-department-Wrap').getByText('Select loader', {

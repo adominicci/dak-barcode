@@ -1,5 +1,17 @@
 # Current Context
 
+## 2026-04-10 Loading Last-Drop Navigation Refresh
+
+- Current worktree: `features/enhancements`
+- The loading workflow now opens on the last available drop instead of the first.
+- Footer navigation follows the floor's reverse-loading sequence: `Next` counts down through lower drop numbers and `Previous` moves back toward higher drop numbers.
+- Navigation remains clamped at the ends; there is no wraparound jump from drop `1` back to the final drop.
+- Verification completed in this session:
+  - `bun run test:unit -- --run 'src/lib/workflow/loading-drop-navigation.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - Svelte autofixer passed for `src/routes/(app)/loading/+page.svelte`
+- Important freshness note: this is an intentional behavior change from both the current app baseline and the legacy FlutterFlow loading screen, which previously started on drop `1`.
+
 ## 2026-04-10 Freeport Roll Staging Filter Refresh
 
 - Current worktree: `features/enhancements`

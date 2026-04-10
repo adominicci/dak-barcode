@@ -398,7 +398,7 @@ describe('loading page', () => {
 			dropSheetId: 42,
 			locationId: 2
 		});
-		expect(getDepartmentStatus).toHaveBeenCalledWith(84);
+		expect(getDepartmentStatus).toHaveBeenCalledWith(85);
 		await expect
 			.element(page.getByTestId('loading-summary-strip').getByText('Delivery Number'))
 			.toBeInTheDocument();
@@ -407,7 +407,7 @@ describe('loading page', () => {
 			.element(page.getByTestId('loading-summary-strip').getByText('Customer'))
 			.toBeInTheDocument();
 		await expect
-			.element(page.getByTestId('loading-summary-strip').getByText('Acme Metals'))
+			.element(page.getByTestId('loading-summary-strip').getByText('Beacon Supply'))
 			.toBeInTheDocument();
 		await expect.element(page.getByTestId('loading-department-status-strip')).toBeInTheDocument();
 		await expect.element(page.getByText('Slit')).toBeInTheDocument();
@@ -447,14 +447,14 @@ describe('loading page', () => {
 
 		await page.getByRole('button', { name: 'Order Status' }).click();
 		expect(goto).toHaveBeenCalledWith(
-			expect.stringContaining('/order-status/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+			expect.stringContaining('/order-status/42?loadNumber=L-042&dropWeight=2152.4&driverName=Taylor+Driver')
 		);
 
 		goto.mockReset();
 
 		await page.getByRole('button', { name: 'Dropsheet' }).click();
 		expect(goto).toHaveBeenCalledWith(
-			expect.stringContaining('/move-orders/42?loadNumber=L-042&dropWeight=2152.4&driverName=Dylan+Driver')
+			expect.stringContaining('/move-orders/42?loadNumber=L-042&dropWeight=2152.4&driverName=Taylor+Driver')
 		);
 	});
 
@@ -464,7 +464,7 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByText('Drop 1 of 2')).toHaveClass(/text-base/);
+		await expect.element(page.getByText('Drop 2 of 2')).toHaveClass(/text-base/);
 		await expect.element(page.getByTestId('loading-scan-input')).toHaveClass(/h-14/);
 		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/p-2\.5/);
 		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/rounded-\[1\.75rem\]/);
@@ -483,8 +483,8 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByText('Drop 1 of 2')).toBeInTheDocument();
-		await expect.element(page.getByText('Acme Metals')).toBeInTheDocument();
+		await expect.element(page.getByText('Drop 2 of 2')).toBeInTheDocument();
+		await expect.element(page.getByText('Beacon Supply')).toBeInTheDocument();
 		await expect.element(page.getByText('L-042').first()).toBeInTheDocument();
 		await expect.element(page.getByTestId('loading-part-list-grid')).toBeInTheDocument();
 		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/overflow-y-auto/);
@@ -499,12 +499,13 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(
 			/ui-primary-gradient/
 		);
-		await expect.element(page.getByText('PL-101')).toBeInTheDocument();
+		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
+		await expect.element(page.getByText('PL-101')).not.toBeInTheDocument();
 		await expect.element(page.getByText('PL-100')).not.toBeInTheDocument();
 		await expect.element(page.getByText('SO-100')).not.toBeInTheDocument();
 		await expect.element(page.getByText('SO-101')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Need pick').first()).toBeInTheDocument();
-		await expect.element(page.getByText('8').first()).toBeInTheDocument();
+		await expect.element(page.getByText('6').first()).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeEnabled();
 	});
@@ -621,24 +622,40 @@ describe('loading page', () => {
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeInTheDocument();
 	});
 
-	it('moves between drops, refreshes the selected detail, and clamps navigation at the last drop', async () => {
+	it('starts on the last drop and lets operators count down with the next button', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 
 		render(LoadingPage);
 
-		await page.getByRole('button', { name: /Next drop/i }).click();
-
 		await expect.element(page.getByText('Drop 2 of 2')).toBeInTheDocument();
 		await expect.element(page.getByText('Beacon Supply')).toBeInTheDocument();
 		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeDisabled();
+		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeEnabled();
+
+		await page.getByRole('button', { name: /Next drop/i }).click();
+
+		await expect.element(page.getByText('Drop 1 of 2')).toBeInTheDocument();
+		await expect.element(page.getByText('Acme Metals')).toBeInTheDocument();
+		await expect.element(page.getByText('PL-101')).toBeInTheDocument();
+		expect(getLoadViewUnion).toHaveBeenLastCalledWith({
+			loadNumber: 'L-042',
+			sequence: 1,
+			locationId: 2
+		});
+		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeDisabled();
+		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeEnabled();
+
+		await page.getByRole('button', { name: /Previous drop/i }).click();
+
+		await expect.element(page.getByText('Drop 2 of 2')).toBeInTheDocument();
+		await expect.element(page.getByText('Beacon Supply')).toBeInTheDocument();
 		expect(getLoadViewUnion).toHaveBeenLastCalledWith({
 			loadNumber: 'L-042',
 			sequence: 2,
 			locationId: 2
 		});
-		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeDisabled();
-		await expect.element(page.getByRole('button', { name: /Previous drop/i })).toBeEnabled();
 	});
 
 	it('submits loading scans on Enter with the active drop context, refreshes data, and clears the input', async () => {

@@ -135,6 +135,7 @@ workflows:
       - Loader session creation
       - Loading
     rules:
+      - loading opens on the last available drop and navigates backward numerically by default
       - numeric scans are driver locations only
       - non-numeric scans go through pallet or single-label processing
       - Roll resets the current location after each successful scan
