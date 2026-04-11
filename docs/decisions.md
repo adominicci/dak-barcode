@@ -2,6 +2,36 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-10 - Treat Complete Load post-send sync failures as warnings
+
+- Tags: product, loading, backend-contract
+- Decision: Keep the legacy Complete Load request payload unchanged, but interpret dak-web `type="loaded"` responses with `post_send_sync.status = failed` as partial success on the frontend instead of surfacing them as total failure.
+- Rationale: The backend now confirms that notifications may already be sent before the post-send order sync step fails. Showing a hard failure at that point encourages operators to retry and risks duplicate customer or driver emails.
+- Impacted areas: `src/lib/server/dak-loading-complete.ts`, `src/lib/server/dak-loading-complete.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior assumption that any non-warning Complete Load problem should be shown as `Unable to complete loading.` regardless of whether the backend had already sent notifications
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-10 - Start loading on the final drop and navigate backward
+
+- Tags: product, loading, workflow
+- Decision: Change the loading workflow to open on the last available drop and make the footer navigation follow reverse numeric order so `Next` moves to lower-numbered drops while `Previous` moves to higher-numbered drops.
+- Rationale: Operators are loading trucks from the tail end first, and starting on the final drop removes the extra taps previously required to reach the working position. The requested floor behavior is more important here than preserving the legacy FlutterFlow starting point.
+- Impacted areas: `src/lib/workflow/loading-drop-navigation.ts`, `src/lib/workflow/loading-drop-navigation.spec.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior assumption that loading should always initialize on drop `1` and progress upward with the `Next` button
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-10 - Scope nested staging location filters to Freeport Roll only
+
+- Tags: product, staging, freeport
+- Decision: Add a second location-tab row only when the staging selector is opened for the Freeport Roll workflow. The first tab row remains the existing first-letter grouping, and the second row uses `All` plus second-letter buckets derived from location names while ignoring dashes.
+- Rationale: Freeport Roll has enough location density that first-letter grouping alone still produces excessive scrolling, but broadening the nested filter to all targets or departments would add behavior beyond the confirmed user request and increase regression risk.
+- Impacted areas: `src/lib/components/workflow/staging-location-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/staging/staging-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior assumption that all staging location selection uses only a single tab row
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-01 - Restore Will Call as a live migrated workflow
 
 - Tags: product, workflow, legacy-parity

@@ -31,7 +31,10 @@
 	let modalElement: HTMLElement | null = null;
 	let activeLookupRequestToken = $state(0);
 	let selectedLetterTab = $state<string | null>(null);
+	let selectedSecondLetterTab = $state<string | null>(null);
 	const tabPanelId = 'staging-location-tabpanel';
+	const secondTabPanelId = 'staging-location-second-tabpanel';
+	const ALL_SECOND_LETTER_GROUP_KEY = 'All';
 	const dropAreaNameCollator = new Intl.Collator(undefined, {
 		numeric: true,
 		sensitivity: 'base'
@@ -82,9 +85,76 @@
 
 		return availableGroupKeys[0];
 	});
+	const activeLetterGroup = $derived.by(
+		() => groupedDropAreas.find((group) => group.key === activeLetterTab) ?? null
+	);
+	const shouldUseSecondLetterGrouping = $derived(
+		mode === 'staging' && target === 'Freeport' && department === 'Roll'
+	);
+	const secondLetterGroups = $derived.by(() => {
+		if (!shouldUseSecondLetterGrouping || !activeLetterGroup) {
+			return [];
+		}
+
+		const groups: Record<string, DropArea[]> = {};
+
+		for (const dropArea of activeLetterGroup.dropAreas) {
+			const groupKey = resolveDropAreaSecondGroupKey(dropArea, activeLetterGroup.key);
+			if (!groupKey) {
+				continue;
+			}
+
+			const existingGroup = groups[groupKey] ?? [];
+			existingGroup.push(dropArea);
+			groups[groupKey] = existingGroup;
+		}
+
+		return Object.entries(groups)
+			.sort(([leftKey], [rightKey]) => dropAreaNameCollator.compare(leftKey, rightKey))
+			.map(([key, dropAreas]) => ({
+				key,
+				dropAreas: [...dropAreas].sort(
+					(left, right) =>
+						dropAreaNameCollator.compare(left.name, right.name) || left.id - right.id
+				)
+			}));
+	});
+	const availableSecondLetterGroupKeys = $derived.by(() => {
+		if (!shouldUseSecondLetterGrouping || !activeLetterGroup) {
+			return [];
+		}
+
+		return [ALL_SECOND_LETTER_GROUP_KEY, ...secondLetterGroups.map((group) => group.key)];
+	});
+	const activeSecondLetterTab = $derived.by(() => {
+		if (!shouldUseSecondLetterGrouping || !activeLetterGroup) {
+			return null;
+		}
+
+		if (
+			selectedSecondLetterTab !== null &&
+			availableSecondLetterGroupKeys.includes(selectedSecondLetterTab)
+		) {
+			return selectedSecondLetterTab;
+		}
+
+		return ALL_SECOND_LETTER_GROUP_KEY;
+	});
 	const activeDropAreaOptions = $derived.by(() => {
-		const activeGroup = groupedDropAreas.find((group) => group.key === activeLetterTab);
-		return activeGroup?.dropAreas ?? [];
+		const baseDropAreas = activeLetterGroup?.dropAreas ?? [];
+
+		if (
+			!shouldUseSecondLetterGrouping ||
+			activeSecondLetterTab === null ||
+			activeSecondLetterTab === ALL_SECOND_LETTER_GROUP_KEY
+		) {
+			return baseDropAreas;
+		}
+
+		const matchingSecondLetterGroup = secondLetterGroups.find(
+			(group) => group.key === activeSecondLetterTab
+		);
+		return matchingSecondLetterGroup?.dropAreas ?? [];
 	});
 
 	onMount(() => {
@@ -107,6 +177,38 @@
 
 		const normalizedNameCharacter = dropArea.name.trim().charAt(0).toUpperCase();
 		return normalizedNameCharacter || '#';
+	}
+
+	function resolveDropAreaSecondGroupKey(dropArea: DropArea, firstGroupKey: string) {
+		const normalizedSegments = dropArea.name
+			.trim()
+			.toUpperCase()
+			.split('-')
+			.map((segment) => segment.trim())
+			.filter(Boolean);
+
+		if (normalizedSegments.length > 0) {
+			const [firstSegment, ...remainingSegments] = normalizedSegments;
+			const candidateSegments =
+				firstSegment.charAt(0) === firstGroupKey ? remainingSegments : normalizedSegments;
+
+			for (const segment of candidateSegments) {
+				const alphaMatch = segment.match(/[A-Z]/);
+				if (alphaMatch) {
+					return alphaMatch[0];
+				}
+			}
+		}
+
+		const compactName = dropArea.name.trim().toUpperCase().replace(/-/g, '');
+		const firstGroupIndex = compactName.indexOf(firstGroupKey);
+		if (firstGroupIndex === -1) {
+			return null;
+		}
+
+		const remainingName = compactName.slice(firstGroupIndex + 1);
+		const alphaMatch = remainingName.match(/[A-Z]/);
+		return alphaMatch?.[0] ?? null;
 	}
 
 	function isSelectableDropArea(dropArea: DropArea) {
@@ -178,6 +280,50 @@
 		event.preventDefault();
 		const nextTab = tabs[nextIndex];
 		selectedLetterTab = nextTab.dataset.letterTab ?? null;
+		selectedSecondLetterTab = null;
+		nextTab.focus();
+	}
+
+	function handleSecondTabListKeydown(event: KeyboardEvent) {
+		if (
+			event.key !== 'ArrowLeft' &&
+			event.key !== 'ArrowRight' &&
+			event.key !== 'Home' &&
+			event.key !== 'End'
+		) {
+			return;
+		}
+
+		const tablist = event.currentTarget;
+		if (!(tablist instanceof HTMLElement)) {
+			return;
+		}
+
+		const tabs = Array.from(tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+		if (tabs.length === 0) {
+			return;
+		}
+
+		const activeIndex =
+			tabs.findIndex((tab) => tab === document.activeElement) ??
+			tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+
+		const currentIndex = activeIndex >= 0 ? activeIndex : 0;
+		let nextIndex = currentIndex;
+
+		if (event.key === 'Home') {
+			nextIndex = 0;
+		} else if (event.key === 'End') {
+			nextIndex = tabs.length - 1;
+		} else if (event.key === 'ArrowLeft') {
+			nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+		} else if (event.key === 'ArrowRight') {
+			nextIndex = (currentIndex + 1) % tabs.length;
+		}
+
+		event.preventDefault();
+		const nextTab = tabs[nextIndex];
+		selectedSecondLetterTab = nextTab.dataset.secondLetterTab ?? null;
 		nextTab.focus();
 	}
 
@@ -410,6 +556,7 @@
 										}`}
 										onclick={() => {
 											selectedLetterTab = group.key;
+											selectedSecondLetterTab = null;
 										}}
 									>
 										{group.key}
@@ -417,11 +564,49 @@
 								{/each}
 							</div>
 
+							{#if shouldUseSecondLetterGrouping && availableSecondLetterGroupKeys.length > 1}
+								<div
+									data-testid="staging-location-second-letter-tabs"
+									role="tablist"
+									tabindex="-1"
+									aria-label="Location subgroups"
+									class="mt-3 flex gap-2 overflow-x-auto overscroll-contain pb-1"
+									onkeydown={handleSecondTabListKeydown}
+								>
+									{#each availableSecondLetterGroupKeys as groupKey (groupKey)}
+										<button
+											type="button"
+											role="tab"
+											aria-selected={groupKey === activeSecondLetterTab}
+											aria-controls={secondTabPanelId}
+											data-second-letter-tab={groupKey}
+											tabindex={groupKey === activeSecondLetterTab ? 0 : -1}
+											class={`flex h-10 min-w-11 shrink-0 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+												groupKey === activeSecondLetterTab
+													? 'ui-primary-gradient text-white shadow-[var(--shadow-primary)]'
+													: 'bg-surface-container-low text-slate-700 hover:bg-surface-container-high'
+											}`}
+											onclick={() => {
+												selectedSecondLetterTab = groupKey;
+											}}
+										>
+											{groupKey}
+										</button>
+									{/each}
+								</div>
+							{/if}
+
 							<div
-								id={tabPanelId}
+								id={shouldUseSecondLetterGrouping ? secondTabPanelId : tabPanelId}
 								data-testid="staging-location-modal-grid"
 								role="tabpanel"
-								aria-label={activeLetterTab ? `${activeLetterTab} locations` : 'Locations'}
+								aria-label={
+									activeLetterTab
+										? shouldUseSecondLetterGrouping && activeSecondLetterTab
+											? `${activeLetterTab} ${activeSecondLetterTab} locations`
+											: `${activeLetterTab} locations`
+										: 'Locations'
+								}
 								class="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 							>
 								{#each activeDropAreaOptions as dropArea (dropArea.id)}

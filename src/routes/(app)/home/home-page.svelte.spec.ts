@@ -150,6 +150,23 @@ describe('home module selector', () => {
 		);
 	});
 
+	it('renders a header sign out action that posts to the shared logout route', async () => {
+		render(HomePage, { data: baseData, params: {} });
+
+		const signOutButton = page.getByRole('button', { name: 'Sign out' });
+
+		await expect.element(signOutButton).toBeInTheDocument();
+		await expect.element(signOutButton).toHaveAttribute('type', 'submit');
+
+		const signOutForm = document.querySelector('[data-testid="home-sign-out-form"]');
+		if (!(signOutForm instanceof HTMLFormElement)) {
+			throw new Error('Expected home sign out form.');
+		}
+
+		await expect.element(signOutForm).toHaveAttribute('method', 'POST');
+		await expect.element(signOutForm).toHaveAttribute('action', '/logout');
+	});
+
 	it('shows admins a direct path back to the target selector', async () => {
 		render(HomePage, {
 			params: {},

@@ -32,6 +32,14 @@ for (const path of ['/login', '/forgot-password']) {
 	});
 }
 
+for (const path of ['/login', '/forgot-password']) {
+	test(`uses a generic username placeholder on ${path}`, async ({ page }) => {
+		await page.goto(path);
+
+		await expect(page.getByPlaceholder('username', { exact: true })).toBeVisible();
+	});
+}
+
 for (const path of [
 	'/home',
 	'/staging',

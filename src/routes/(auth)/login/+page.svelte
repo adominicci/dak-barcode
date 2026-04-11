@@ -55,11 +55,7 @@
 	{/if}
 
 	<form method="POST" class="space-y-5" aria-label="Sign in form" use:enhance={enhanceForm}>
-		<FixedDomainEmailField
-			id="login-email"
-			username={form?.email ?? ''}
-			placeholder="andresd"
-		/>
+		<FixedDomainEmailField id="login-email" username={form?.email ?? ''} />
 
 		<div class="space-y-2.5">
 			<Label class="text-sm font-medium text-[var(--text-muted)]" for="login-password">Password</Label>

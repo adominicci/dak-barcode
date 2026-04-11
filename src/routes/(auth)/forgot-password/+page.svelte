@@ -50,11 +50,7 @@
 		aria-label="Forgot password form"
 		use:enhance={enhanceForm}
 	>
-		<FixedDomainEmailField
-			id="recovery-email"
-			username={form?.email ?? ''}
-			placeholder="andresd"
-		/>
+		<FixedDomainEmailField id="recovery-email" username={form?.email ?? ''} />
 
 		<Button
 			class="auth-control ui-primary h-12 w-full border-0 text-sm font-semibold text-white hover:brightness-[1.03]"

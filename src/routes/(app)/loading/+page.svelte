@@ -72,7 +72,7 @@
 	let allowNavigation = $state(false);
 	let isEndingSession = $state(false);
 	let lifecycleError = $state<string | null>(null);
-	let selectedDropIndex = $state(0);
+	let selectedDropIndex = $state<number | undefined>(undefined);
 	let currentDropArea = $state<WorkflowDropAreaSelection>(null);
 	let loadingScanController = $state<ReturnType<typeof createLoadingScanController> | null>(null);
 	let scanInputValue = $state('');

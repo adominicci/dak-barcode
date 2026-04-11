@@ -1,5 +1,50 @@
 # Current Context
 
+## 2026-04-10 Complete Load Partial-Success Refresh
+
+- Current worktree: `features/enhancements`
+- Select Category now treats `POST /v1/logistics/dropsheet-notify` partial success as a warning flow when dak-web reports `post_send_sync.status = failed` after notifications were already sent.
+- The frontend keeps the legacy request payload shape, closes the confirmation modal, warns the operator not to resend, and returns to the prior route instead of surfacing the old generic failure copy.
+- Verification completed in this session:
+  - `bun run test:unit -- --run 'src/lib/server/dak-loading-complete.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - Svelte autofixer passed for `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`
+- Important freshness note: true notification-send failures still remain hard errors. Only the new backend `post_send_sync` failure payload is downgraded to an operator-safe warning.
+
+## 2026-04-10 Loading Last-Drop Navigation Refresh
+
+- Current worktree: `features/enhancements`
+- The loading workflow now opens on the last available drop instead of the first.
+- Footer navigation follows the floor's reverse-loading sequence: `Next` counts down through lower drop numbers and `Previous` moves back toward higher drop numbers.
+- Navigation remains clamped at the ends; there is no wraparound jump from drop `1` back to the final drop.
+- Verification completed in this session:
+  - `bun run test:unit -- --run 'src/lib/workflow/loading-drop-navigation.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - Svelte autofixer passed for `src/routes/(app)/loading/+page.svelte`
+- Important freshness note: this is an intentional behavior change from both the current app baseline and the legacy FlutterFlow loading screen, which previously started on drop `1`.
+
+## 2026-04-10 Freeport Roll Staging Filter Refresh
+
+- Current worktree: `features/enhancements`
+- The staging location modal now adds a second tab row only for `Freeport + Roll + staging`.
+- The first row stays grouped by first letter; the second row exposes `All` plus second-letter buckets derived from location names while ignoring dashes.
+- Locations without a usable second letter still remain available under `All`.
+- Verification completed in this session:
+  - `bun run test:unit src/lib/components/workflow/staging-location-modal.svelte.spec.ts --run`
+  - `bun run test:unit src/routes/(app)/staging/staging-page.svelte.spec.ts --run`
+  - Svelte autofixer passed for `src/lib/components/workflow/staging-location-modal.svelte`
+- Important freshness note: this is a scoped runtime rule, not a global staging behavior. Canton and non-Roll staging still use the existing single-row tab flow.
+
+## 2026-04-10 Home Session Action Refresh
+
+- Current worktree: `dev`
+- Home now exposes a header-level `Sign out` action that reuses the existing shared `POST /logout` flow instead of adding a new auth path.
+- The shared fixed-domain auth field placeholder is normalized to lowercase `username`, so login and forgot-password now match the requested copy.
+- Verification completed in this session:
+  - `bun run test:unit src/routes/(app)/home/home-page.svelte.spec.ts --run`
+  - `bunx playwright test src/routes/app-shell.e2e.ts --grep "generic username placeholder"`
+- Important freshness note: this update changes live runtime behavior on `Home`, so use the current code and this note over older snapshots when evaluating the authenticated shell.
+
 ## 2026-04-01 DAK-220 Refresh
 
 - Current worktree: `dev`

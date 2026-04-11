@@ -39,7 +39,10 @@ describe('dak loading complete helpers', () => {
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
-		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).resolves.toEqual({ ok: true });
+		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).resolves.toEqual({
+			ok: true,
+			partial: false
+		});
 
 		const [path, init] = getFetchCall();
 		const headers = new Headers(init?.headers);
@@ -51,6 +54,34 @@ describe('dak loading complete helpers', () => {
 			dropsheet_id: 42,
 			type: 'loaded',
 			send_email_to: ''
+		});
+	});
+
+	it('returns a partial-success result when notifications were sent but post-send sync failed', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				success: true,
+				notification_type: 'loaded',
+				post_send_sync: {
+					status: 'failed',
+					order_numbers: [41012026, 41012027],
+					errors: ['spUpdateOrderBackToInvoiced failed'],
+					retry_recommended: false
+				}
+			})
+		);
+
+		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
+
+		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).resolves.toEqual({
+			ok: true,
+			partial: true,
+			postSendSync: {
+				status: 'failed',
+				orderNumbers: [41012026, 41012027],
+				errors: ['spUpdateOrderBackToInvoiced failed'],
+				retryRecommended: false
+			}
 		});
 	});
 
