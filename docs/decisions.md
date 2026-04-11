@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-10 - Treat Complete Load post-send sync failures as warnings
+
+- Tags: product, loading, backend-contract
+- Decision: Keep the legacy Complete Load request payload unchanged, but interpret dak-web `type="loaded"` responses with `post_send_sync.status = failed` as partial success on the frontend instead of surfacing them as total failure.
+- Rationale: The backend now confirms that notifications may already be sent before the post-send order sync step fails. Showing a hard failure at that point encourages operators to retry and risks duplicate customer or driver emails.
+- Impacted areas: `src/lib/server/dak-loading-complete.ts`, `src/lib/server/dak-loading-complete.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior assumption that any non-warning Complete Load problem should be shown as `Unable to complete loading.` regardless of whether the backend had already sent notifications
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-10 - Start loading on the final drop and navigate backward
 
 - Tags: product, loading, workflow

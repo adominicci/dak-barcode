@@ -1,5 +1,16 @@
 # Current Context
 
+## 2026-04-10 Complete Load Partial-Success Refresh
+
+- Current worktree: `features/enhancements`
+- Select Category now treats `POST /v1/logistics/dropsheet-notify` partial success as a warning flow when dak-web reports `post_send_sync.status = failed` after notifications were already sent.
+- The frontend keeps the legacy request payload shape, closes the confirmation modal, warns the operator not to resend, and returns to the prior route instead of surfacing the old generic failure copy.
+- Verification completed in this session:
+  - `bun run test:unit -- --run 'src/lib/server/dak-loading-complete.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - Svelte autofixer passed for `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`
+- Important freshness note: true notification-send failures still remain hard errors. Only the new backend `post_send_sync` failure payload is downgraded to an operator-safe warning.
+
 ## 2026-04-10 Loading Last-Drop Navigation Refresh
 
 - Current worktree: `features/enhancements`

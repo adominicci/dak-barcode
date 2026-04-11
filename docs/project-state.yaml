@@ -140,6 +140,7 @@ workflows:
       - non-numeric scans go through pallet or single-label processing
       - Roll resets the current location after each successful scan
       - leaving Loading should record loader end time
+      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors
   support_views:
     status: live
     included:

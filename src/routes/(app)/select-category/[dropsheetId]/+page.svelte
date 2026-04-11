@@ -10,6 +10,7 @@
 		PenLine,
 		Truck
 	} from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
@@ -42,6 +43,8 @@
 		style: 'percent',
 		maximumFractionDigits: 0
 	});
+	const COMPLETE_LOAD_PARTIAL_WARNING =
+		'Notifications were already sent. Internal sync still needs attention. Do not resend.';
 
 	let { data }: PageProps = $props();
 
@@ -254,7 +257,13 @@
 		completeLoadingError = null;
 
 		try {
-			await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			const result = await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			isCompleteLoadingModalOpen = false;
+
+			if (result.partial) {
+				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
+			}
+
 			await goto(data.returnTo ?? '/dropsheets');
 		} catch (error) {
 			completeLoadingError =
