@@ -60,6 +60,7 @@ const {
 	getWillCallSignature,
 	getLoaders,
 	getNumberOfDrops,
+	toastWarning,
 	uploadWillCallSignature,
 	createSupabaseBrowserClient,
 	upsertLoaderSession
@@ -72,6 +73,7 @@ const {
 		getWillCallSignature: vi.fn(),
 		getLoaders: vi.fn<() => LoaderQueryState>(),
 		getNumberOfDrops: vi.fn(),
+		toastWarning: vi.fn(),
 		uploadWillCallSignature: vi.fn(),
 		createSupabaseBrowserClient: vi.fn(),
 		upsertLoaderSession: vi.fn()
@@ -102,6 +104,12 @@ vi.mock('$lib/loader-session.remote', () => ({ upsertLoaderSession }));
 vi.mock('$lib/will-call.remote', () => ({ getWillCallSignature, uploadWillCallSignature }));
 
 vi.mock('$lib/supabase/client', () => ({ createSupabaseBrowserClient }));
+
+vi.mock('svelte-sonner', () => ({
+	toast: {
+		warning: toastWarning
+	}
+}));
 
 import SelectCategoryPage from './+page.svelte';
 
@@ -183,6 +191,7 @@ describe('select-category page', () => {
 		getDropsheetStatus.mockReset();
 		getLoaders.mockReset();
 		getNumberOfDrops.mockReset();
+		toastWarning.mockReset();
 		getWillCallSignature.mockReset();
 		uploadWillCallSignature.mockReset();
 		createSupabaseBrowserClient.mockReset();
@@ -345,11 +354,20 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
 			'Departments'
 		);
-		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+		await expect.element(page.getByTestId('select-category-department-header-Wrap')).toHaveTextContent(
+			/Wrap\s+50%\s+WAIT/
+		);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
 			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
 		);
-		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('0%')).toHaveClass(
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
 			/text-white/
+		);
+		await expect.element(page.getByTestId('select-category-department-progress-row-Wrap')).not.toHaveTextContent(
+			'50%'
+		);
+		await expect.element(page.getByTestId('select-category-department-loader-row-Wrap')).toHaveTextContent(
+			'Select loader'
 		);
 		await expect.element(
 			page.getByTestId('select-category-department-Wrap').getByText('Select loader', {
@@ -590,7 +608,7 @@ describe('select-category page', () => {
 	});
 
 	it('opens the completion modal, shows the shared spinner while pending, and returns to dropsheets on success', async () => {
-		const completionRequest = createDeferred<{ ok: true }>();
+		const completionRequest = createDeferred<{ ok: true; partial: false }>();
 		completeLoadingEmail.mockReturnValue(completionRequest.promise);
 		goto.mockResolvedValue(undefined);
 
@@ -618,10 +636,48 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('complete-loading-confirm-spinner')).toBeInTheDocument();
 		await expect.element(page.getByLabelText('Completing loading')).toBeInTheDocument();
 
-		completionRequest.resolve({ ok: true });
+		completionRequest.resolve({ ok: true, partial: false });
 		await Promise.resolve();
 
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+	});
+
+	it('shows a do-not-resend warning and still exits when post-send sync fails after notifications were sent', async () => {
+		completeLoadingEmail.mockResolvedValue({
+			ok: true,
+			partial: true,
+			postSendSync: {
+				status: 'failed',
+				orderNumbers: [41012026],
+				errors: ['spUpdateOrderBackToInvoiced failed'],
+				retryRecommended: false
+			}
+		});
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(toastWarning).toHaveBeenCalledWith(
+			'Notifications were already sent. Internal sync still needs attention. Do not resend.'
+		);
+		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
 	});
 
 	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {

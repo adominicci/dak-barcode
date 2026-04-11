@@ -10,6 +10,7 @@
 		PenLine,
 		Truck
 	} from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
@@ -42,6 +43,8 @@
 		style: 'percent',
 		maximumFractionDigits: 0
 	});
+	const COMPLETE_LOAD_PARTIAL_WARNING =
+		'Notifications were already sent. Internal sync still needs attention. Do not resend.';
 
 	let { data }: PageProps = $props();
 
@@ -254,7 +257,13 @@
 		completeLoadingError = null;
 
 		try {
-			await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			const result = await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			isCompleteLoadingModalOpen = false;
+
+			if (result.partial) {
+				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
+			}
+
 			await goto(data.returnTo ?? '/dropsheets');
 		} catch (error) {
 			completeLoadingError =
@@ -450,8 +459,16 @@
 						disabled={pendingDepartment !== null}
 						class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
 					>
-						<div class="flex items-start justify-between gap-4">
-							<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
+						<div
+							class="flex items-start justify-between gap-4"
+							data-testid={`select-category-department-header-${entry.department}`}
+						>
+							<div class="flex items-center gap-3">
+								<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
+								<span class={`px-3 py-1.5 text-sm font-semibold ${blueBadgeClasses}`}>
+									{formatDepartmentProgress(departmentProgress)}
+								</span>
+							</div>
 							<div
 								class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
 							>
@@ -460,17 +477,20 @@
 						</div>
 
 						<div class="space-y-1.5">
-							<div class="h-1.5 overflow-hidden rounded-full bg-surface-container-low">
+							<div
+								class="h-1.5 overflow-hidden rounded-full bg-surface-container-low"
+								data-testid={`select-category-department-progress-row-${entry.department}`}
+							>
 								<div
 									class="h-full rounded-full bg-emerald-500 transition-[width]"
 									style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
 								></div>
 							</div>
 
-							<div class="flex flex-wrap gap-1.5 text-[10px] text-slate-600">
-								<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
-									{formatDepartmentProgress(departmentProgress)}
-								</span>
+							<div
+								class="flex flex-wrap gap-1.5 text-[10px] text-slate-600"
+								data-testid={`select-category-department-loader-row-${entry.department}`}
+							>
 								<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
 									{selectedLoaderLabel}
 								</span>
