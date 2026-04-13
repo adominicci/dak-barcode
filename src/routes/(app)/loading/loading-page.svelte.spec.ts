@@ -502,7 +502,7 @@ describe('loading page', () => {
 		);
 		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
 		await expect.element(page.getByText('PL-200')).toHaveClass(/text-base/);
-		const firstChip = document.querySelector('[data-testid="loading-part-list-grid"] > div');
+		const firstChip = page.getByTestId('loading-part-list-grid').element().firstElementChild;
 		if (!(firstChip instanceof HTMLElement)) {
 			throw new Error('Expected the first loading part-list chip to be rendered.');
 		}

@@ -711,70 +711,70 @@
 						</div>
 					</div>
 
-						<section
-							data-testid="loading-scan-section"
-							class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-3 shadow-sm sm:p-4"
-						>
+					<section
+						data-testid="loading-scan-section"
+						class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-3 shadow-sm sm:p-4"
+					>
 						<div class="shrink-0 space-y-3">
-						<div class="space-y-2">
-							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
-							<div class="relative">
-								<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
-								<input
-									id="loading-scan-input"
-									data-testid="loading-scan-input"
-									type="text"
-									bind:value={scanInputValue}
-									bind:this={scanInputElement}
-									placeholder={currentDropArea?.dropAreaLabel
-										? 'Scan or type loading barcode...'
-										: 'Scan a driver location or loading barcode...'}
-									disabled={isScanning || pendingTimedOutScan !== null || isLocationModalOpen}
-									onkeydown={handleScanKeydown}
-									class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
-								/>
-							</div>
+							<div class="space-y-2">
+								<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
+								<div class="relative">
+									<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
+									<input
+										id="loading-scan-input"
+										data-testid="loading-scan-input"
+										type="text"
+										bind:value={scanInputValue}
+										bind:this={scanInputElement}
+										placeholder={currentDropArea?.dropAreaLabel
+											? 'Scan or type loading barcode...'
+											: 'Scan a driver location or loading barcode...'}
+										disabled={isScanning || pendingTimedOutScan !== null || isLocationModalOpen}
+										onkeydown={handleScanKeydown}
+										class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
+									/>
+								</div>
 
-							{#if scanError}
-								<div
-									class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
-								>
-									<TriangleAlert class="mt-0.5 size-4 shrink-0" />
-									<div class="min-w-0 flex-1">
-										<p class="font-semibold text-rose-800">{scanError.title}</p>
-										<p class="mt-1">{scanError.message}</p>
-										<div class="mt-3 flex flex-wrap gap-2">
-											{#if scanError.retryState}
+								{#if scanError}
+									<div
+										class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+									>
+										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
+										<div class="min-w-0 flex-1">
+											<p class="font-semibold text-rose-800">{scanError.title}</p>
+											<p class="mt-1">{scanError.message}</p>
+											<div class="mt-3 flex flex-wrap gap-2">
+												{#if scanError.retryState}
+													<button
+														type="button"
+														class="inline-flex items-center justify-center rounded-full bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
+														disabled={isScanning || pendingTimedOutScan !== null}
+														onclick={handleErrorRetry}
+													>
+														Retry scan
+													</button>
+												{/if}
 												<button
 													type="button"
-													class="inline-flex items-center justify-center rounded-full bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
+													class="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
 													disabled={isScanning || pendingTimedOutScan !== null}
-													onclick={handleErrorRetry}
+													onclick={handleErrorDismiss}
 												>
-													Retry scan
+													Dismiss error
 												</button>
-											{/if}
-											<button
-												type="button"
-												class="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-												disabled={isScanning || pendingTimedOutScan !== null}
-												onclick={handleErrorDismiss}
-											>
-												Dismiss error
-											</button>
+											</div>
 										</div>
 									</div>
-								</div>
-							{:else if scanPrompt}
-								<div
-									class="flex gap-3 rounded-2xl bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
-								>
-									<TriangleAlert class="mt-0.5 size-4 shrink-0" />
-									<p>{scanPrompt}</p>
-								</div>
-							{/if}
+								{:else if scanPrompt}
+									<div
+										class="flex gap-3 rounded-2xl bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
+									>
+										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
+										<p>{scanPrompt}</p>
+									</div>
+								{/if}
+							</div>
 						</div>
-					</div>
 
 						<div class="mt-2.5 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2">
 							{#if dropLabelsQuery?.error}
