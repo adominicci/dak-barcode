@@ -487,6 +487,7 @@ describe('loading page', () => {
 		await expect.element(page.getByText('Beacon Supply')).toBeInTheDocument();
 		await expect.element(page.getByText('L-042').first()).toBeInTheDocument();
 		await expect.element(page.getByTestId('loading-part-list-grid')).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-part-list-grid')).toHaveClass(/md:grid-cols-3/);
 		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/overflow-y-auto/);
 		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/flex-1/);
 		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/shrink-0/);
@@ -500,6 +501,13 @@ describe('loading page', () => {
 			/ui-primary-gradient/
 		);
 		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
+		await expect.element(page.getByText('PL-200')).toHaveClass(/text-base/);
+		const firstChip = document.querySelector('[data-testid="loading-part-list-grid"] > div');
+		if (!(firstChip instanceof HTMLElement)) {
+			throw new Error('Expected the first loading part-list chip to be rendered.');
+		}
+		expect(firstChip.className).toMatch(/px-5/);
+		expect(firstChip.className).toMatch(/py-5/);
 		await expect.element(page.getByText('PL-101')).not.toBeInTheDocument();
 		await expect.element(page.getByText('PL-100')).not.toBeInTheDocument();
 		await expect.element(page.getByText('SO-100')).not.toBeInTheDocument();

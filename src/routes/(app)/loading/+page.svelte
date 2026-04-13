@@ -711,10 +711,10 @@
 						</div>
 					</div>
 
-					<section
-						data-testid="loading-scan-section"
-						class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-4 shadow-sm sm:p-5"
-					>
+						<section
+							data-testid="loading-scan-section"
+							class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-3 shadow-sm sm:p-4"
+						>
 						<div class="shrink-0 space-y-3">
 						<div class="space-y-2">
 							<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
@@ -776,7 +776,7 @@
 						</div>
 					</div>
 
-					<div class="mt-3 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2.5">
+						<div class="mt-2.5 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2">
 							{#if dropLabelsQuery?.error}
 								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 									{dropLabelsQuery.error.message}
@@ -803,8 +803,8 @@
 										data-testid="loading-part-list-grid"
 									>
 										{#each unscannedDropLabels as label, index (getLoadingUnionKey(label, index))}
-											<div class="rounded-[1.25rem] bg-white px-4 py-4 shadow-sm">
-												<p class="text-sm font-semibold leading-6 text-slate-950">
+											<div class="rounded-[1.35rem] bg-white px-5 py-5 shadow-sm">
+												<p class="text-base font-bold leading-7 tracking-tight text-slate-950">
 													{label.partListId || '--'}
 												</p>
 											</div>
