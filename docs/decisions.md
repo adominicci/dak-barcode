@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-16 - Use `.run()` for imperative remote query reads
+
+- Tags: runtime, sveltekit, remote-functions
+- Decision: Treat SvelteKit remote `query(...)` helpers as reactive resources by default, and call `.run()` whenever a client event handler, modal submit action, or other imperative flow needs a one-off read.
+- Rationale: The production select-category loading handoff stalled after local UI updates because imperative code awaited the query object directly. Current SvelteKit remote-function guidance requires `.run()` for non-reactive one-off reads, and the remaining audited hotspots followed the same unsupported pattern.
+- Impacted areas: `src/lib/components/workflow/will-call-scan-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/home/home-page.svelte.spec.ts`, `src/routes/(app)/staging/staging-page.svelte.spec.ts`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that remote `query(...)` helpers were safe to `await` directly inside imperative browser code as long as they happened to work in local preview
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the rule now lives in the memory bundle and this decision log
+
 ## 2026-04-16 - Enable async mode for remote functions and sanitize operator errors
 
 - Tags: runtime, sveltekit, product, safety

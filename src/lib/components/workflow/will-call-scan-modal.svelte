@@ -52,7 +52,7 @@
 		let shouldRefocus = false;
 
 		try {
-			const result = await lookupWillCallDropsheet(loadNumber);
+			const result = await lookupWillCallDropsheet(loadNumber).run();
 			if (!isActive) {
 				return;
 			}

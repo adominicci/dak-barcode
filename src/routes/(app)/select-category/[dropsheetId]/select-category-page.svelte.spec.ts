@@ -1,5 +1,5 @@
 import { page } from 'vitest/browser';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
 import { workflowStores } from '$lib/workflow/stores';
@@ -54,6 +54,7 @@ type DepartmentLoaderGroup = {
 
 const {
 	goto,
+	resolve,
 	completeLoadingEmail,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
@@ -67,6 +68,7 @@ const {
 } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
+		resolve: vi.fn((href: string) => href),
 		completeLoadingEmail: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
@@ -82,6 +84,10 @@ const {
 
 vi.mock('$app/navigation', () => ({
 	goto
+}));
+
+vi.mock('$app/paths', () => ({
+	resolve
 }));
 
 vi.mock('$lib/loading-complete.remote', () => ({
@@ -112,6 +118,9 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import SelectCategoryPage from './+page.svelte';
+
+const originalCanvasGetContext = HTMLCanvasElement.prototype.getContext;
+const originalCanvasToBlob = HTMLCanvasElement.prototype.toBlob;
 
 function createStatusQuery(
 	current: NonNullable<DepartmentStatusQueryState['current']>,
@@ -152,6 +161,41 @@ function createLoadersQuery(
 	};
 }
 
+function createWillCallSignatureRecord(
+	overrides: Partial<{
+		dropSheetCustomerId: number | null;
+		dropSheetId: number;
+		signature: string | null;
+		signatureTimestamp: string | null;
+		receivedBy: string | null;
+		signaturePath: string | null;
+	}> = {}
+) {
+	return {
+		dropSheetCustomerId: null,
+		dropSheetId: 42,
+		signature: null,
+		signatureTimestamp: null,
+		receivedBy: null,
+		signaturePath: null,
+		...overrides
+	};
+}
+
+function createCanvasRenderingContextMock() {
+	return {
+		beginPath: vi.fn(),
+		lineCap: 'round',
+		lineJoin: 'round',
+		lineTo: vi.fn(),
+		moveTo: vi.fn(),
+		stroke: vi.fn(),
+		clearRect: vi.fn(),
+		lineWidth: 0,
+		strokeStyle: ''
+	};
+}
+
 function createDeferred<T>() {
 	let resolvePromise!: (value: T | PromiseLike<T>) => void;
 	let rejectPromise!: (reason?: unknown) => void;
@@ -186,6 +230,8 @@ const layoutData = {
 describe('select-category page', () => {
 	beforeEach(() => {
 		goto.mockReset();
+		resolve.mockReset();
+		resolve.mockImplementation((href: string) => href);
 		completeLoadingEmail.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
@@ -231,6 +277,11 @@ describe('select-category page', () => {
 		);
 	});
 
+	afterEach(() => {
+		HTMLCanvasElement.prototype.getContext = originalCanvasGetContext;
+		HTMLCanvasElement.prototype.toBlob = originalCanvasToBlob;
+	});
+
 	it('shows the Signature action only when the current select-category handoff is will call', async () => {
 		const willCallRender = render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
@@ -274,6 +325,147 @@ describe('select-category page', () => {
 		});
 
 		await expect.element(page.getByRole('button', { name: 'Signature' })).not.toBeInTheDocument();
+	});
+
+	it('loads the current will call signature through getWillCallSignature().run() before opening the modal', async () => {
+		const runSignature = vi
+			.fn()
+			.mockResolvedValue(createWillCallSignatureRecord({ receivedBy: 'Jordan' }));
+		getWillCallSignature.mockReturnValue({ run: runSignature });
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'WC-042',
+				driverName: 'WILL CALL',
+				dropWeight: null,
+				percentCompleted: 0,
+				returnTo: '/home',
+				willCall: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Signature' }).click();
+
+		expect(getWillCallSignature).toHaveBeenCalledWith(42);
+		expect(runSignature).toHaveBeenCalledOnce();
+		await expect.element(page.getByRole('dialog', { name: 'Customer signature' })).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Received By')).toHaveValue('Jordan');
+	});
+
+	it('refreshes the will call signature through getWillCallSignature().run() after upload', async () => {
+		const runInitialSignature = vi.fn().mockResolvedValue(createWillCallSignatureRecord());
+		const runRefreshedSignature = vi
+			.fn()
+			.mockResolvedValue(
+				createWillCallSignatureRecord({
+					receivedBy: 'Jordan',
+					signaturePath: 'will-call/42/signature_123.png'
+				})
+			);
+		const upload = vi.fn().mockResolvedValue({
+			data: { path: 'will-call/42/signature_123.png' },
+			error: null
+		});
+		const createSignedUrl = vi.fn().mockResolvedValue({
+			data: { signedUrl: 'https://signed.example.com/signature.png' },
+			error: null
+		});
+		const remove = vi.fn().mockResolvedValue({
+			data: [],
+			error: null
+		});
+		const canvasRenderingContext = createCanvasRenderingContextMock();
+
+		getWillCallSignature
+			.mockReturnValueOnce({ run: runInitialSignature })
+			.mockReturnValueOnce({ run: runRefreshedSignature });
+		createSupabaseBrowserClient.mockReturnValue({
+			storage: {
+				from: () => ({
+					createSignedUrl,
+					upload,
+					remove
+				})
+			}
+		});
+		uploadWillCallSignature.mockResolvedValue(undefined);
+		HTMLCanvasElement.prototype.getContext = ((
+			contextId: string
+		) => (contextId === '2d' ? canvasRenderingContext : null)) as typeof HTMLCanvasElement.prototype.getContext;
+		HTMLCanvasElement.prototype.toBlob = vi.fn((callback) => {
+			callback?.(new Blob(['signature'], { type: 'image/png' }));
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'WC-042',
+				driverName: 'WILL CALL',
+				dropWeight: null,
+				percentCompleted: 0,
+				returnTo: '/home',
+				willCall: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Signature' }).click();
+		await page.getByLabelText('Received By').fill('Jordan');
+
+		const canvasElement = document.querySelector('[data-testid="will-call-signature-canvas"]');
+		if (!(canvasElement instanceof HTMLCanvasElement)) {
+			throw new Error('Expected will call signature canvas element.');
+		}
+
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				clientX: 24,
+				clientY: 24,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointermove', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true,
+				buttons: 1
+			})
+		);
+		canvasElement.dispatchEvent(
+			new PointerEvent('pointerup', {
+				clientX: 96,
+				clientY: 72,
+				bubbles: true,
+				cancelable: true
+			})
+		);
+
+		await page.getByRole('button', { name: 'Upload Signature' }).click();
+
+		expect(runInitialSignature).toHaveBeenCalledOnce();
+		await vi.waitFor(() => {
+			expect(uploadWillCallSignature).toHaveBeenCalledWith({
+				dropSheetId: 42,
+				signaturePath: 'will-call/42/signature_123.png',
+				receivedBy: 'Jordan'
+			});
+			expect(runRefreshedSignature).toHaveBeenCalledOnce();
+		});
+		await expect
+			.element(page.getByRole('dialog', { name: 'Customer signature' }))
+			.not.toBeInTheDocument();
 	});
 
 	it('renders the compact summary cards and department actions without the old sidebar or heading block', async () => {
@@ -453,7 +645,10 @@ describe('select-category page', () => {
 	});
 
 	it('opens the loader modal on every department tap and persists the chosen loader for the loading handoff', async () => {
-		getNumberOfDrops.mockResolvedValue(14);
+		const runNumberOfDrops = vi.fn().mockResolvedValue(14);
+		getNumberOfDrops.mockReturnValue({
+			run: runNumberOfDrops
+		});
 		const refresh = vi.fn();
 		getLoaders.mockReturnValue(
 			createLoadersQuery([
@@ -502,6 +697,7 @@ describe('select-category page', () => {
 			dropSheetId: 42,
 			locationId: 2
 		});
+		expect(runNumberOfDrops).toHaveBeenCalledOnce();
 		expect(upsertLoaderSession).toHaveBeenCalledWith(
 			expect.objectContaining({
 				dropSheetId: 42,
@@ -731,6 +927,32 @@ describe('select-category page', () => {
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
+	});
+
+	it('reuses an already-resolved returnTo path when exiting complete load', async () => {
+		resolve.mockImplementation((href: string) => `/base${href}`);
+		completeLoadingEmail.mockResolvedValue({ ok: true, partial: false });
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/base/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(goto).toHaveBeenCalledWith('/base/dropsheets?date=2026-03-24');
 	});
 
 	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {

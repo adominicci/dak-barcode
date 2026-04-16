@@ -31,8 +31,9 @@ What is already in place:
 - authenticated app shell with profile-gated routing, inactive-user blocking, and fixed-domain auth flows
 - admin target selection plus operator warehouse resolution
 - Home, Location, Account, Add Loader, Dropsheets, Select Category, Staging, and Loading pages
+- live Will Call lookup and signature flows launched from Home and Select Category
 - Order Status and Move Orders support pages connected to the loading flow
-- live remote actions and queries for staging scans, loading scans, dropsheet lists, loader sessions, load detail views, and loading-complete notifications
+- live remote actions and queries for staging scans, loading scans, dropsheet lists, loader sessions, load detail views, loading-complete notifications, and will-call persistence
 - shared workflow stores/controllers plus route and server test coverage with Vitest and Playwright
 - SvelteKit 5 + Svelte 5 + TypeScript, Tailwind CSS 4, shadcn-svelte, and Bun as the package-manager standard
 

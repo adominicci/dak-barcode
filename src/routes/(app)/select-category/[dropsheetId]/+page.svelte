@@ -170,6 +170,10 @@
 		];
 	}
 
+	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: string) {
+		return returnTo ?? resolve(fallbackPath);
+	}
+
 	function getDepartmentStatus(
 		status: DepartmentStatus | null,
 		department: OperationalDepartment
@@ -286,7 +290,7 @@
 				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
 			}
 
-			await goto(data.returnTo ?? '/dropsheets');
+			await goto(getResolvedReturnHref(data.returnTo, '/dropsheets'));
 		} catch (error) {
 			completeLoadingError =
 				error instanceof Error ? error.message : 'Unable to complete loading.';
@@ -304,7 +308,7 @@
 			await getNumberOfDrops({
 				dropSheetId: data.dropSheetId,
 				locationId
-			});
+			}).run();
 
 			const session = await upsertLoaderSession({
 				dropSheetId: data.dropSheetId,
@@ -376,7 +380,7 @@
 		submitError = null;
 
 		try {
-			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId);
+			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId).run();
 			isWillCallSignatureModalOpen = true;
 		} catch (error) {
 			submitError =
@@ -726,7 +730,7 @@
 			willCallSignatureRecord = null;
 		}}
 		onUploaded={async () => {
-			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId);
+			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId).run();
 		}}
 	/>
 {/if}

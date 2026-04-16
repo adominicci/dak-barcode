@@ -97,6 +97,7 @@ architecture:
     - auth and target resolution are server-side concerns
     - browser cache is limited to lookup lists such as loaders, trailers, and drop areas
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
+    - imperative reads from SvelteKit remote `query(...)` helpers must use `.run()` in event handlers, modal submissions, and other one-off client actions instead of awaiting the query directly
   access_states:
     - anonymous
     - inactive
