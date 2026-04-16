@@ -170,6 +170,10 @@
 		];
 	}
 
+	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: string) {
+		return returnTo ?? resolve(fallbackPath);
+	}
+
 	function getDepartmentStatus(
 		status: DepartmentStatus | null,
 		department: OperationalDepartment
@@ -286,7 +290,7 @@
 				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
 			}
 
-			await goto(resolve(data.returnTo ?? '/dropsheets'));
+			await goto(getResolvedReturnHref(data.returnTo, '/dropsheets'));
 		} catch (error) {
 			completeLoadingError =
 				error instanceof Error ? error.message : 'Unable to complete loading.';

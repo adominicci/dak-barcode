@@ -54,6 +54,7 @@ type DepartmentLoaderGroup = {
 
 const {
 	goto,
+	resolve,
 	completeLoadingEmail,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
@@ -67,6 +68,7 @@ const {
 } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
+		resolve: vi.fn((href: string) => href),
 		completeLoadingEmail: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
@@ -82,6 +84,10 @@ const {
 
 vi.mock('$app/navigation', () => ({
 	goto
+}));
+
+vi.mock('$app/paths', () => ({
+	resolve
 }));
 
 vi.mock('$lib/loading-complete.remote', () => ({
@@ -224,6 +230,8 @@ const layoutData = {
 describe('select-category page', () => {
 	beforeEach(() => {
 		goto.mockReset();
+		resolve.mockReset();
+		resolve.mockImplementation((href: string) => href);
 		completeLoadingEmail.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
@@ -919,6 +927,32 @@ describe('select-category page', () => {
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
+	});
+
+	it('reuses an already-resolved returnTo path when exiting complete load', async () => {
+		resolve.mockImplementation((href: string) => `/base${href}`);
+		completeLoadingEmail.mockResolvedValue({ ok: true, partial: false });
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/base/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(goto).toHaveBeenCalledWith('/base/dropsheets?date=2026-03-24');
 	});
 
 	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {
