@@ -4,6 +4,7 @@ import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 import { sortLegacyLoadViewAllEntries } from '$lib/workflow/legacy-sequence-order';
 import { getWorkflowStatusClasses } from '$lib/workflow/status-tones';
+import { getOperatorErrorMessage } from '$lib/operator-error';
 import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 	import type { PageProps } from './$types';
 
@@ -76,7 +77,12 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 	{#if loadViewAllQuery.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 			<p class="font-semibold">Unable to load order status sequences.</p>
-			<p class="mt-1 leading-6">{loadViewAllQuery.error.message}</p>
+			<p class="mt-1 leading-6">
+				{getOperatorErrorMessage(
+					loadViewAllQuery.error,
+					'Unable to load order status sequences.'
+				)}
+			</p>
 		</div>
 	{:else if loadViewAllQuery.loading && sequenceOptions.length === 0}
 		<section
@@ -121,7 +127,10 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 
 				{#if orderStatusRowsQuery?.error}
 					<div class="rounded-[1.5rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
-						{orderStatusRowsQuery.error.message}
+						{getOperatorErrorMessage(
+							orderStatusRowsQuery.error,
+							'Unable to load order status rows.'
+						)}
 					</div>
 				{:else if orderStatusRowsQuery?.loading && orderStatusRows.length === 0}
 					<div class="flex min-h-40 items-center justify-center rounded-[1.5rem] bg-white">

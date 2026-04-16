@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { LoaderCircle, Plus, UserRound } from '@lucide/svelte';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -151,7 +152,7 @@
 
 			{#if loadersQuery.error}
 				<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-					{loadersQuery.error.message}
+					{getOperatorErrorMessage(loadersQuery.error, 'Unable to load loaders.')}
 				</div>
 			{:else if visibleLoaders.length === 0}
 				<div class="rounded-2xl bg-surface-container-low px-4 py-5 text-sm text-on-surface-variant">

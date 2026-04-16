@@ -18,6 +18,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { Popover } from '$lib/components/ui/popover';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import {
 		getDropsheets,
@@ -372,11 +373,13 @@
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-rose-50 text-rose-500">
 					<TriangleAlert class="size-7" />
 				</div>
-				<p class="mt-5 text-lg font-semibold tracking-tight text-slate-950">
-					Unable to load dropsheets.
-				</p>
-				<p class="mt-2 text-sm leading-6 text-slate-600">{dropsheetsQuery.error.message}</p>
-			</div>
+					<p class="mt-5 text-lg font-semibold tracking-tight text-slate-950">
+						Unable to load dropsheets.
+					</p>
+					<p class="mt-2 text-sm leading-6 text-slate-600">
+						{getOperatorErrorMessage(dropsheetsQuery.error, 'Unable to load dropsheets.')}
+					</p>
+				</div>
 		{:else if dropsheetsQuery.loading && dropsheets.length === 0}
 			<div class="px-6 py-12 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center">

@@ -148,6 +148,23 @@ describe('browser cache helpers', () => {
 		expect(JSON.parse(String(storage.getItem(cacheKey))).data).toEqual([{ id: 1, name: 'TR-1' }]);
 	});
 
+	it('skips the initial cache write for query doubles that are not thenable', async () => {
+		const cacheKey = lookupCacheKey('drop-areas', 'Wrap');
+		const storage = createMemoryStorage();
+		const query = {
+			current: [{ id: 41, name: 'W12' }],
+			error: null,
+			loading: false,
+			ready: true,
+			refresh: vi.fn(async () => undefined),
+			set: vi.fn(),
+			withOverride: vi.fn()
+		} as unknown as RemoteQuery<{ id: number; name: string }[]>;
+
+		expect(() => createCachedRemoteQuery(query, cacheKey, storage)).not.toThrow();
+		expect(storage.setItem).not.toHaveBeenCalled();
+	});
+
 	it('invalidates a cached lookup entry', () => {
 		const cacheKey = lookupCacheKey('loaders');
 		const storage = createMemoryStorage({

@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
@@ -191,7 +192,12 @@
 	{#if loadViewAllQuery.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 			<p class="font-semibold">Unable to load move order sequences.</p>
-			<p class="mt-1 leading-6">{loadViewAllQuery.error.message}</p>
+			<p class="mt-1 leading-6">
+				{getOperatorErrorMessage(
+					loadViewAllQuery.error,
+					'Unable to load move order sequences.'
+				)}
+			</p>
 		</div>
 	{:else if loadViewAllQuery.loading && sequenceOptions.length === 0}
 		<section
@@ -245,7 +251,10 @@
 
 				{#if moveOrdersRowsQuery?.error}
 					<div class="rounded-[1.5rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
-						{moveOrdersRowsQuery.error.message}
+						{getOperatorErrorMessage(
+							moveOrdersRowsQuery.error,
+							'Unable to load move order rows.'
+						)}
 					</div>
 				{:else if moveOrdersRowsQuery?.loading && moveOrdersRows.length === 0}
 					<div class="flex min-h-40 items-center justify-center rounded-[1.5rem] bg-white">

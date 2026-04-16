@@ -11,6 +11,7 @@
 		Truck
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
@@ -377,7 +378,9 @@
 		{#if statusQuery.error}
 			<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 				<p class="font-semibold">Unable to load department status.</p>
-				<p class="mt-1 leading-6">{statusQuery.error.message}</p>
+				<p class="mt-1 leading-6">
+					{getOperatorErrorMessage(statusQuery.error, 'Unable to load department status.')}
+				</p>
 			</div>
 		{:else if isStatusSectionLoading}
 			<div

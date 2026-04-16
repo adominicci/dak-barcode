@@ -16,6 +16,7 @@
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import { getDepartmentStatus } from '$lib/department-status.remote';
@@ -578,7 +579,12 @@
 		{:else if loaderInfoQuery?.error}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the loader session.</p>
-				<p class="mt-2 text-sm leading-6 text-slate-600">{loaderInfoQuery.error.message}</p>
+				<p class="mt-2 text-sm leading-6 text-slate-600">
+					{getOperatorErrorMessage(
+						loaderInfoQuery.error,
+						'Unable to load the loader session.'
+					)}
+				</p>
 			</div>
 		{:else if loaderInfoQuery?.loading || loaderInfo === null}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
@@ -592,7 +598,9 @@
 		{:else if dropDetailsQuery?.error}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the drop list.</p>
-				<p class="mt-2 text-sm leading-6 text-slate-600">{dropDetailsQuery.error.message}</p>
+				<p class="mt-2 text-sm leading-6 text-slate-600">
+					{getOperatorErrorMessage(dropDetailsQuery.error, 'Unable to load the drop list.')}
+				</p>
 			</div>
 		{:else if dropDetailsQuery?.loading && dropDetails.length === 0}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
@@ -779,7 +787,10 @@
 						<div class="mt-2.5 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2">
 							{#if dropLabelsQuery?.error}
 								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-									{dropLabelsQuery.error.message}
+									{getOperatorErrorMessage(
+										dropLabelsQuery.error,
+										'Unable to load the drop labels.'
+									)}
 								</div>
 							{:else if isLoadingDropLabels}
 								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">

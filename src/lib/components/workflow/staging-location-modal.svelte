@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import { getDropArea } from '$lib/drop-areas.remote';
 	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
 	import type { Target } from '$lib/auth/types';
@@ -520,7 +521,12 @@
 						{:else if dropAreasQuery?.error}
 							<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 								<TriangleAlert class="mt-0.5 size-4 shrink-0" />
-								<p>{dropAreasQuery.error.message}</p>
+								<p>
+									{getOperatorErrorMessage(
+										dropAreasQuery.error,
+										'Unable to load locations.'
+									)}
+								</p>
 							</div>
 						{:else if dropAreasQuery?.loading}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-on-surface-variant/70">

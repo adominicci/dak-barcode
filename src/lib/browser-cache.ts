@@ -124,7 +124,7 @@ export function createCachedRemoteQuery<T>(
 
 	let initialWritePending = storage !== null && !cachedRecord;
 
-	if (storage && !cachedRecord) {
+	if (storage && !cachedRecord && typeof query.then === 'function') {
 		void query
 			.then((current) => {
 				if (initialWritePending) {

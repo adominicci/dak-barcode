@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-04-10
+  last_updated_at: 2026-04-16
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-04-10
+  last_verified_at: 2026-04-16
   verified_against:
     - AGENTS.md
     - README.md
@@ -73,7 +73,7 @@ product:
     - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
 
 architecture:
-  last_verified_at: 2026-04-10
+  last_verified_at: 2026-04-16
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
@@ -96,6 +96,7 @@ architecture:
     - workflow state is intentionally disposable and mostly in memory
     - auth and target resolution are server-side concerns
     - browser cache is limited to lookup lists such as loaders, trailers, and drop areas
+    - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
   access_states:
     - anonymous
     - inactive
@@ -104,7 +105,7 @@ architecture:
     - admin-ready
 
 workflows:
-  last_verified_at: 2026-04-10
+  last_verified_at: 2026-04-16
   verified_against:
     - AGENTS.md
     - src/routes/(app)/staging/+page.svelte
@@ -149,7 +150,7 @@ workflows:
       - Add Loader
 
 integrations:
-  last_verified_at: 2026-04-10
+  last_verified_at: 2026-04-16
   verified_against:
     - docs/architecture.md
     - docs/prd.md
@@ -174,7 +175,7 @@ integrations:
     - DAK_WEB_URL
 
 testing:
-  last_verified_at: 2026-04-10
+  last_verified_at: 2026-04-16
   verified_against:
     - package.json
     - README.md
