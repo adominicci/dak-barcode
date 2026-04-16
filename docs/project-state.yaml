@@ -95,9 +95,10 @@ architecture:
   state_rules:
     - workflow state is intentionally disposable and mostly in memory
     - auth and target resolution are server-side concerns
-    - browser cache is limited to lookup lists such as loaders, trailers, and drop areas
+    - operator-facing loaders, trailers, and drop-area lookups now fetch fresh remote query state instead of hydrating from browser cache
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
     - imperative reads from SvelteKit remote `query(...)` helpers must use `.run()` in event handlers, modal submissions, and other one-off client actions instead of awaiting the query directly
+    - target-sensitive lookup wrappers must include a target cache qualifier in the serialized remote `query(...)` input so deployed clients cannot reuse the wrong reactive query instance across target changes
   access_states:
     - anonymous
     - inactive

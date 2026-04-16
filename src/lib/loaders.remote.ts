@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { command, query } from '$app/server';
 import {
 	getDstLoaders,
@@ -7,7 +8,12 @@ import {
 	updateDstLoader
 } from '$lib/server/dst-queries';
 
-export const getLoaders = query(async () => getDstLoaders());
+const loadersQueryInputSchema = v.object({
+	// Scopes the serialized client query identity per target; the server read stays target-driven.
+	targetCacheKey: v.pipe(v.string(), v.trim(), v.nonEmpty('Target cache key is required.'))
+});
+
+export const getLoaders = query(loadersQueryInputSchema, async () => getDstLoaders());
 
 export const createLoader = command(loaderNameSchema, async (loaderName) =>
 	insertDstLoader(loaderName)
