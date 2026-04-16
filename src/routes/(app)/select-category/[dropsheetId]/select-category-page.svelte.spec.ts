@@ -54,6 +54,7 @@ type DepartmentLoaderGroup = {
 
 const {
 	goto,
+	resolve,
 	completeLoadingEmail,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
@@ -67,6 +68,7 @@ const {
 } = vi.hoisted(
 	() => ({
 		goto: vi.fn(),
+		resolve: vi.fn((path: string) => `/base${path}`),
 		completeLoadingEmail: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
@@ -82,6 +84,10 @@ const {
 
 vi.mock('$app/navigation', () => ({
 	goto
+}));
+
+vi.mock('$app/paths', () => ({
+	resolve
 }));
 
 vi.mock('$lib/loading-complete.remote', () => ({
@@ -517,7 +523,7 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
+			'/base/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fbase%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
 		);
 	});
 
@@ -722,6 +728,35 @@ describe('select-category page', () => {
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 	});
 
+	it('does not re-resolve an already-resolved returnTo when completion succeeds', async () => {
+		completeLoadingEmail.mockResolvedValue({
+			ok: true,
+			partial: false
+		});
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+		expect(goto).not.toHaveBeenCalledWith('/base/dropsheets?date=2026-03-24');
+	});
+
 	it('shows a do-not-resend warning and still exits when post-send sync fails after notifications were sent', async () => {
 		completeLoadingEmail.mockResolvedValue({
 			ok: true,
@@ -786,5 +821,59 @@ describe('select-category page', () => {
 			'500 Internal Server Error: email dispatch failed'
 		);
 		expect(goto).not.toHaveBeenCalled();
+	});
+
+	it('shows the remote failure message when complete loading receives a plain message object', async () => {
+		completeLoadingEmail.mockRejectedValue({
+			message: 'Unable to notify accounting.'
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		await expect.element(page.getByTestId('complete-loading-error')).toHaveTextContent(
+			'Unable to notify accounting.'
+		);
+	});
+
+	it('shows the remote failure message when the will call signature request receives a plain message object', async () => {
+		getWillCallSignature.mockRejectedValue({
+			message: 'Signature lookup is temporarily unavailable.'
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'WC-042',
+				driverName: 'WILL CALL',
+				dropWeight: null,
+				percentCompleted: 0,
+				returnTo: '/home',
+				willCall: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Signature' }).click();
+
+		await expect.element(page.getByText('Signature lookup is temporarily unavailable.')).toBeInTheDocument();
 	});
 });

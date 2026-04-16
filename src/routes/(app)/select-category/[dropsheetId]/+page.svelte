@@ -286,10 +286,9 @@
 				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
 			}
 
-			await goto(resolve(data.returnTo ?? '/dropsheets'));
+			await goto(data.returnTo ?? resolve('/dropsheets'));
 		} catch (error) {
-			completeLoadingError =
-				error instanceof Error ? error.message : 'Unable to complete loading.';
+			completeLoadingError = getOperatorErrorMessage(error, 'Unable to complete loading.');
 		} finally {
 			isCompletingLoad = false;
 		}
@@ -379,8 +378,7 @@
 			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId);
 			isWillCallSignatureModalOpen = true;
 		} catch (error) {
-			submitError =
-				error instanceof Error ? error.message : 'Unable to load the current signature.';
+			submitError = getOperatorErrorMessage(error, 'Unable to load the current signature.');
 		} finally {
 			isLoadingWillCallSignature = false;
 		}
