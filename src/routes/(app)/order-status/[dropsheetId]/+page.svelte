@@ -13,10 +13,15 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 	let { data }: PageProps = $props();
 	let selectedSequence = $state<string | null>(null);
 
-	const loadViewAllQuery = $derived(getLegacyLoadViewAll(data.dropSheetId));
-	const sequenceOptions = $derived.by(() =>
-		sortLegacyLoadViewAllEntries(loadViewAllQuery.current ?? [])
-	);
+const loadViewAllState = $derived.by(() => {
+	const query = getLegacyLoadViewAll(data.dropSheetId);
+	return {
+		current: query.current ?? [],
+		error: query.error,
+		loading: query.loading
+	};
+});
+const sequenceOptions = $derived.by(() => sortLegacyLoadViewAllEntries(loadViewAllState.current));
 	const activeSequence = $derived.by(() => {
 		const activeSequenceId = selectedSequence ?? sequenceOptions[0]?.sequence ?? null;
 		if (!activeSequenceId) {
@@ -25,17 +30,30 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 
 		return sequenceOptions.find((entry) => entry.sequence === activeSequenceId) ?? null;
 	});
-	const orderStatusRowsQuery = $derived.by(() => {
-		if (!activeSequence) {
-			return null;
-		}
+function getOrderStatusRowsQuery() {
+	if (!activeSequence) {
+		return null;
+	}
 
-		return getLegacyOrderStatusRows({
-			dropSheetId: data.dropSheetId,
-			dropSheetCustId: activeSequence.dropSheetCustId
-		});
+	return getLegacyOrderStatusRows({
+		dropSheetId: data.dropSheetId,
+		dropSheetCustId: activeSequence.dropSheetCustId
 	});
-	const orderStatusRows = $derived(orderStatusRowsQuery?.current ?? []);
+}
+
+const orderStatusRowsState = $derived.by(() => {
+	const query = getOrderStatusRowsQuery();
+	return {
+		current: query?.current ?? [],
+		error: query?.error ?? null,
+		loading: query?.loading ?? false
+	};
+});
+const orderStatusRows = $derived(orderStatusRowsState.current);
+const orderStatusRowsError = $derived(orderStatusRowsState.error);
+const isOrderStatusRowsLoading = $derived(
+	orderStatusRowsState.loading && orderStatusRows.length === 0
+);
 
 	function handleSequenceSelect(sequence: LegacyLoadViewAllEntry) {
 		selectedSequence = sequence.sequence;
@@ -74,17 +92,17 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 		dropWeight={data.dropWeight}
 	/>
 
-	{#if loadViewAllQuery.error}
+	{#if loadViewAllState.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 			<p class="font-semibold">Unable to load order status sequences.</p>
 			<p class="mt-1 leading-6">
 				{getOperatorErrorMessage(
-					loadViewAllQuery.error,
+					loadViewAllState.error,
 					'Unable to load order status sequences.'
 				)}
 			</p>
 		</div>
-	{:else if loadViewAllQuery.loading && sequenceOptions.length === 0}
+	{:else if loadViewAllState.loading && sequenceOptions.length === 0}
 		<section
 			class="flex min-h-[22rem] items-center justify-center rounded-[2rem] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
 			data-testid="order-status-loading-state"
@@ -125,14 +143,14 @@ import type { LegacyLoadViewAllEntry, LegacyOrderStatusRow } from '$lib/types';
 					</div>
 				</div>
 
-				{#if orderStatusRowsQuery?.error}
+				{#if orderStatusRowsError}
 					<div class="rounded-[1.5rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 						{getOperatorErrorMessage(
-							orderStatusRowsQuery.error,
+							orderStatusRowsError,
 							'Unable to load order status rows.'
 						)}
 					</div>
-				{:else if orderStatusRowsQuery?.loading && orderStatusRows.length === 0}
+				{:else if isOrderStatusRowsLoading}
 					<div class="flex min-h-40 items-center justify-center rounded-[1.5rem] bg-white">
 						<LoadingSpinner size="md" data-testid="order-status-rows-loading-spinner" />
 					</div>

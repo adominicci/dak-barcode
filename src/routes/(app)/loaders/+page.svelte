@@ -25,8 +25,14 @@
 	const INACTIVE_CARD_CLASSES =
 		'bg-white text-slate-700 ring-1 ring-slate-200 shadow-[var(--shadow-soft)]';
 
-	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
-	const loaders = $derived(loadersQuery.current ?? []);
+	const loadersState = $derived.by(() => {
+		const query = getLoaders(data.activeTarget);
+		return {
+			current: query.current ?? [],
+			error: query.error
+		};
+	});
+	const loaders = $derived(loadersState.current);
 	const activeLoaders = $derived(loaders.filter((loader) => loader.isActive));
 	const inactiveLoaders = $derived(loaders.filter((loader) => !loader.isActive));
 	const visibleLoaders = $derived(
@@ -67,7 +73,7 @@
 		try {
 			await createLoader(trimmed);
 			invalidateLoadersCache(data.activeTarget);
-			await loadersQuery.refresh();
+			await getLoaders(data.activeTarget).refresh();
 			loaderName = '';
 			statusTone = 'success';
 			statusMessage = 'Loader created and marked active.';
@@ -94,7 +100,7 @@
 				isActive: input.isActive
 			});
 			invalidateLoadersCache(data.activeTarget);
-			await loadersQuery.refresh();
+			await getLoaders(data.activeTarget).refresh();
 			editorLoader = null;
 			statusTone = 'success';
 			statusMessage = 'Loader updated.';
@@ -138,22 +144,22 @@
 				>
 					<Checkbox
 						bind:checked={showInactiveLoaders}
-						onCheckedChange={(checked) => {
-							if (checked) {
-								invalidateLoadersCache(data.activeTarget);
-								void loadersQuery.refresh();
-							}
-						}}
+							onCheckedChange={(checked) => {
+								if (checked) {
+									invalidateLoadersCache(data.activeTarget);
+									void getLoaders(data.activeTarget).refresh();
+								}
+							}}
 						aria-label="Show inactive loaders"
 					/>
 					<span>Show inactive loaders</span>
 				</label>
 			</div>
 
-			{#if loadersQuery.error}
-				<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-					{getOperatorErrorMessage(loadersQuery.error, 'Unable to load loaders.')}
-				</div>
+				{#if loadersState.error}
+					<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+						{getOperatorErrorMessage(loadersState.error, 'Unable to load loaders.')}
+					</div>
 			{:else if visibleLoaders.length === 0}
 				<div class="rounded-2xl bg-surface-container-low px-4 py-5 text-sm text-on-surface-variant">
 					{#if showInactiveLoaders}

@@ -62,15 +62,36 @@
 	let willCallSignatureRecord = $state<WillCallSignatureRecord | null>(null);
 	type LoaderSelection = Exclude<WorkflowLoaderSelection, null>;
 
-	const statusQuery = $derived(getDropsheetStatus(data.dropSheetId));
-	const categoryAvailabilityQuery = $derived(getDropsheetCategoryAvailability(data.dropSheetId));
-	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
-	const currentStatus = $derived(statusQuery.current ?? null);
-	const categoryAvailability = $derived(categoryAvailabilityQuery.current ?? null);
-	const isStatusSectionLoading = $derived(statusQuery.loading && currentStatus === null);
+	const statusState = $derived.by(() => {
+		const query = getDropsheetStatus(data.dropSheetId);
+		return {
+			current: query.current ?? null,
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const categoryAvailabilityState = $derived.by(() => {
+		const query = getDropsheetCategoryAvailability(data.dropSheetId);
+		return {
+			current: query.current ?? null,
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const loadersState = $derived.by(() => {
+		const query = getLoaders(data.activeTarget);
+		return {
+			current: query.current ?? data.loaders,
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const currentStatus = $derived(statusState.current);
+	const categoryAvailability = $derived(categoryAvailabilityState.current);
+	const isStatusSectionLoading = $derived(statusState.loading && currentStatus === null);
 	const isDepartmentsSectionLoading = $derived(
-		(statusQuery.loading && currentStatus === null) ||
-			(categoryAvailabilityQuery.loading && categoryAvailability === null)
+		(statusState.loading && currentStatus === null) ||
+			(categoryAvailabilityState.loading && categoryAvailability === null)
 	);
 	const statusEntries = $derived(byStatusDisplay(currentStatus));
 	const departmentLoaderGroups = $derived.by(() => {
@@ -90,7 +111,7 @@
 		getVisibleDepartments(LOADING_ENTRY_DEPARTMENTS, categoryAvailability)
 	);
 	const loaderOptions = $derived(
-		(loadersQuery.current ?? data.loaders).map((loader) => ({
+		loadersState.current.map((loader) => ({
 			id: loader.id,
 			label: loader.name
 		}))
@@ -375,11 +396,11 @@
 			dropWeight={data.dropWeight}
 		/>
 
-		{#if statusQuery.error}
+		{#if statusState.error}
 			<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 				<p class="font-semibold">Unable to load department status.</p>
 				<p class="mt-1 leading-6">
-					{getOperatorErrorMessage(statusQuery.error, 'Unable to load department status.')}
+					{getOperatorErrorMessage(statusState.error, 'Unable to load department status.')}
 				</p>
 			</div>
 		{:else if isStatusSectionLoading}
@@ -414,7 +435,7 @@
 			</div>
 		{/if}
 
-		{#if categoryAvailabilityQuery.error}
+		{#if categoryAvailabilityState.error}
 			<div class="rounded-[1.5rem] bg-amber-50 px-5 py-4 text-sm text-amber-800">
 				Unable to filter departments by availability. Showing every loading department.
 			</div>
@@ -670,14 +691,14 @@
 		title={`Select loader for ${activeDepartment}`}
 		description={`The current loader is ${selectedLoaderLabel}. Tap a loader to keep the workflow sticky and start ${activeDepartment.toLowerCase()} immediately.`}
 		options={loaderOptions}
-		loading={loadersQuery.loading}
-		error={loadersQuery.error?.message ?? null}
+		loading={loadersState.loading}
+		error={loadersState.error?.message ?? null}
 		saving={pendingDepartment !== null}
 		emptyMessage="No active loaders are available."
 		onClose={closeLoaderModal}
 		onPick={handleLoaderPick}
-		onRefresh={() => void loadersQuery.refresh()}
-		refreshing={loadersQuery.loading}
+		onRefresh={() => void getLoaders(data.activeTarget).refresh()}
+		refreshing={loadersState.loading}
 	/>
 {/if}
 

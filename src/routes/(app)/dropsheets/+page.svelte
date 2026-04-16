@@ -72,13 +72,34 @@
 	let pickerError = $state<string | null>(null);
 	let pickerSaving = $state(false);
 
-	const dropsheetsQuery = $derived(getDropsheets(data.selectedDate));
-	const loadersQuery = $derived.by(() => getLoaders(data.activeTarget));
-	const trailersQuery = $derived.by(() => getTrailers(data.activeTarget));
+	const dropsheetsState = $derived.by(() => {
+		const query = getDropsheets(data.selectedDate);
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const loadersState = $derived.by(() => {
+		const query = getLoaders(data.activeTarget);
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const trailersState = $derived.by(() => {
+		const query = getTrailers(data.activeTarget);
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading
+		};
+	});
 
-	const dropsheets = $derived(dropsheetsQuery.current ?? []);
+	const dropsheets = $derived(dropsheetsState.current);
 	const activeLoaders = $derived(
-		(loadersQuery.current ?? []).filter((loader) => loader.isActive)
+		loadersState.current.filter((loader) => loader.isActive)
 	);
 	const loaderOptions = $derived(
 		activeLoaders.map((loader) => ({
@@ -87,7 +108,7 @@
 		}))
 	);
 	const trailerOptions = $derived(
-		(trailersQuery.current ?? []).map((trailer) => ({
+		trailersState.current.map((trailer) => ({
 			id: trailer.id,
 			label: trailer.name
 		}))
@@ -104,7 +125,7 @@
 			return false;
 		}
 
-		return activePicker.kind === 'trailer' ? trailersQuery.loading : loadersQuery.loading;
+		return activePicker.kind === 'trailer' ? trailersState.loading : loadersState.loading;
 	});
 	const activePickerQueryError = $derived.by(() => {
 		if (!activePicker) {
@@ -112,8 +133,8 @@
 		}
 
 		return activePicker.kind === 'trailer'
-			? trailersQuery.error?.message ?? null
-			: loadersQuery.error?.message ?? null;
+			? trailersState.error?.message ?? null
+			: loadersState.error?.message ?? null;
 	});
 	const activePickerDescription = $derived.by(() => {
 		if (!activePicker) {
@@ -240,7 +261,7 @@
 				});
 			}
 
-			await dropsheetsQuery.refresh();
+			await getDropsheets(data.selectedDate).refresh();
 			closePicker();
 		} catch (error) {
 			pickerError = error instanceof Error ? error.message : 'Unable to update this dropsheet.';
@@ -355,9 +376,9 @@
 					type="button"
 					class="inline-flex h-12 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] active:translate-y-0"
 					aria-label="Refresh dropsheets"
-					onclick={() => void dropsheetsQuery.refresh()}
+					onclick={() => void getDropsheets(data.selectedDate).refresh()}
 				>
-					{#if dropsheetsQuery.loading}
+					{#if dropsheetsState.loading}
 						<LoadingSpinner size="sm" decorative data-testid="dropsheets-refresh-spinner" />
 					{:else}
 						<RefreshCw class="size-4 text-primary" />
@@ -368,7 +389,7 @@
 	</section>
 
 	<section class="overflow-hidden rounded-[2rem] bg-white shadow-[var(--shadow-soft)] ring-1 ring-slate-100">
-		{#if dropsheetsQuery.error}
+		{#if dropsheetsState.error}
 			<div class="px-6 py-10 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-rose-50 text-rose-500">
 					<TriangleAlert class="size-7" />
@@ -376,11 +397,11 @@
 					<p class="mt-5 text-lg font-semibold tracking-tight text-slate-950">
 						Unable to load dropsheets.
 					</p>
-					<p class="mt-2 text-sm leading-6 text-slate-600">
-						{getOperatorErrorMessage(dropsheetsQuery.error, 'Unable to load dropsheets.')}
-					</p>
-				</div>
-		{:else if dropsheetsQuery.loading && dropsheets.length === 0}
+						<p class="mt-2 text-sm leading-6 text-slate-600">
+							{getOperatorErrorMessage(dropsheetsState.error, 'Unable to load dropsheets.')}
+						</p>
+					</div>
+			{:else if dropsheetsState.loading && dropsheets.length === 0}
 			<div class="px-6 py-12 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center">
 					<LoadingSpinner size="lg" data-testid="dropsheets-loading-spinner" />
@@ -504,8 +525,8 @@
 		onPick={handlePickerSelect}
 		onRefresh={
 			activePicker.kind === 'trailer'
-				? () => void trailersQuery.refresh()
-				: () => void loadersQuery.refresh()
+				? () => void getTrailers(data.activeTarget).refresh()
+				: () => void getLoaders(data.activeTarget).refresh()
 		}
 		refreshing={activePickerLoading}
 	/>
