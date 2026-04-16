@@ -9,6 +9,7 @@ import {
 } from '$lib/server/dst-queries';
 
 const loadersQueryInputSchema = v.object({
+	// Scopes the serialized client query identity per target; the server read stays target-driven.
 	targetCacheKey: v.pipe(v.string(), v.trim(), v.nonEmpty('Target cache key is required.'))
 });
 

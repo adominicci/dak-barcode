@@ -42,6 +42,15 @@ describe('target-scoped lookup wrappers', () => {
 		expect(getLoadersRemote).toHaveBeenCalledWith({ targetCacheKey: 'freeport' });
 	});
 
+	it('falls back to the default target qualifier for loaders', () => {
+		const loaderQuery = { source: 'loaders-default' };
+		getLoadersRemote.mockReturnValue(loaderQuery);
+
+		expect(getLoaders()).toBe(loaderQuery);
+
+		expect(getLoadersRemote).toHaveBeenCalledWith({ targetCacheKey: 'default' });
+	});
+
 	it('returns the trailer remote query directly without browser caching', () => {
 		const trailerQuery = { source: 'trailers' };
 		getTrailersRemote.mockReturnValue(trailerQuery);
@@ -49,6 +58,15 @@ describe('target-scoped lookup wrappers', () => {
 		expect(getTrailers('Canton')).toBe(trailerQuery);
 
 		expect(getTrailersRemote).toHaveBeenCalledWith({ targetCacheKey: 'canton' });
+	});
+
+	it('falls back to the default target qualifier for trailers', () => {
+		const trailerQuery = { source: 'trailers-default' };
+		getTrailersRemote.mockReturnValue(trailerQuery);
+
+		expect(getTrailers()).toBe(trailerQuery);
+
+		expect(getTrailersRemote).toHaveBeenCalledWith({ targetCacheKey: 'default' });
 	});
 
 	it('returns the drop-area remote query directly without browser caching', () => {
@@ -60,6 +78,18 @@ describe('target-scoped lookup wrappers', () => {
 		expect(getDropAreasByDepartmentRemote).toHaveBeenCalledWith({
 			department: 'Wrap',
 			targetCacheKey: 'freeport'
+		});
+	});
+
+	it('falls back to the default target qualifier for drop areas', () => {
+		const dropAreasQuery = { source: 'drop-areas-default' };
+		getDropAreasByDepartmentRemote.mockReturnValue(dropAreasQuery);
+
+		expect(getDropAreasByDepartment('Wrap')).toBe(dropAreasQuery);
+
+		expect(getDropAreasByDepartmentRemote).toHaveBeenCalledWith({
+			department: 'Wrap',
+			targetCacheKey: 'default'
 		});
 	});
 });
