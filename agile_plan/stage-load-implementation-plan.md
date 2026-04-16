@@ -204,8 +204,9 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
   - Staging
   - Loading
   - Add Loader
-  - Will Call (disabled)
+  - Will Call
 - Keep Home as the stable re-entry page
+- Launch Will Call through the lookup modal and hand off into Select Category when a load resolves
 
 **4.3 — Add Loader utility**
 - Display active loaders by default with a toggle for inactive loaders
@@ -231,7 +232,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 ### Definition of Done
 
 - Admin and non-admin Home behavior differs correctly
-- Home matches the agreed MVP action set
+- Home matches the agreed current action set, including the live Will Call entry
 - Add Loader works as a utility flow
 - Loading entry path is Dropsheets -> Select Category -> Loader -> Loading
 

@@ -61,7 +61,7 @@ const {
 		>(),
 		getDepartmentStatus: vi.fn<(custDropSheetId: number) => RemoteQueryState<DepartmentStatus>>(),
 		getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => RemoteQueryState<DropArea[]>>(),
-		getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>(),
+		getDropArea: vi.fn<(dropAreaId: number) => { run: () => Promise<DropArea | null> }>(),
 		endLoaderSession: vi.fn(),
 		processLoadingScan: vi.fn(),
 		toastSuccess: vi.fn(),
@@ -202,6 +202,12 @@ function createDropArea(overrides: Partial<DropArea> = {}): DropArea {
 		supportsDriverLocation: true,
 		firstCharacter: 'D',
 		...overrides
+	};
+}
+
+function createDropAreaLookup(dropArea: DropArea | null) {
+	return {
+		run: vi.fn().mockResolvedValue(dropArea)
 	};
 }
 
@@ -359,30 +365,32 @@ describe('loading page', () => {
 				})
 			])
 		);
-		getDropArea.mockImplementation(async (dropAreaId) =>
-			dropAreaId === 41
-				? createDropArea({
-						id: 41,
-						name: 'D12',
-						supportsWrap: true,
-						supportsParts: false,
-						supportsRoll: false,
-						supportsLoading: true,
-						supportsDriverLocation: true,
-						firstCharacter: 'D'
-					})
-				: dropAreaId === 42
+		getDropArea.mockImplementation((dropAreaId) =>
+			createDropAreaLookup(
+				dropAreaId === 41
 					? createDropArea({
-							id: 42,
-							name: 'D13',
+							id: 41,
+							name: 'D12',
 							supportsWrap: true,
-							supportsParts: true,
+							supportsParts: false,
 							supportsRoll: false,
 							supportsLoading: true,
 							supportsDriverLocation: true,
 							firstCharacter: 'D'
 						})
-					: null
+					: dropAreaId === 42
+						? createDropArea({
+								id: 42,
+								name: 'D13',
+								supportsWrap: true,
+								supportsParts: true,
+								supportsRoll: false,
+								supportsLoading: true,
+								supportsDriverLocation: true,
+								firstCharacter: 'D'
+							})
+						: null
+			)
 		);
 		processLoadingScan.mockResolvedValue(createScanResult());
 	});
@@ -915,22 +923,24 @@ describe('loading page', () => {
 				})
 			])
 		);
-		getDropArea.mockImplementation(async (dropAreaId) =>
-			dropAreaId === 51
-				? createDropArea({
-						id: 51,
-						name: 'W12',
-						supportsWrap: true,
-						supportsLoading: false,
-						supportsDriverLocation: false
-					})
-				: createDropArea({
-						id: 41,
-						name: 'D12',
-						supportsWrap: true,
-						supportsLoading: true,
-						supportsDriverLocation: true
-					})
+		getDropArea.mockImplementation((dropAreaId) =>
+			createDropAreaLookup(
+				dropAreaId === 51
+					? createDropArea({
+							id: 51,
+							name: 'W12',
+							supportsWrap: true,
+							supportsLoading: false,
+							supportsDriverLocation: false
+						})
+					: createDropArea({
+							id: 41,
+							name: 'D12',
+							supportsWrap: true,
+							supportsLoading: true,
+							supportsDriverLocation: true
+						})
+			)
 		);
 		processLoadingScan.mockResolvedValueOnce(
 			createScanResult({
