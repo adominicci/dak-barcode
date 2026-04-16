@@ -12,7 +12,10 @@ function buildLoadersCacheKey(target: Target | null | undefined) {
 }
 
 export function getLoaders(target: Target | null | undefined = null) {
-	return createCachedRemoteQuery(getLoadersRemote(), buildLoadersCacheKey(target));
+	return createCachedRemoteQuery(
+		getLoadersRemote({ targetCacheKey: getTargetLookupCacheQualifier(target) ?? 'default' }),
+		buildLoadersCacheKey(target)
+	);
 }
 
 export function invalidateLoadersCache(target: Target | null | undefined = null) {

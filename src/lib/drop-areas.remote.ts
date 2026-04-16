@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { query } from '$app/server';
 import {
 	departmentSchema,
@@ -8,6 +9,11 @@ import {
 
 export const getDropArea = query(dropAreaIdSchema, async (dropAreaId) => getDstDropArea(dropAreaId));
 
-export const getDropAreasByDepartment = query(departmentSchema, async (department) =>
-	getDstDropAreasByDepartment(department)
+const dropAreasByDepartmentInputSchema = v.object({
+	department: departmentSchema,
+	targetCacheKey: v.pipe(v.string(), v.trim(), v.nonEmpty('Target cache key is required.'))
+});
+
+export const getDropAreasByDepartment = query(dropAreasByDepartmentInputSchema, async (input) =>
+	getDstDropAreasByDepartment(input.department)
 );

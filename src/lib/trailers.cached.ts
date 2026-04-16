@@ -7,5 +7,8 @@ function buildTrailersCacheKey(target: Target | null | undefined) {
 }
 
 export function getTrailers(target: Target | null | undefined = null) {
-	return createCachedRemoteQuery(getTrailersRemote(), buildTrailersCacheKey(target));
+	return createCachedRemoteQuery(
+		getTrailersRemote({ targetCacheKey: getTargetLookupCacheQualifier(target) ?? 'default' }),
+		buildTrailersCacheKey(target)
+	);
 }

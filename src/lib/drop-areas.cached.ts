@@ -8,7 +8,10 @@ export function getDropAreasByDepartment(
 	target: Target | null | undefined = null
 ) {
 	return createCachedRemoteQuery(
-		getDropAreasByDepartmentRemote(department),
+		getDropAreasByDepartmentRemote({
+			department,
+			targetCacheKey: getTargetLookupCacheQualifier(target) ?? 'default'
+		}),
 		lookupCacheKey(
 			'drop-areas',
 			`${department}:${getTargetLookupCacheQualifier(target) ?? 'default'}`

@@ -98,6 +98,7 @@ architecture:
     - browser cache is limited to lookup lists such as loaders, trailers, and drop areas
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
     - imperative reads from SvelteKit remote `query(...)` helpers must use `.run()` in event handlers, modal submissions, and other one-off client actions instead of awaiting the query directly
+    - target-sensitive lookup wrappers must include a target cache qualifier in the serialized remote `query(...)` input, not just the browser cache key, or deployed clients can reuse the wrong reactive query instance across target changes
   access_states:
     - anonymous
     - inactive

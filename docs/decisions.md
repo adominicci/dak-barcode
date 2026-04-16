@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-16 - Scope target-sensitive lookup queries by serialized input
+
+- Tags: runtime, sveltekit, caching, targeting
+- Decision: Any lookup whose server result depends on the active target must include a target qualifier in the remote `query(...)` input itself, not only in browser cache keys.
+- Rationale: SvelteKit client query instances are keyed by serialized query arguments. The staging location selector was hanging only on deployed Vercel because loaders, trailers, and drop-area lookups reused the same reactive query instance across target changes even though their browser cache entries were target-scoped.
+- Impacted areas: `src/lib/loaders.cached.ts`, `src/lib/trailers.cached.ts`, `src/lib/drop-areas.cached.ts`, `src/lib/loaders.remote.ts`, `src/lib/trailers.remote.ts`, `src/lib/drop-areas.remote.ts`, `src/lib/target-scoped-lookups.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that target-scoped browser cache keys were sufficient to isolate target-sensitive lookup state on the client
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the lookup-key rule now lives in the memory bundle and this decision log
+
 ## 2026-04-16 - Use `.run()` for imperative remote query reads
 
 - Tags: runtime, sveltekit, remote-functions
