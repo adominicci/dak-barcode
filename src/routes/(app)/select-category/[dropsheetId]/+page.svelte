@@ -692,7 +692,7 @@
 		description={`The current loader is ${selectedLoaderLabel}. Tap a loader to keep the workflow sticky and start ${activeDepartment.toLowerCase()} immediately.`}
 		options={loaderOptions}
 		loading={loadersState.loading}
-		error={getOperatorErrorMessage(loadersState.error, 'Unable to load options.')}
+		error={loadersState.error ? getOperatorErrorMessage(loadersState.error, 'Unable to load options.') : null}
 		saving={pendingDepartment !== null}
 		emptyMessage="No active loaders are available."
 		onClose={closeLoaderModal}

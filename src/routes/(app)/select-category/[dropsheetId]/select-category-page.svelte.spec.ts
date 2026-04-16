@@ -551,6 +551,29 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('https://svelte.dev/e/derived_inert')).not.toBeInTheDocument();
 	});
 
+	it('does not render a loader picker error banner when the query is healthy', async () => {
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: /Wrap/i }).click();
+
+		await expect.element(page.getByRole('dialog', { name: 'Select loader for Wrap' })).toBeInTheDocument();
+		await expect.element(page.getByText('Alex')).toBeInTheDocument();
+		await expect.element(page.getByText('Unable to load options.')).not.toBeInTheDocument();
+	});
+
 	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },

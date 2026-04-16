@@ -132,10 +132,8 @@
 			return null;
 		}
 
-		return getOperatorErrorMessage(
-			activePicker.kind === 'trailer' ? trailersState.error : loadersState.error,
-			'Unable to load options.'
-		);
+		const error = activePicker.kind === 'trailer' ? trailersState.error : loadersState.error;
+		return error ? getOperatorErrorMessage(error, 'Unable to load options.') : null;
 	});
 	const activePickerDescription = $derived.by(() => {
 		if (!activePicker) {
