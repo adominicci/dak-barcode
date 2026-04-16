@@ -4,9 +4,9 @@
 
 - Current worktree: `main`
 - The staging `Select Location` hang on deployed Vercel was traced to the shared lookup wrappers, not the staging route itself.
-- Root cause: loaders, trailers, and drop-area lookups already used target-scoped browser cache keys, but the underlying SvelteKit remote `query(...)` calls were not target-scoped because the serialized query input omitted the active target qualifier.
-- Resulting failure mode: long-lived deployed browser sessions could reuse the wrong reactive query instance across target changes, which showed up as a production-only stall when opening target-sensitive selectors like staging location.
-- The shared wrappers and remote functions now key the client query instance by target qualifier for:
+- Root cause: loaders, trailers, and drop-area lookups reused long-lived client query state across target changes. The durable fix is two-part: keep the target qualifier in the serialized SvelteKit remote `query(...)` input and stop hydrating those lookups from browser cache.
+- Resulting behavior: target-sensitive selectors such as staging location, loader pickers, and trailer pickers now fetch fresh lookup state while still isolating query instances per target.
+- The shared wrappers and remote functions now do this for:
   - `src/lib/loaders.cached.ts`
   - `src/lib/trailers.cached.ts`
   - `src/lib/drop-areas.cached.ts`
@@ -118,7 +118,7 @@
 - Last updated: 2026-04-16
 - Branch basis: `dev`
 - Linked Linear issue: `None captured in this session`
-- Open diffs already reflected: `Yes. This file reflects the remote-function async fix, the imperative remote-query .run() hardening, and the target-scoped lookup query-key fix currently in the worktree.`
+- Open diffs already reflected: `Yes. This file reflects the remote-function async fix, the imperative remote-query .run() hardening, and the target-scoped fresh-lookup fix currently in the worktree.`
 
 ## Active Branch Assumptions
 
@@ -139,7 +139,7 @@
 - `69be8b2` updated docs to reflect the current app migration status and is part of the baseline truth for this bundle.
 - `b1b80d4` merged the markdown-docs work, which means repo documentation is the freshest baseline available before this branch.
 - This branch now records the remote-functions async-mode requirement and the shared operator error-sanitization helper.
-- This worktree also records that imperative remote `query(...)` reads must use `.run()` and that target-sensitive lookup wrappers must include the target qualifier in the serialized remote query input, with focused regressions for the affected flows.
+- This worktree also records that imperative remote `query(...)` reads must use `.run()` and that target-sensitive lookup wrappers should fetch fresh state while still including the target qualifier in the serialized remote query input, with focused regressions for the affected flows.
 - Verification on this branch confirmed the production build succeeds after enabling async mode and the new operator-safe banner path.
 
 ## Next Reload Order

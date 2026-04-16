@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-16 - Fetch target-sensitive lookup lists fresh in the browser
+
+- Tags: runtime, sveltekit, caching, reliability
+- Decision: Do not browser-cache operator-facing loaders, trailers, or drop-area lookup lists. Keep the target qualifier in the remote `query(...)` input, but fetch fresh remote query state whenever those wrappers are used.
+- Rationale: The target-key fix prevents cross-target query reuse, but the browser-cache layer still adds complexity to small lookup lists whose payloads are cheap to fetch. The production staging-location hang was enough evidence that reliability is more valuable here than shaving a small repeated-open latency.
+- Impacted areas: `src/lib/loaders.cached.ts`, `src/lib/trailers.cached.ts`, `src/lib/drop-areas.cached.ts`, `src/lib/target-scoped-lookups.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the assumption that loaders, trailers, and drop-area lists should always hydrate from browser cache on the client
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the lookup-fetch rule now lives in the memory bundle and this decision log
+
 ## 2026-04-16 - Scope target-sensitive lookup queries by serialized input
 
 - Tags: runtime, sveltekit, caching, targeting
