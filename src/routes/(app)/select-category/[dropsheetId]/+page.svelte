@@ -286,7 +286,7 @@
 				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
 			}
 
-			await goto(data.returnTo ?? '/dropsheets');
+			await goto(resolve(data.returnTo ?? '/dropsheets'));
 		} catch (error) {
 			completeLoadingError =
 				error instanceof Error ? error.message : 'Unable to complete loading.';
@@ -337,7 +337,7 @@
 
 			await goto(resolve(`/loading?${searchParams.toString()}`));
 		} catch (error) {
-			submitError = error instanceof Error ? error.message : 'Unable to start loading.';
+			submitError = getOperatorErrorMessage(error, 'Unable to start loading.');
 		} finally {
 			pendingDepartment = null;
 		}

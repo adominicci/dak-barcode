@@ -146,11 +146,11 @@ function isMinimalLoaderSessionResponse(record: Record<string, unknown>) {
 	);
 }
 
-function toMinimalLoaderSessionResponse(
+function normalizeLoaderSessionResponse(
 	body: unknown,
 	input: LoaderSessionUpsertInput
 ): RawDakLoaderSession | null {
-	if (!isRecord(body) || !isMinimalLoaderSessionResponse(body)) {
+	if (!isRecord(body)) {
 		return null;
 	}
 
@@ -160,6 +160,37 @@ function toMinimalLoaderSessionResponse(
 		return null;
 	}
 
+	const dropSheetId = readNumberLike(body.fkDropSheetID);
+	const loaderId = readNumberLike(body.fkLoaderID);
+	const endedAt =
+		typeof body.ended_at === 'string'
+			? body.ended_at
+			: typeof input.endedAt === 'string'
+				? input.endedAt
+				: null;
+
+	if (!isMinimalLoaderSessionResponse(body)) {
+		if (
+			dropSheetId === null ||
+			loaderId === null ||
+			!isNonEmptyString(body.Department) ||
+			!isNonEmptyString(body.loader_name) ||
+			!isNonEmptyString(body.started_at)
+		) {
+			return null;
+		}
+
+		return {
+			loader_id: id,
+			fkDropSheetID: dropSheetId,
+			fkLoaderID: loaderId,
+			Department: body.Department,
+			loader_name: body.loader_name,
+			started_at: body.started_at,
+			ended_at: endedAt
+		};
+	}
+
 	return {
 		loader_id: id,
 		fkDropSheetID: input.dropSheetId,
@@ -167,12 +198,7 @@ function toMinimalLoaderSessionResponse(
 		Department: input.department,
 		loader_name: input.loaderName,
 		started_at: input.startedAt,
-		ended_at:
-			typeof body.ended_at === 'string'
-				? body.ended_at
-				: typeof input.endedAt === 'string'
-					? input.endedAt
-					: null
+		ended_at: endedAt
 	};
 }
 
@@ -233,7 +259,7 @@ export async function upsertDakLoaderSession(
 		jsonInit(toDakLoaderSessionPayload(input))
 	);
 	const normalizedBody =
-		toMinimalLoaderSessionResponse(body, input) ??
+		normalizeLoaderSessionResponse(body, input) ??
 		expectRecordResponse<RawDakLoaderSession>(
 			body,
 			DAK_ROUTES.upsertLoaderSession,

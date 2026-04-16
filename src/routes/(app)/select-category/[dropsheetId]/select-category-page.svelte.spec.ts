@@ -574,6 +574,33 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('Unable to load options.')).not.toBeInTheDocument();
 	});
 
+	it('shows the remote failure message when beginLoading receives a plain message object', async () => {
+		getNumberOfDrops.mockResolvedValue(14);
+		upsertLoaderSession.mockRejectedValue({
+			message: 'DAK route /v1/logistics/dropsheet-loader-upsert returned no usable record.'
+		});
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: /Wrap/i }).click();
+		await page.getByRole('button', { name: 'Alex' }).click();
+
+		await expect.element(page.getByText('DAK route /v1/logistics/dropsheet-loader-upsert returned no usable record.')).toBeInTheDocument();
+	});
+
 	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },

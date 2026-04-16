@@ -194,6 +194,39 @@ describe('dak loader-session helpers', () => {
 		});
 	});
 
+	it('accepts a complete loader-session response when dak-web stringifies numeric fields', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				loader_id: '88',
+				fkDropSheetID: '42',
+				fkLoaderID: '7',
+				Department: 'Wrap',
+				loader_name: 'Alex',
+				started_at: '2026-03-20T10:00:00Z'
+			})
+		);
+
+		const { upsertDakLoaderSession } = await import('./dak-loader-sessions');
+
+		await expect(
+			upsertDakLoaderSession({
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Wrap',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z'
+			})
+		).resolves.toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Wrap',
+			loaderName: 'Alex',
+			startedAt: '2026-03-20T10:00:00Z',
+			endedAt: null
+		});
+	});
+
 	it('omits nullable optional loader session fields from the upsert payload', async () => {
 		fetchDak.mockResolvedValue(
 			jsonResponse({

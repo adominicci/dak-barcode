@@ -17,6 +17,15 @@ describe('getOperatorErrorMessage', () => {
 		).toBe('Loader roster failed to refresh.');
 	});
 
+	it('keeps plain object messages from remote-function failures', () => {
+		expect(
+			getOperatorErrorMessage(
+				{ message: 'DAK route /v1/logistics/dropsheet-loader-upsert returned no usable record.' },
+				'Unable to start loading.'
+			)
+		).toBe('DAK route /v1/logistics/dropsheet-loader-upsert returned no usable record.');
+	});
+
 	it('falls back for non-error values', () => {
 		expect(getOperatorErrorMessage(null, 'Unable to load staging items.')).toBe(
 			'Unable to load staging items.'
