@@ -57,6 +57,49 @@ function createRemoteQuery<T>(current: T, nextCurrent: T): RemoteQuery<T> {
 	} as unknown as RemoteQuery<T>;
 }
 
+function createDeferredRemoteQuery<T>(initial: T) {
+	let value = initial;
+	let resolveValue!: (next: T) => void;
+	const settled = new Promise<T>((resolve) => {
+		resolveValue = (next) => {
+			value = next;
+			resolve(next);
+		};
+	});
+
+	const query = {
+		get current() {
+			return value;
+		},
+		get error() {
+			return null;
+		},
+		get loading() {
+			return false;
+		},
+		get ready() {
+			return true;
+		},
+		set: vi.fn((next: T) => {
+			value = next;
+		}),
+		refresh: vi.fn(async () => undefined),
+		withOverride: vi.fn(),
+		then: (onfulfilled?: (next: T) => unknown, onrejected?: (reason: unknown) => unknown) =>
+			settled.then((next) => onfulfilled?.(next) ?? next, onrejected)
+	} as unknown as RemoteQuery<T>;
+
+	return {
+		query,
+		resolve(next: T) {
+			resolveValue(next);
+		},
+		async waitForSettle() {
+			await settled;
+		}
+	};
+}
+
 describe('browser cache helpers', () => {
 	it('loads cached data into the remote query before refresh', async () => {
 		const cacheKey = lookupCacheKey('loaders');
@@ -173,6 +216,29 @@ describe('browser cache helpers', () => {
 
 		expect(storage.setItem).toHaveBeenCalledTimes(1);
 		expect(JSON.parse(String(storage.getItem(cacheKey))).data).toEqual([{ id: 1, name: 'TR-1' }]);
+	});
+
+	it('preserves the original cache key for a pending initial write', async () => {
+		const cantonKey = lookupCacheKey(
+			'loaders',
+			getTargetLookupCacheQualifier('Canton') ?? undefined
+		);
+		const freeportKey = lookupCacheKey(
+			'loaders',
+			getTargetLookupCacheQualifier('Freeport') ?? undefined
+		);
+		const storage = createMemoryStorage();
+		const deferredQuery = createDeferredRemoteQuery([{ id: 1, name: 'Alex', isActive: true }]);
+
+		createCachedRemoteQuery(deferredQuery.query, cantonKey, storage);
+		createCachedRemoteQuery(deferredQuery.query, freeportKey, storage);
+
+		deferredQuery.resolve([{ id: 1, name: 'Alex', isActive: true }]);
+		await deferredQuery.waitForSettle();
+
+		expect(storage.setItem).toHaveBeenCalledTimes(1);
+		expect(storage.setItem).toHaveBeenCalledWith(cantonKey, expect.any(String));
+		expect(storage.getItem(freeportKey)).toBeNull();
 	});
 
 	it('skips the initial cache write for query doubles that are not thenable', async () => {

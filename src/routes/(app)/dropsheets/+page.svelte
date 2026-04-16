@@ -132,9 +132,10 @@
 			return null;
 		}
 
-		return activePicker.kind === 'trailer'
-			? trailersState.error?.message ?? null
-			: loadersState.error?.message ?? null;
+		return getOperatorErrorMessage(
+			activePicker.kind === 'trailer' ? trailersState.error : loadersState.error,
+			'Unable to load options.'
+		);
 	});
 	const activePickerDescription = $derived.by(() => {
 		if (!activePicker) {

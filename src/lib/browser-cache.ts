@@ -166,11 +166,13 @@ export function createCachedRemoteQuery<T>(
 
 	if (!queryState.initialWriteInitialized && storage && !cachedRecord && typeof query.then === 'function') {
 		queryState.initialWriteInitialized = true;
+		const initialWriteStorage = storage;
+		const initialWriteCacheKey = cacheKey;
 		void query
 			.then((current) => {
 				if (queryState.initialWritePending) {
 					queryState.initialWritePending = false;
-					writeLookupCache(queryState.storage, queryState.cacheKey, current);
+					writeLookupCache(initialWriteStorage, initialWriteCacheKey, current);
 				}
 
 				return current;

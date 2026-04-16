@@ -521,6 +521,36 @@ describe('select-category page', () => {
 		);
 	});
 
+	it('sanitizes loader picker framework errors before rendering the modal banner', async () => {
+		getLoaders.mockReturnValue(
+			createLoadersQuery(
+				[{ id: 7, name: 'Alex', isActive: true }],
+				{ error: new Error('https://svelte.dev/e/derived_inert') }
+			)
+		);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: /Wrap/i }).click();
+
+		await expect.element(page.getByRole('dialog', { name: 'Select loader for Wrap' })).toBeInTheDocument();
+		await expect.element(page.getByText('Unable to load options.')).toBeInTheDocument();
+		await expect.element(page.getByText('https://svelte.dev/e/derived_inert')).not.toBeInTheDocument();
+	});
+
 	it('keeps the status strip and category cards responsive enough for the shared iPad layout', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
