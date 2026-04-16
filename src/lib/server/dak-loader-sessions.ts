@@ -162,12 +162,6 @@ function normalizeLoaderSessionResponse(
 
 	const dropSheetId = readNumberLike(body.fkDropSheetID);
 	const loaderId = readNumberLike(body.fkLoaderID);
-	const endedAt =
-		typeof body.ended_at === 'string'
-			? body.ended_at
-			: typeof input.endedAt === 'string'
-				? input.endedAt
-				: null;
 
 	if (!isMinimalLoaderSessionResponse(body)) {
 		if (
@@ -180,26 +174,26 @@ function normalizeLoaderSessionResponse(
 			return null;
 		}
 
+			return {
+				loader_id: id,
+				fkDropSheetID: dropSheetId,
+				fkLoaderID: loaderId,
+				Department: body.Department,
+				loader_name: body.loader_name,
+				started_at: body.started_at,
+				ended_at: typeof body.ended_at === 'string' ? body.ended_at : null
+			};
+		}
+
 		return {
 			loader_id: id,
-			fkDropSheetID: dropSheetId,
-			fkLoaderID: loaderId,
-			Department: body.Department,
-			loader_name: body.loader_name,
-			started_at: body.started_at,
-			ended_at: endedAt
+			fkDropSheetID: input.dropSheetId,
+			fkLoaderID: input.loaderId,
+			Department: input.department,
+			loader_name: input.loaderName,
+			started_at: input.startedAt,
+			ended_at: typeof input.endedAt === 'string' ? input.endedAt : null
 		};
-	}
-
-	return {
-		loader_id: id,
-		fkDropSheetID: input.dropSheetId,
-		fkLoaderID: input.loaderId,
-		Department: input.department,
-		loader_name: input.loaderName,
-		started_at: input.startedAt,
-		ended_at: endedAt
-	};
 }
 
 function toDakLoaderSessionPayload(input: LoaderSessionUpsertInput) {

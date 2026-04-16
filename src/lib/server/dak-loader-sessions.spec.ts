@@ -307,6 +307,42 @@ describe('dak loader-session helpers', () => {
 		});
 	});
 
+	it('preserves the server ended_at when a full end-session response omits it', async () => {
+		fetchDak.mockResolvedValue(
+			jsonResponse({
+				LoaderID: 88,
+				fkDropSheetID: 42,
+				fkLoaderID: 7,
+				Department: 'Parts',
+				loader_name: 'Alex',
+				started_at: '2026-03-20T10:00:00Z',
+				ended_at: null
+			})
+		);
+
+		const { endDakLoaderSession } = await import('./dak-loader-sessions');
+
+		await expect(
+			endDakLoaderSession({
+				id: 88,
+				dropSheetId: 42,
+				loaderId: 7,
+				department: 'Parts',
+				loaderName: 'Alex',
+				startedAt: '2026-03-20T10:00:00Z',
+				endedAt: '2026-03-20T12:00:00Z'
+			})
+		).resolves.toEqual({
+			id: 88,
+			dropSheetId: 42,
+			loaderId: 7,
+			department: 'Parts',
+			loaderName: 'Alex',
+			startedAt: '2026-03-20T10:00:00Z',
+			endedAt: null
+		});
+	});
+
 	it('fails clearly when dak-web returns no usable single-loader record', async () => {
 		fetchDak.mockResolvedValue(jsonResponse({}));
 
