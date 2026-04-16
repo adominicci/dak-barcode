@@ -29,25 +29,27 @@ type DropAreaListQueryState = {
 
 	const {
 		goto,
-		getStagingPartsForDay,
-		getStagingPartsForDayRoll,
-		getDropAreasByDepartment,
-	getDropArea,
+	getStagingPartsForDay,
+	getStagingPartsForDayRoll,
+	getDropAreasByDepartment,
+		getDropArea,
 	processStagingScan
 	} = vi.hoisted(() => ({
 		goto: vi.fn(),
 		getStagingPartsForDay: vi.fn<() => StagingQueryState>(),
-	getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>(),
-	getDropAreasByDepartment: vi.fn<(department: 'Roll' | 'Wrap' | 'Parts') => DropAreaListQueryState>(),
-	getDropArea: vi.fn<(dropAreaId: number) => Promise<DropArea | null>>(),
-	processStagingScan: vi.fn<
-		(input: {
-			scannedText: string;
-			department: 'Roll' | 'Wrap' | 'Parts';
-			dropAreaId?: number | null;
-		}) => Promise<ScanResult>
-	>()
-}));
+		getStagingPartsForDayRoll: vi.fn<(orderSoNumber?: string | null) => StagingQueryState>(),
+		getDropAreasByDepartment: vi.fn<
+			(department: 'Roll' | 'Wrap' | 'Parts') => DropAreaListQueryState
+		>(),
+		getDropArea: vi.fn<(dropAreaId: number) => { run: () => Promise<DropArea | null> }>(),
+		processStagingScan: vi.fn<
+			(input: {
+				scannedText: string;
+				department: 'Roll' | 'Wrap' | 'Parts';
+				dropAreaId?: number | null;
+			}) => Promise<ScanResult>
+		>()
+	}));
 
 const { withTimeout } = vi.hoisted(() => ({
 	withTimeout: vi.fn(async <T>(promise: Promise<T>) => promise)
@@ -125,6 +127,12 @@ function createDropAreaListQuery(
 		error: null,
 		refresh: vi.fn(),
 		...overrides
+	};
+}
+
+function createDropAreaLookup(dropArea: DropArea | null) {
+	return {
+		run: vi.fn().mockResolvedValue(dropArea)
 	};
 }
 
@@ -219,41 +227,43 @@ describe('staging page department gate', () => {
 						]
 			)
 		);
-		getDropArea.mockImplementation(async (dropAreaId) =>
-			dropAreaId === 41
-				? {
-						id: 41,
-						name: 'W12',
-						supportsWrap: true,
-						supportsParts: false,
-						supportsRoll: false,
-						supportsLoading: false,
-						supportsDriverLocation: false,
-						firstCharacter: 'W'
-					}
-				: dropAreaId === 42
+		getDropArea.mockImplementation((dropAreaId) =>
+			createDropAreaLookup(
+				dropAreaId === 41
 					? {
-							id: 42,
-							name: 'W13',
+							id: 41,
+							name: 'W12',
 							supportsWrap: true,
-							supportsParts: true,
+							supportsParts: false,
 							supportsRoll: false,
 							supportsLoading: false,
 							supportsDriverLocation: false,
 							firstCharacter: 'W'
 						}
-					: dropAreaId === 51
+					: dropAreaId === 42
 						? {
-								id: 51,
-								name: 'R12',
-								supportsWrap: false,
-								supportsParts: false,
-								supportsRoll: true,
+								id: 42,
+								name: 'W13',
+								supportsWrap: true,
+								supportsParts: true,
+								supportsRoll: false,
 								supportsLoading: false,
 								supportsDriverLocation: false,
-								firstCharacter: 'R'
+								firstCharacter: 'W'
 							}
-						: null
+						: dropAreaId === 51
+							? {
+									id: 51,
+									name: 'R12',
+									supportsWrap: false,
+									supportsParts: false,
+									supportsRoll: true,
+									supportsLoading: false,
+									supportsDriverLocation: false,
+									firstCharacter: 'R'
+								}
+							: null
+			)
 		);
 	});
 
@@ -1036,11 +1046,12 @@ describe('staging page department gate', () => {
 
 	it('ignores a late numeric lookup response after a newer card selection closes the modal', async () => {
 		let resolveLookup: ((value: DropArea | null) => void) | null = null;
-		getDropArea.mockReturnValueOnce(
+		const runLookup = vi.fn().mockReturnValue(
 			new Promise<DropArea | null>((resolve) => {
 				resolveLookup = resolve;
 			})
 		);
+		getDropArea.mockReturnValueOnce({ run: runLookup });
 
 		render(StagingPage);
 

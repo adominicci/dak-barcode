@@ -1,5 +1,5 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { DropArea } from '$lib/types';
 
@@ -28,6 +28,49 @@ function createQueryState(current: DropArea[]) {
 }
 
 describe('staging location modal', () => {
+	beforeEach(() => {
+		getDropAreasByDepartment.mockReset();
+		getDropArea.mockReset();
+	});
+
+	it('resolves numeric lookup through getDropArea().run()', async () => {
+		const onSelect = vi.fn();
+		const runLookup = vi.fn().mockResolvedValue({
+			id: 31,
+			name: 'C3',
+			supportsWrap: true,
+			supportsParts: false,
+			supportsRoll: false,
+			supportsLoading: false,
+			supportsDriverLocation: false,
+			firstCharacter: 'C'
+		} satisfies DropArea);
+		getDropArea.mockReturnValue({ run: runLookup });
+		getDropAreasByDepartment.mockReturnValue(createQueryState([]));
+
+		render(StagingLocationModal, {
+			props: {
+				department: 'Wrap',
+				mode: 'staging',
+				target: 'Canton',
+				onClose: vi.fn(),
+				onSelect
+			}
+		});
+
+		await page.getByLabelText('Scan new location').fill('31');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(31);
+		expect(runLookup).toHaveBeenCalledOnce();
+		await vi.waitFor(() => {
+			expect(onSelect).toHaveBeenCalledWith({
+				dropAreaId: 31,
+				dropAreaLabel: 'C3'
+			});
+		});
+	});
+
 	it('groups drop areas into letter tabs, defaults to the first tab, and refreshes the query when clicked', async () => {
 		const refresh = vi.fn();
 		getDropAreasByDepartment.mockReturnValue(

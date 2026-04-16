@@ -1,7 +1,7 @@
 # Architecture: Stage & Load Barcode Module Frontend
 
-**Version**: 1.5
-**Date**: 2026-03-30
+**Version**: 1.6
+**Date**: 2026-04-16
 
 ---
 
@@ -46,9 +46,9 @@ The architecture is built around shared iPads, hardware barcode scanners, and fa
 - **dak-web** (Heroku FastAPI)
 - **Microsoft SQL Server** as the operational data store used by both FastAPI services
 
-### Future use
+### Live storage use
 
-- **Supabase Storage** for Phase 2 signature handling
+- **Supabase Storage** for Will Call signature upload and signed-URL retrieval
 
 ---
 
@@ -71,7 +71,7 @@ flowchart TB
     subgraph SUPABASE["Supabase"]
         SBAUTH["Auth"]
         SBDB["Postgres metadata<br/>profiles · warehouses"]
-        SBSTORAGE["Storage (Phase 2)"]
+        SBSTORAGE["Supabase Storage<br/>Will Call signatures"]
     end
 
     subgraph HEROKU["External FastAPI backends"]
@@ -94,7 +94,7 @@ flowchart TB
     PROXY --> DAK
     DST --> OPS
     DAK --> OPS
-    APP -. future .-> SBSTORAGE
+    APP --> SBSTORAGE
 ```
 
 ---
@@ -236,12 +236,16 @@ src/routes/
 └── (app)/
     ├── +layout.server.ts
     ├── +layout.svelte
+    ├── account/+page.svelte
     ├── home/+page.svelte
+    ├── loaders/+page.svelte
     ├── location/+page.server.ts
     ├── location/+page.svelte          # admin-only selector
     ├── inactive/+page.svelte
     ├── dropsheets/+page.svelte
     ├── select-category/[dropsheetId]/+page.svelte
+    ├── order-status/[dropsheetId]/+page.svelte
+    ├── move-orders/[dropsheetId]/+page.svelte
     ├── staging/+page.svelte
     └── loading/+page.svelte           # receives loading context from navigation params
 ```
@@ -257,6 +261,13 @@ src/routes/
 ## Remote Functions
 
 This project uses SvelteKit remote functions for same-origin server calls.
+
+### Required configuration
+
+Remote functions are enabled only when both of these flags are present in `svelte.config.js`:
+
+- `kit.experimental.remoteFunctions = true`
+- `compilerOptions.experimental.async = true`
 
 ### Source of truth for examples
 
@@ -327,10 +338,12 @@ export const getWeather = query.batch(v.string(), async (cityIds) => {
 
 ### Component calling patterns
 
-- Queries can be awaited directly in Svelte templates or handled via their loading/error/current state.
+- Queries can be awaited directly in Svelte templates or handled via their loading/error/current state when they are created in a reactive context.
+- Imperative one-off reads in event handlers, modal submits, or other non-reactive browser code must call `.run()` instead of awaiting the query directly.
 - Commands are called from event handlers and should be wrapped in clear error handling.
 - Successful scan commands should refresh the affected queries and immediately restore scanner readiness.
 - Loading scan commands can keep a non-numeric scan pending when the backend returns `needs_location`; the page should stay scanner-ready, accept the next numeric driver-location scan, and only hand off the richer modal flow to the dedicated follow-on issue.
+- Operator-facing banners should sanitize framework/runtime URLs before rendering them to shared-floor users.
 
 ---
 

@@ -109,6 +109,12 @@ function createDropArea(overrides: Record<string, unknown> = {}) {
 	};
 }
 
+function createDropAreaLookup(dropArea: ReturnType<typeof createDropArea> | null) {
+	return {
+		run: vi.fn().mockResolvedValue(dropArea)
+	};
+}
+
 describe('move-orders page', () => {
 	const layoutData = {
 		activeTarget: 'Canton' as const,
@@ -192,7 +198,7 @@ describe('move-orders page', () => {
 		);
 
 		getDropAreasByDepartment.mockReturnValue(createQueryState([createDropArea()]));
-		getDropArea.mockResolvedValue(createDropArea());
+		getDropArea.mockReturnValue(createDropAreaLookup(createDropArea()));
 	});
 
 	it('shows a loading state before the sequence data is ready', async () => {
@@ -559,13 +565,15 @@ describe('move-orders page', () => {
 	it('shows modal validation feedback for invalid non-driver locations', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
-		getDropArea.mockResolvedValue(
-			createDropArea({
-				id: 99,
-				name: 'W12',
-				supportsLoading: false,
-				supportsDriverLocation: false
-			})
+		getDropArea.mockReturnValue(
+			createDropAreaLookup(
+				createDropArea({
+					id: 99,
+					name: 'W12',
+					supportsLoading: false,
+					supportsDriverLocation: false
+				})
+			)
 		);
 
 		render(MoveOrdersPage, {

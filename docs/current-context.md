@@ -1,8 +1,29 @@
 # Current Context
 
+## 2026-04-16 Remote Query `.run()` Hardening
+
+- Current worktree: `dev`
+- The select-category loading handoff bug was traced to imperative client code awaiting SvelteKit remote `query(...)` helpers directly instead of calling `.run()`.
+- The repo now hardens the remaining operator-facing hotspots to use `.run()` for one-off client actions:
+  - `src/lib/components/workflow/will-call-scan-modal.svelte`
+  - `src/lib/components/workflow/staging-location-modal.svelte`
+  - `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`
+- Focused regressions now cover the affected imperative paths in:
+  - `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`
+  - `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`
+  - `src/routes/(app)/home/home-page.svelte.spec.ts`
+  - `src/routes/(app)/staging/staging-page.svelte.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+  - `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed in this session:
+  - `bunx vitest run 'src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts' 'src/lib/components/workflow/staging-location-modal.svelte.spec.ts' 'src/routes/(app)/home/home-page.svelte.spec.ts' 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' 'src/routes/(app)/staging/staging-page.svelte.spec.ts' 'src/routes/(app)/loading/loading-page.svelte.spec.ts' 'src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts'`
+  - `bun run build`
+- Freshness note: this bug class is now covered in the audited imperative query call sites, but future remote-query reads added to event handlers or modal submit flows must use `.run()` from the start.
+
 ## 2026-04-16 Remote Functions Async Guard Fix
 
-- Current worktree: `bug/async-issue`
+- Current worktree: `dev`
 - Enabled `compilerOptions.experimental.async` in `svelte.config.js` alongside `kit.experimental.remoteFunctions` so SvelteKit remote functions compile correctly in production and stop throwing `experimental_async_required` from hydratable query paths.
 - Added a shared `getOperatorErrorMessage` helper and switched the operator-facing remote-query banners on staging, loaders, dropsheets, loading, select-category, order-status, move-orders, and the staging location modal to use fallback copy instead of raw framework/runtime error strings.
 - Verification completed in this session:
@@ -74,13 +95,13 @@
 ## Freshness Check
 
 - Last updated: 2026-04-16
-- Branch basis: `bug/async-issue`
+- Branch basis: `dev`
 - Linked Linear issue: `None captured in this session`
-- Open diffs already reflected: `No. This file now reflects the runtime fix context from the current worktree.`
+- Open diffs already reflected: `Yes. This file reflects the remote-function async fix and the imperative remote-query .run() hardening currently in the worktree.`
 
 ## Active Branch Assumptions
 
-- This worktree currently carries a production runtime fix for Svelte remote functions and operator-safe error banners.
+- This worktree currently carries the production runtime fix for Svelte remote functions, operator-safe error banners, and imperative remote-query `.run()` hardening for affected client flows.
 - `docs/project-state.yaml` is the canonical fast-reload record and should be updated when durable current truth changes.
 - `docs/current-context.md` is the rolling handoff and should absorb branch-specific focus, risk, and freshness notes.
 - Files under `docs/handoffs/` remain historical snapshots only and should not outrank the current memory bundle.
@@ -97,6 +118,7 @@
 - `69be8b2` updated docs to reflect the current app migration status and is part of the baseline truth for this bundle.
 - `b1b80d4` merged the markdown-docs work, which means repo documentation is the freshest baseline available before this branch.
 - This branch now records the remote-functions async-mode requirement and the shared operator error-sanitization helper.
+- This worktree also records that imperative remote `query(...)` reads must use `.run()` and includes focused regressions for the will-call, staging-location, staging, loading, move-orders, home, and select-category flows.
 - Verification on this branch confirmed the production build succeeds after enabling async mode and the new operator-safe banner path.
 
 ## Next Reload Order

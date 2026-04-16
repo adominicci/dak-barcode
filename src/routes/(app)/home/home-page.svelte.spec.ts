@@ -66,9 +66,10 @@ describe('home module selector', () => {
 	});
 
 	it('routes a successful will call scan into select-category with the legacy handoff payload', async () => {
-		lookupWillCallDropsheet.mockResolvedValue({
+		const runLookup = vi.fn().mockResolvedValue({
 			dropSheetId: 42
 		});
+		lookupWillCallDropsheet.mockReturnValue({ run: runLookup });
 
 		render(HomePage, { data: baseData, params: {} });
 
@@ -89,6 +90,7 @@ describe('home module selector', () => {
 
 		await vi.waitFor(() => {
 			expect(lookupWillCallDropsheet).toHaveBeenCalledWith('WC-042');
+			expect(runLookup).toHaveBeenCalledOnce();
 			expect(goto).toHaveBeenCalledWith(
 				'/select-category/42?loadNumber=WC-042&deliveryNumber=WC-042&driverName=WILL+CALL&willcall=true&returnTo=%2Fhome'
 			);
@@ -96,9 +98,10 @@ describe('home module selector', () => {
 	});
 
 	it('shows an inline scanner-safe error and keeps the scan field ready when a will call lookup fails', async () => {
-		lookupWillCallDropsheet.mockRejectedValue(
-			new Error('Load number WC-404 is not a will call order.')
-		);
+		const runLookup = vi
+			.fn()
+			.mockRejectedValue(new Error('Load number WC-404 is not a will call order.'));
+		lookupWillCallDropsheet.mockReturnValue({ run: runLookup });
 
 		render(HomePage, { data: baseData, params: {} });
 
@@ -120,6 +123,7 @@ describe('home module selector', () => {
 		await expect.element(page.getByTestId('will-call-scan-error')).toHaveTextContent(
 			'Load number WC-404 is not a will call order.'
 		);
+		expect(runLookup).toHaveBeenCalledOnce();
 		await expect.element(page.getByTestId('will-call-scan-input')).toHaveValue('');
 		await expect.element(page.getByTestId('will-call-scan-input')).toHaveFocus();
 		expect(goto).not.toHaveBeenCalled();

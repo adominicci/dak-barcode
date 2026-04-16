@@ -1,7 +1,7 @@
 # Product Requirements Document: Stage & Load Barcode Module Frontend
 
-**Version**: 1.2
-**Date**: 2026-03-19
+**Version**: 1.3
+**Date**: 2026-04-16
 **Author**: Sarah (Product Owner), aligned with project discovery notes
 
 ---
@@ -12,7 +12,7 @@ The Stage & Load Barcode Module is a warehouse operations tool used by DST floor
 
 This project rebuilds the frontend as a SvelteKit 5 web application optimized for shared iPads with hardware barcode scanners. The new frontend uses Supabase Auth, Supabase profile metadata, and server-side remote functions that proxy all warehouse API traffic to the existing Heroku backends. Business logic consolidation in `dak-web` remains part of the overall program, but this repository owns the frontend only.
 
-The rebuild is MVP-first. Phase 1 delivers login, access control, admin testing target selection, Home navigation, Add Loader, Staging, Dropsheet selection, Select Category, and Loading. Will Call remains visible but disabled until Phase 2.
+The rebuild started MVP-first, but the live frontend now covers the main operator surface: login and access control, admin target selection, Home navigation, Add Loader, Staging, Dropsheets, Select Category, Loading, Will Call lookup and signature capture, Order Status, and Move Orders. The repository still does not own backend consolidation work inside `dak-web`; it consumes those services through same-origin proxy helpers.
 
 ---
 
@@ -43,7 +43,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 
 - Rebuilding `dak-web` inside this repository
 - Replacing SQL Server operational data with Supabase Postgres
-- Delivering Will Call, signatures, move orders, or other Phase 2 flows in MVP
+- Replatforming every remaining DST-backed support read model in the same milestone as the frontend rebuild
 - Offline queueing or sync
 
 ---
@@ -160,7 +160,7 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
   - `Loading`
   - `Add Loader`
   - `Will Call`
-- [ ] `Will Call` is visible but disabled as coming soon
+- [ ] `Will Call` launches the lookup modal and can hand off into Select Category
 - [ ] Home is the first page after re-entry for active sessions
 
 ### Story 4: Add Loader utility
@@ -221,6 +221,8 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 
 **Acceptance Criteria**
 - [ ] Loading page receives dropsheet, department/locationId, and loader session context
+- [ ] Loading opens on the last available drop by default
+- [ ] Footer navigation follows reverse numeric order so `Next` moves toward lower-numbered drops
 - [ ] Numeric scans are treated as location codes
 - [ ] In Loading, only driver locations are valid
 - [ ] Non-numeric scans branch into pallet or single-label processing
@@ -245,6 +247,30 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
   - Invalid location
   - Incomplete drop
   - Unrecognized label
+
+### Story 9: Will Call workflow
+
+**As a** signed-in user  
+**I want to** look up a Will Call load and capture the pickup signature inside the app  
+**So that** customer pickup handoff stays in the same operational workflow
+
+**Acceptance Criteria**
+- [ ] Home exposes Will Call as an active workflow entry
+- [ ] A valid Will Call load number can navigate into Select Category with `willcall=true`
+- [ ] Select Category can open the Will Call signature modal
+- [ ] Signature images are uploaded and persisted for the dropsheet
+- [ ] Existing signatures render as view-only previews after upload
+
+### Story 10: Support views from Select Category
+
+**As a** warehouse operator  
+**I want to** open Order Status and Move Orders from the active load  
+**So that** I can resolve support tasks without losing the current loading context
+
+**Acceptance Criteria**
+- [ ] Select Category links to Order Status and Move Orders for the current dropsheet
+- [ ] Both support pages preserve the return path back to Select Category
+- [ ] Support-page errors are shown with operator-safe copy rather than raw framework/runtime messages
 
 ---
 
@@ -276,9 +302,7 @@ These endpoints are part of the overall project, but they are not implemented in
 
 ---
 
-## MVP Scope
-
-### Phase 1
+## Current Delivered Scope
 
 - SvelteKit project scaffolding
 - Supabase login/logout
@@ -292,15 +316,15 @@ These endpoints are part of the overall project, but they are not implemented in
 - Dropsheet list
 - Select Category + loader selection
 - Loading workflow
+- Will Call lookup and signature capture
+- Order Status and Move Orders support views
+- Loading-complete notifications
 - Remote functions and proxy helpers
 
-### Phase 2
+## Known Intentional Limits
 
-- Will Call workflow
-- Signature capture
-- Move Orders
-- Order status views
-- Loading-complete notifications
+- Some support views still rely on DST-backed read models while the new loading workflow mixes DST and `dak-web` data
+- The drop-scoped `dak-web` department-status helper remains a placeholder; only the on-load department-status route is live
 
 ---
 

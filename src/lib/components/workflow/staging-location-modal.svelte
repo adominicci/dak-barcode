@@ -410,7 +410,7 @@
 		activeLookupRequestToken = lookupRequestToken;
 
 		try {
-			const dropArea = await getDropArea(parsedDropAreaId);
+			const dropArea = await getDropArea(parsedDropAreaId).run();
 			if (activeLookupRequestToken !== lookupRequestToken) {
 				return;
 			}

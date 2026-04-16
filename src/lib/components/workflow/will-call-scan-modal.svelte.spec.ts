@@ -34,9 +34,10 @@ describe('will-call scan modal', () => {
 
 	it('keeps the close action disabled while a lookup is pending and only resolves after the request finishes', async () => {
 		const lookupRequest = createDeferred<{ dropSheetId: number }>();
+		const runLookup = vi.fn().mockReturnValue(lookupRequest.promise);
 		const onClose = vi.fn();
 		const onResolved = vi.fn();
-		lookupWillCallDropsheet.mockReturnValue(lookupRequest.promise);
+		lookupWillCallDropsheet.mockReturnValue({ run: runLookup });
 
 		render(WillCallScanModal, {
 			onClose,
@@ -60,6 +61,7 @@ describe('will-call scan modal', () => {
 		await vi.waitFor(() => {
 			expect(lookupWillCallDropsheet).toHaveBeenCalledWith('WC-042');
 		});
+		expect(runLookup).toHaveBeenCalledOnce();
 
 		await expect.element(page.getByRole('button', { name: 'Close will call scan modal' })).toBeDisabled();
 		expect(onClose).not.toHaveBeenCalled();
