@@ -13,9 +13,10 @@
 		Truck,
 		TriangleAlert
 	} from '@lucide/svelte';
-	import { onMount, tick } from 'svelte';
+	import { onMount, settled } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import { getDepartmentStatus } from '$lib/department-status.remote';
@@ -89,44 +90,96 @@
 		currentLoader
 	});
 	const shouldRedirectHome = $derived(loadingEntry === null || !hasWorkflowContext);
-	const loaderInfoQuery = $derived(
-		loadingEntry && hasWorkflowContext ? getLoaderInfo(loadingEntry.loaderSessionId) : null
-	);
-	const loaderInfo = $derived(loaderInfoQuery?.current ?? null);
-	const dropDetailsQuery = $derived(
-		loadingEntry && hasWorkflowContext
-			? getLoadViewDetailAll({
-					dropSheetId: loadingEntry.dropSheetId,
-					locationId: loadingEntry.locationId
-				})
-			: null
-	);
-	const dropDetails = $derived(dropDetailsQuery?.current ?? []);
+	const loaderInfoState = $derived.by(() => {
+		if (!(loadingEntry && hasWorkflowContext)) {
+			return {
+				current: null,
+				error: null,
+				loading: false,
+				refresh: null
+			};
+		}
+
+		const query = getLoaderInfo(loadingEntry.loaderSessionId);
+		return {
+			current: query.current ?? null,
+			error: query.error,
+			loading: query.loading,
+			refresh: () => query.refresh()
+		};
+	});
+	const loaderInfo = $derived(loaderInfoState.current);
+	const dropDetailsState = $derived.by(() => {
+		if (!(loadingEntry && hasWorkflowContext)) {
+			return {
+				current: [],
+				error: null,
+				loading: false,
+				refresh: null
+			};
+		}
+
+		const query = getLoadViewDetailAll({
+			dropSheetId: loadingEntry.dropSheetId,
+			locationId: loadingEntry.locationId
+		});
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading,
+			refresh: () => query.refresh()
+		};
+	});
+	const dropDetails = $derived(dropDetailsState.current);
 	const dropNavigation = $derived(
 		createLoadingDropNavigationState(dropDetails.length, selectedDropIndex)
 	);
 	const selectedDropDetail = $derived(
 		dropNavigation.selectedIndex >= 0 ? dropDetails[dropNavigation.selectedIndex] : null
 	);
-	const departmentStatusQuery = $derived(
-		loadingEntry && hasWorkflowContext && selectedDropDetail
-			? getDepartmentStatus(selectedDropDetail.dropSheetCustomerId)
-			: null
-	);
-	const departmentStatus = $derived(departmentStatusQuery?.current ?? null);
+	const departmentStatusState = $derived.by(() => {
+		if (!(loadingEntry && hasWorkflowContext && selectedDropDetail)) {
+			return {
+				current: null,
+				error: null,
+				loading: false
+			};
+		}
+
+		const query = getDepartmentStatus(selectedDropDetail.dropSheetCustomerId);
+		return {
+			current: query.current ?? null,
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const departmentStatus = $derived(departmentStatusState.current);
 	const departmentStatusEntries = $derived(getLoadingDepartmentStatusEntries(departmentStatus));
 	const loadNumber = $derived(selectedDropDetail?.loadNumber ?? loadingEntry?.loadNumber ?? null);
-	const dropLabelsQuery = $derived(
-		selectedDropDetail
-			? getLoadViewUnion({
-					loadNumber: selectedDropDetail.loadNumber,
-					sequence: selectedDropDetail.sequence,
-					locationId: selectedDropDetail.locationId
-				})
-			: null
-	);
-	const dropLabels = $derived(dropLabelsQuery?.current ?? []);
-	const isLoadingDropLabels = $derived((dropLabelsQuery?.loading ?? false) && dropLabels.length === 0);
+	const dropLabelsState = $derived.by(() => {
+		if (!selectedDropDetail) {
+			return {
+				current: [],
+				error: null,
+				loading: false,
+				refresh: null
+			};
+		}
+
+		const query = getLoadViewUnion({
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: selectedDropDetail.locationId
+		});
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading,
+			refresh: () => query.refresh()
+		};
+	});
+	const dropLabels = $derived(dropLabelsState.current);
+	const isLoadingDropLabels = $derived(dropLabelsState.loading && dropLabels.length === 0);
 	const unscannedDropLabels = $derived(dropLabels.filter((label) => !label.scanned));
 	const isEmptyDrop = $derived(!isLoadingDropLabels && dropLabels.length === 0);
 	const isFullyScannedDrop = $derived(
@@ -233,7 +286,7 @@
 			return;
 		}
 
-		await tick();
+		await settled();
 		scanInputElement?.focus();
 	}
 
@@ -278,7 +331,7 @@
 	}
 
 	async function refreshActiveDropData() {
-		if (selectedDropDetail === null || dropDetailsQuery === null) {
+		if (selectedDropDetail === null || !dropDetailsState.refresh) {
 			return;
 		}
 
@@ -288,7 +341,7 @@
 			locationId: selectedDropDetail.locationId
 		});
 
-		await Promise.all([dropDetailsQuery.refresh(), activeUnionQuery.refresh()]);
+		await Promise.all([dropDetailsState.refresh(), activeUnionQuery.refresh()]);
 	}
 
 	async function applyScanAction(
@@ -555,6 +608,8 @@
 		} finally {
 			isScanning = false;
 		}
+
+		await focusScanInput();
 	}
 
 </script>
@@ -575,12 +630,17 @@
 					Loading requires an active dropsheet handoff from the current session.
 				</p>
 			</div>
-		{:else if loaderInfoQuery?.error}
+		{:else if loaderInfoState.error}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the loader session.</p>
-				<p class="mt-2 text-sm leading-6 text-slate-600">{loaderInfoQuery.error.message}</p>
+				<p class="mt-2 text-sm leading-6 text-slate-600">
+					{getOperatorErrorMessage(
+						loaderInfoState.error,
+						'Unable to load the loader session.'
+					)}
+				</p>
 			</div>
-		{:else if loaderInfoQuery?.loading || loaderInfo === null}
+		{:else if loaderInfoState.loading || loaderInfo === null}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
 					<LoaderCircle class="size-8 animate-spin" />
@@ -589,12 +649,14 @@
 					Loading session details...
 				</p>
 			</div>
-		{:else if dropDetailsQuery?.error}
+		{:else if dropDetailsState.error}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the drop list.</p>
-				<p class="mt-2 text-sm leading-6 text-slate-600">{dropDetailsQuery.error.message}</p>
+				<p class="mt-2 text-sm leading-6 text-slate-600">
+					{getOperatorErrorMessage(dropDetailsState.error, 'Unable to load the drop list.')}
+				</p>
 			</div>
-		{:else if dropDetailsQuery?.loading && dropDetails.length === 0}
+		{:else if dropDetailsState.loading && dropDetails.length === 0}
 			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
 					<LoaderCircle class="size-8 animate-spin" />
@@ -777,9 +839,12 @@
 						</div>
 
 						<div class="mt-2.5 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2">
-							{#if dropLabelsQuery?.error}
+							{#if dropLabelsState.error}
 								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-									{dropLabelsQuery.error.message}
+									{getOperatorErrorMessage(
+										dropLabelsState.error,
+										'Unable to load the drop labels.'
+									)}
 								</div>
 							{:else if isLoadingDropLabels}
 								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">

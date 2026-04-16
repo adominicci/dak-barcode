@@ -1,5 +1,16 @@
 # Current Context
 
+## 2026-04-16 Remote Functions Async Guard Fix
+
+- Current worktree: `bug/async-issue`
+- Enabled `compilerOptions.experimental.async` in `svelte.config.js` alongside `kit.experimental.remoteFunctions` so SvelteKit remote functions compile correctly in production and stop throwing `experimental_async_required` from hydratable query paths.
+- Added a shared `getOperatorErrorMessage` helper and switched the operator-facing remote-query banners on staging, loaders, dropsheets, loading, select-category, order-status, move-orders, and the staging location modal to use fallback copy instead of raw framework/runtime error strings.
+- Verification completed in this session:
+  - `bunx vitest run src/lib/operator-error.spec.ts src/lib/components/workflow/staging-list-panel.svelte.spec.ts src/lib/components/workflow/staging-location-modal.svelte.spec.ts src/svelte-config.spec.ts`
+  - `bunx vitest run src/lib/browser-cache.spec.ts`
+  - `bun run build`
+- Freshness note: `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts` still has a pre-existing browser timeout in the date-picker flow under this async-mode run; it does not affect the production build result for the async-guard fix.
+
 ## 2026-04-10 Complete Load Partial-Success Refresh
 
 - Current worktree: `features/enhancements`
@@ -57,20 +68,19 @@
 
 ## Current Focus
 
-- Establish the retrieval memory system and make it the default reload surface for future contexts.
-- Keep this branch limited to memory and documentation workflow changes. Do not mix in product or runtime behavior edits.
+- Keep the retrieval memory bundle current with verified runtime changes and bugfix context.
 - Re-check Linear and Git freshness sensors before resuming feature delivery work; do not trust older handoff files by default.
 
 ## Freshness Check
 
-- Last updated: 2026-04-01
-- Branch basis: `features/design-context-memory-strategy` from `b1b80d4`
-- Linked Linear issue: `None for this branch; resolve the active issue before product work resumes`
-- Open diffs already reflected: `Yes. This file assumes the intended working-tree changes are AGENTS.md, README.md, docs/project-state.yaml, docs/current-context.md, and docs/decisions.md.`
+- Last updated: 2026-04-16
+- Branch basis: `bug/async-issue`
+- Linked Linear issue: `None captured in this session`
+- Open diffs already reflected: `No. This file now reflects the runtime fix context from the current worktree.`
 
 ## Active Branch Assumptions
 
-- This branch exists to introduce retrieval-memory infrastructure, not to ship warehouse workflow changes.
+- This worktree currently carries a production runtime fix for Svelte remote functions and operator-safe error banners.
 - `docs/project-state.yaml` is the canonical fast-reload record and should be updated when durable current truth changes.
 - `docs/current-context.md` is the rolling handoff and should absorb branch-specific focus, risk, and freshness notes.
 - Files under `docs/handoffs/` remain historical snapshots only and should not outrank the current memory bundle.
@@ -79,15 +89,15 @@
 
 - The system will go stale if Memory Impact Analysis is skipped after a meaningful change.
 - No automation enforces the freshness loop yet; the guardrail currently lives in repo instructions and reviewer discipline.
-- Active Linear issue state still lives outside the repo and must be rechecked before feature work starts or resumes.
-- `bun run check` currently fails on a pre-existing type mismatch in `src/lib/server/dst-queries.ts:336`; this branch does not change that file, but the next implementation session should account for the failing baseline.
+- A dropsheets date-picker browser spec timed out in this session and should be treated as a separate test flake unless it starts reproducing in the built preview.
+- `bun run check` should be re-run after runtime or dependency changes even when the production build passes, because the repo still carries unrelated baseline risks elsewhere.
 
 ## Recent Changes That Affect Retrieval
 
 - `69be8b2` updated docs to reflect the current app migration status and is part of the baseline truth for this bundle.
 - `b1b80d4` merged the markdown-docs work, which means repo documentation is the freshest baseline available before this branch.
-- This branch adds the structured memory bundle and the standing Memory Impact Analysis rule.
-- Verification on this branch confirmed the memory files parse cleanly and also surfaced the existing `dst-queries.ts` type-check failure, which is now recorded here for the next fresh context.
+- This branch now records the remote-functions async-mode requirement and the shared operator error-sanitization helper.
+- Verification on this branch confirmed the production build succeeds after enabling async mode and the new operator-safe banner path.
 
 ## Next Reload Order
 

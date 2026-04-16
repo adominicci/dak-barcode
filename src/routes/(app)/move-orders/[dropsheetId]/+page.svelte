@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
@@ -35,9 +36,16 @@
 	let isMoving = $state(false);
 	let moveError = $state<string | null>(null);
 
-	const loadViewAllQuery = $derived(getLegacyLoadViewAll(data.dropSheetId));
+	const loadViewAllState = $derived.by(() => {
+		const query = getLegacyLoadViewAll(data.dropSheetId);
+		return {
+			current: query.current ?? [],
+			error: query.error,
+			loading: query.loading
+		};
+	});
 	const sequenceOptions = $derived.by(() =>
-		sortLegacyLoadViewAllEntries(loadViewAllQuery.current ?? [])
+		sortLegacyLoadViewAllEntries(loadViewAllState.current)
 	);
 	const activeSequence = $derived.by(() => {
 		const activeSequenceId = selectedSequence ?? sequenceOptions[0]?.sequence ?? null;
@@ -47,7 +55,7 @@
 
 		return sequenceOptions.find((entry) => entry.sequence === activeSequenceId) ?? null;
 	});
-	const moveOrdersRowsQuery = $derived.by(() => {
+	function getMoveOrdersRowsQuery() {
 		if (!activeSequence) {
 			return null;
 		}
@@ -56,8 +64,22 @@
 			dropSheetId: data.dropSheetId,
 			dropSheetCustId: activeSequence.dropSheetCustId
 		});
+	}
+
+	const moveOrdersRowsState = $derived.by(() => {
+		const query = getMoveOrdersRowsQuery();
+		return {
+			current: query?.current ?? [],
+			error: query?.error ?? null,
+			loading: query?.loading ?? false,
+			refresh: query ? () => query.refresh() : null
+		};
 	});
-	const moveOrdersRows = $derived(moveOrdersRowsQuery?.current ?? []);
+	const moveOrdersRows = $derived(moveOrdersRowsState.current);
+	const moveOrdersRowsError = $derived(moveOrdersRowsState.error);
+	const isMoveOrdersRowsLoading = $derived(
+		moveOrdersRowsState.loading && moveOrdersRows.length === 0
+	);
 
 	function handleSequenceSelect(sequence: LegacyLoadViewAllEntry) {
 		selectedSequence = sequence.sequence;
@@ -170,7 +192,7 @@
 				});
 			}
 
-			await moveOrdersRowsQuery?.refresh?.();
+			await moveOrdersRowsState.refresh?.();
 			toast.success('Move completed.');
 		} catch (error) {
 			moveError = error instanceof Error ? error.message : 'Unable to move this item right now.';
@@ -188,12 +210,17 @@
 		dropWeight={data.dropWeight}
 	/>
 
-	{#if loadViewAllQuery.error}
+	{#if loadViewAllState.error}
 		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
 			<p class="font-semibold">Unable to load move order sequences.</p>
-			<p class="mt-1 leading-6">{loadViewAllQuery.error.message}</p>
+			<p class="mt-1 leading-6">
+				{getOperatorErrorMessage(
+					loadViewAllState.error,
+					'Unable to load move order sequences.'
+				)}
+			</p>
 		</div>
-	{:else if loadViewAllQuery.loading && sequenceOptions.length === 0}
+	{:else if loadViewAllState.loading && sequenceOptions.length === 0}
 		<section
 			class="flex min-h-[22rem] items-center justify-center rounded-[2rem] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
 			data-testid="move-orders-loading-state"
@@ -243,11 +270,14 @@
 					</div>
 				{/if}
 
-				{#if moveOrdersRowsQuery?.error}
-					<div class="rounded-[1.5rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
-						{moveOrdersRowsQuery.error.message}
-					</div>
-				{:else if moveOrdersRowsQuery?.loading && moveOrdersRows.length === 0}
+					{#if moveOrdersRowsError}
+						<div class="rounded-[1.5rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
+							{getOperatorErrorMessage(
+								moveOrdersRowsError,
+								'Unable to load move order rows.'
+							)}
+						</div>
+					{:else if isMoveOrdersRowsLoading}
 					<div class="flex min-h-40 items-center justify-center rounded-[1.5rem] bg-white">
 						<LoadingSpinner size="md" data-testid="move-orders-rows-loading-spinner" />
 					</div>

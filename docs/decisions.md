@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-16 - Enable async mode for remote functions and sanitize operator errors
+
+- Tags: runtime, sveltekit, product, safety
+- Decision: Keep `kit.experimental.remoteFunctions` enabled only together with `compilerOptions.experimental.async` in `svelte.config.js`. Route operator-facing remote-query errors through a shared helper that falls back to safe copy when the error message is a Svelte framework/runtime URL or `experimental_async_required`.
+- Rationale: The official SvelteKit remote-functions docs require both config flags, and the production failure was the Svelte runtime guard emitted from `hydratable(...)` when async mode was missing. Raw framework URLs are not useful to operators and should not surface in task panels or banners.
+- Impacted areas: `svelte.config.js`, `src/lib/operator-error.ts`, `src/lib/components/workflow/staging-list-panel.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/loaders/+page.svelte`, `src/routes/(app)/dropsheets/+page.svelte`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/routes/(app)/order-status/[dropsheetId]/+page.svelte`, `src/routes/(app)/move-orders/[dropsheetId]/+page.svelte`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that `kit.experimental.remoteFunctions` alone was enough for remote-function compilation and that `query.error.message` was always safe to render directly
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the runtime guardrail is now captured in the memory bundle and this decision log
+
 ## 2026-04-10 - Treat Complete Load post-send sync failures as warnings
 
 - Tags: product, loading, backend-contract

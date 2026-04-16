@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import { getDropArea } from '$lib/drop-areas.remote';
 	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
 	import type { Target } from '$lib/auth/types';
@@ -40,18 +41,32 @@
 		sensitivity: 'base'
 	});
 
-	const dropAreasQuery = $derived(
-		department ? getDropAreasByDepartment(department, target) : null
-	);
+	function getDropAreasQuery() {
+		return department ? getDropAreasByDepartment(department, target) : null;
+	}
+
+	const dropAreasState = $derived.by(() => {
+		const query = getDropAreasQuery();
+		return {
+			active: query !== null,
+			current: query?.current ?? [],
+			error: query?.error ?? null,
+			loading: query?.loading ?? false,
+			refresh: query ? () => query.refresh() : null
+		};
+	});
+
 	const departmentSupportKey = {
 		Wrap: 'supportsWrap',
 		Roll: 'supportsRoll',
 		Parts: 'supportsParts'
 	} as const satisfies Record<NonNullable<WorkflowDepartment>, keyof DropArea>;
 	const visibleDropAreas = $derived.by(() => {
-		const availableDropAreas = dropAreasQuery?.current ?? [];
+		const availableDropAreas = dropAreasState.current;
 		return availableDropAreas.filter(isSelectableDropArea);
 	});
+	const dropAreasError = $derived(dropAreasState.error);
+	const isDropAreasLoading = $derived(dropAreasState.loading);
 	const groupedDropAreas = $derived.by(() => {
 		const groups: Record<string, DropArea[]> = {};
 
@@ -444,15 +459,15 @@
 	>
 		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
 			<div class="flex justify-end gap-2">
-				{#if dropAreasQuery}
+				{#if dropAreasState.active}
 					<button
 						type="button"
 						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-						onclick={() => void dropAreasQuery.refresh()}
+						onclick={() => void dropAreasState.refresh?.()}
 						aria-label="Refresh list"
-						disabled={dropAreasQuery.loading}
+						disabled={isDropAreasLoading}
 					>
-						<RefreshCw class={`size-4 ${dropAreasQuery.loading ? 'animate-spin' : ''}`} />
+						<RefreshCw class={`size-4 ${isDropAreasLoading ? 'animate-spin' : ''}`} />
 					</button>
 				{/if}
 
@@ -517,12 +532,17 @@
 								<MapPin class="size-7 text-primary/70" />
 								<p class="text-sm font-medium">Scan a driver location to continue.</p>
 							</div>
-						{:else if dropAreasQuery?.error}
+						{:else if dropAreasError}
 							<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
 								<TriangleAlert class="mt-0.5 size-4 shrink-0" />
-								<p>{dropAreasQuery.error.message}</p>
+								<p>
+									{getOperatorErrorMessage(
+										dropAreasError,
+										'Unable to load locations.'
+									)}
+								</p>
 							</div>
-						{:else if dropAreasQuery?.loading}
+						{:else if isDropAreasLoading}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-on-surface-variant/70">
 								<LoaderCircle class="size-7 animate-spin text-primary" />
 								<p class="text-sm font-medium">Loading locations...</p>

@@ -57,6 +57,49 @@ function createRemoteQuery<T>(current: T, nextCurrent: T): RemoteQuery<T> {
 	} as unknown as RemoteQuery<T>;
 }
 
+function createDeferredRemoteQuery<T>(initial: T) {
+	let value = initial;
+	let resolveValue!: (next: T) => void;
+	const settled = new Promise<T>((resolve) => {
+		resolveValue = (next) => {
+			value = next;
+			resolve(next);
+		};
+	});
+
+	const query = {
+		get current() {
+			return value;
+		},
+		get error() {
+			return null;
+		},
+		get loading() {
+			return false;
+		},
+		get ready() {
+			return true;
+		},
+		set: vi.fn((next: T) => {
+			value = next;
+		}),
+		refresh: vi.fn(async () => undefined),
+		withOverride: vi.fn(),
+		then: (onfulfilled?: (next: T) => unknown, onrejected?: (reason: unknown) => unknown) =>
+			settled.then((next) => onfulfilled?.(next) ?? next, onrejected)
+	} as unknown as RemoteQuery<T>;
+
+	return {
+		query,
+		resolve(next: T) {
+			resolveValue(next);
+		},
+		async waitForSettle() {
+			await settled;
+		}
+	};
+}
+
 describe('browser cache helpers', () => {
 	it('loads cached data into the remote query before refresh', async () => {
 		const cacheKey = lookupCacheKey('loaders');
@@ -75,8 +118,35 @@ describe('browser cache helpers', () => {
 
 		createCachedRemoteQuery(query, cacheKey, storage);
 
+		expect(query.set).not.toHaveBeenCalled();
+
+		await Promise.resolve();
+
 		expect(query.set).toHaveBeenCalledWith(cachedLoaders);
 		expect(query.current).toEqual(cachedLoaders);
+	});
+
+	it('does not re-hydrate the same cached query instance on repeated access', async () => {
+		const cacheKey = lookupCacheKey('loaders');
+		const cachedLoaders = [
+			{ id: 1, name: 'Alex', isActive: true },
+			{ id: 2, name: 'Taylor', isActive: true }
+		];
+		const storage = createMemoryStorage({
+			[cacheKey]: JSON.stringify({
+				signature: 'cached',
+				data: cachedLoaders,
+				updatedAt: '2026-03-30T00:00:00.000Z'
+			})
+		});
+		const query = createRemoteQuery([{ id: 99, name: 'Stale', isActive: false }], cachedLoaders);
+
+		createCachedRemoteQuery(query, cacheKey, storage);
+		createCachedRemoteQuery(query, cacheKey, storage);
+
+		await Promise.resolve();
+
+		expect(query.set).toHaveBeenCalledTimes(1);
 	});
 
 	it('keeps the current reference when refresh returns the same payload', async () => {
@@ -146,6 +216,46 @@ describe('browser cache helpers', () => {
 
 		expect(storage.setItem).toHaveBeenCalledTimes(1);
 		expect(JSON.parse(String(storage.getItem(cacheKey))).data).toEqual([{ id: 1, name: 'TR-1' }]);
+	});
+
+	it('preserves the original cache key for a pending initial write', async () => {
+		const cantonKey = lookupCacheKey(
+			'loaders',
+			getTargetLookupCacheQualifier('Canton') ?? undefined
+		);
+		const freeportKey = lookupCacheKey(
+			'loaders',
+			getTargetLookupCacheQualifier('Freeport') ?? undefined
+		);
+		const storage = createMemoryStorage();
+		const deferredQuery = createDeferredRemoteQuery([{ id: 1, name: 'Alex', isActive: true }]);
+
+		createCachedRemoteQuery(deferredQuery.query, cantonKey, storage);
+		createCachedRemoteQuery(deferredQuery.query, freeportKey, storage);
+
+		deferredQuery.resolve([{ id: 1, name: 'Alex', isActive: true }]);
+		await deferredQuery.waitForSettle();
+
+		expect(storage.setItem).toHaveBeenCalledTimes(1);
+		expect(storage.setItem).toHaveBeenCalledWith(cantonKey, expect.any(String));
+		expect(storage.getItem(freeportKey)).toBeNull();
+	});
+
+	it('skips the initial cache write for query doubles that are not thenable', async () => {
+		const cacheKey = lookupCacheKey('drop-areas', 'Wrap');
+		const storage = createMemoryStorage();
+		const query = {
+			current: [{ id: 41, name: 'W12' }],
+			error: null,
+			loading: false,
+			ready: true,
+			refresh: vi.fn(async () => undefined),
+			set: vi.fn(),
+			withOverride: vi.fn()
+		} as unknown as RemoteQuery<{ id: number; name: string }[]>;
+
+		expect(() => createCachedRemoteQuery(query, cacheKey, storage)).not.toThrow();
+		expect(storage.setItem).not.toHaveBeenCalled();
 	});
 
 	it('invalidates a cached lookup entry', () => {

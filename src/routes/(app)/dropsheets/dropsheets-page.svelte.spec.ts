@@ -458,6 +458,95 @@ describe("dropsheets page", () => {
       .not.toBeInTheDocument();
   });
 
+  it("sanitizes loader picker framework errors before rendering the modal banner", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 42,
+          loadNumber: "L-042",
+          loadNumberShort: "042",
+          trailer: "TR-9",
+          percentCompleted: 0.875,
+          loadedAt: "2026-03-24T08:00:00Z",
+          dropWeight: 2152.4,
+          driverId: 12,
+          driverName: "Dylan Driver",
+          allLoaded: false,
+          loaderName: null,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState(
+        [{ id: 1, name: "Alex", isActive: true }],
+        { error: new Error("https://svelte.dev/e/experimental_async_required") },
+      ),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await page
+      .getByRole("button", { name: /Change loader for L-042/i })
+      .click();
+
+    await expect
+      .element(page.getByRole("dialog", { name: "Select loader" }))
+      .toBeInTheDocument();
+    await expect.element(page.getByText("Unable to load options.")).toBeInTheDocument();
+    await expect
+      .element(page.getByText("https://svelte.dev/e/experimental_async_required"))
+      .not.toBeInTheDocument();
+  });
+
+  it("does not render a loader picker error banner when the query is healthy", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 42,
+          loadNumber: "L-042",
+          loadNumberShort: "042",
+          trailer: "TR-9",
+          percentCompleted: 0.875,
+          loadedAt: "2026-03-24T08:00:00Z",
+          dropWeight: 2152.4,
+          driverId: 12,
+          driverName: "Dylan Driver",
+          allLoaded: false,
+          loaderName: null,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await page
+      .getByRole("button", { name: /Change loader for L-042/i })
+      .click();
+
+    await expect
+      .element(page.getByRole("dialog", { name: "Select loader" }))
+      .toBeInTheDocument();
+    await expect.element(page.getByText("Alex")).toBeInTheDocument();
+    await expect.element(page.getByText("Unable to load options.")).not.toBeInTheDocument();
+  });
+
   it("navigates to select-category from the chevron action", async () => {
     getDropsheets.mockReturnValue(
       createQueryState([

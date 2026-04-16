@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { LoaderCircle, PackageSearch, TriangleAlert } from '@lucide/svelte';
+	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import type { StagingListItem } from '$lib/types';
 	import type { WorkflowDepartment } from '$lib/workflow/stores';
 
@@ -37,7 +38,9 @@
 				<TriangleAlert class="mt-0.5 size-5 shrink-0" />
 				<div class="space-y-1">
 					<p class="text-lg font-semibold text-rose-900">Unable to load staging items.</p>
-					<p class="text-sm leading-6">{error.message}</p>
+					<p class="text-sm leading-6">
+						{getOperatorErrorMessage(error, 'Unable to load staging items.')}
+					</p>
 				</div>
 			</div>
 		{:else if loading}
