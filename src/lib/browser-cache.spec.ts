@@ -75,8 +75,35 @@ describe('browser cache helpers', () => {
 
 		createCachedRemoteQuery(query, cacheKey, storage);
 
+		expect(query.set).not.toHaveBeenCalled();
+
+		await Promise.resolve();
+
 		expect(query.set).toHaveBeenCalledWith(cachedLoaders);
 		expect(query.current).toEqual(cachedLoaders);
+	});
+
+	it('does not re-hydrate the same cached query instance on repeated access', async () => {
+		const cacheKey = lookupCacheKey('loaders');
+		const cachedLoaders = [
+			{ id: 1, name: 'Alex', isActive: true },
+			{ id: 2, name: 'Taylor', isActive: true }
+		];
+		const storage = createMemoryStorage({
+			[cacheKey]: JSON.stringify({
+				signature: 'cached',
+				data: cachedLoaders,
+				updatedAt: '2026-03-30T00:00:00.000Z'
+			})
+		});
+		const query = createRemoteQuery([{ id: 99, name: 'Stale', isActive: false }], cachedLoaders);
+
+		createCachedRemoteQuery(query, cacheKey, storage);
+		createCachedRemoteQuery(query, cacheKey, storage);
+
+		await Promise.resolve();
+
+		expect(query.set).toHaveBeenCalledTimes(1);
 	});
 
 	it('keeps the current reference when refresh returns the same payload', async () => {
