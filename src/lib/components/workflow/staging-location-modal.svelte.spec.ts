@@ -1,5 +1,5 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { DropArea } from '$lib/types';
 
@@ -28,6 +28,11 @@ function createQueryState(current: DropArea[]) {
 }
 
 describe('staging location modal', () => {
+	beforeEach(() => {
+		getDropAreasByDepartment.mockReset();
+		getDropArea.mockReset();
+	});
+
 	it('resolves numeric lookup through getDropArea().run()', async () => {
 		const onSelect = vi.fn();
 		const runLookup = vi.fn().mockResolvedValue({
