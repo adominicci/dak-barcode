@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { command, query } from '$app/server';
 import {
 	dropSheetTrailerUpdateInputSchema,
@@ -5,7 +6,12 @@ import {
 	updateDstDropSheetTrailer
 } from '$lib/server/dst-queries';
 
-export const getTrailers = query(async () => getDstTrailers());
+const trailersQueryInputSchema = v.object({
+	// Scopes the serialized client query identity per target; the server read stays target-driven.
+	targetCacheKey: v.pipe(v.string(), v.trim(), v.nonEmpty('Target cache key is required.'))
+});
+
+export const getTrailers = query(trailersQueryInputSchema, async () => getDstTrailers());
 
 export const updateDropsheetTrailer = command(dropSheetTrailerUpdateInputSchema, async (input) =>
 	updateDstDropSheetTrailer(input)
