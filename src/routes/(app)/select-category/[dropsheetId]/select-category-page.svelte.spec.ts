@@ -364,11 +364,11 @@ describe('select-category page', () => {
 			.mockResolvedValue(
 				createWillCallSignatureRecord({
 					receivedBy: 'Jordan',
-					signaturePath: 'will-call/42/signature_123.png'
+					signaturePath: 'signatures/will-call/42/signature_123.png'
 				})
 			);
 		const upload = vi.fn().mockResolvedValue({
-			data: { path: 'will-call/42/signature_123.png' },
+			data: { path: 'signatures/will-call/42/signature_123.png' },
 			error: null
 		});
 		const createSignedUrl = vi.fn().mockResolvedValue({
@@ -458,7 +458,7 @@ describe('select-category page', () => {
 		await vi.waitFor(() => {
 			expect(uploadWillCallSignature).toHaveBeenCalledWith({
 				dropSheetId: 42,
-				signaturePath: 'will-call/42/signature_123.png',
+				signaturePath: 'signatures/will-call/42/signature_123.png',
 				receivedBy: 'Jordan'
 			});
 			expect(runRefreshedSignature).toHaveBeenCalledOnce();

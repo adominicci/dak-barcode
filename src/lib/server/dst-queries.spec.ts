@@ -237,7 +237,7 @@ describe("dst query helpers", () => {
         DropSheetCustID: 84,
         fkDropSheetID: 42,
         ReceivedBy: "Jordan",
-        Signature_Path: "will-call/42/signature_1.png",
+        Signature_Path: "signatures/will-call/42/signature_1.png",
       }),
     );
 
@@ -247,7 +247,7 @@ describe("dst query helpers", () => {
       dropSheetCustomerId: 84,
       dropSheetId: 42,
       receivedBy: "Jordan",
-      signaturePath: "will-call/42/signature_1.png",
+      signaturePath: "signatures/will-call/42/signature_1.png",
       signatureTimestamp: null,
       signature: null,
     });
@@ -282,7 +282,7 @@ describe("dst query helpers", () => {
     await expect(
       uploadDstWillCallSignature({
         dropSheetId: 42,
-        signaturePath: "will-call/42/signature_1.png",
+        signaturePath: "signatures/will-call/42/signature_1.png",
         receivedBy: "Jordan",
       }),
     ).resolves.toBeUndefined();
@@ -295,7 +295,7 @@ describe("dst query helpers", () => {
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({
       DropSheetID: 42,
-      Signature_Path: "will-call/42/signature_1.png",
+      Signature_Path: "signatures/will-call/42/signature_1.png",
       ReceivedBy: "Jordan",
     });
   });
