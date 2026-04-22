@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-04-16
+  last_updated_at: 2026-04-22
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-04-16
+  last_verified_at: 2026-04-22
   verified_against:
     - AGENTS.md
     - README.md
@@ -73,7 +73,7 @@ product:
     - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
 
 architecture:
-  last_verified_at: 2026-04-16
+  last_verified_at: 2026-04-22
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
@@ -107,7 +107,7 @@ architecture:
     - admin-ready
 
 workflows:
-  last_verified_at: 2026-04-16
+  last_verified_at: 2026-04-22
   verified_against:
     - AGENTS.md
     - src/routes/(app)/staging/+page.svelte
@@ -127,6 +127,8 @@ workflows:
       - department selection is required on entry
       - numeric scans are location codes
       - any valid drop area is accepted
+      - when a valid non-location scan needs a location, staging now opens the location selector immediately instead of leaving the operator on the main scan field
+      - Wrap and Parts keep the selected location until the operator changes department or chooses a different location
       - Roll resets the current location after each successful scan
       - Freeport Roll location selection adds a second tab row by the next alphabetic segment after the first letter, with an `All` fallback bucket
   loading:

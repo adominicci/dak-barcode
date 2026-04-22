@@ -1,5 +1,23 @@
 # Current Context
 
+## 2026-04-22 Staging Location Memory Refresh
+
+- Current worktree: `dev`
+- Staging now auto-opens the location selector when a valid non-location label scan needs a location.
+- Confirmed runtime behavior:
+  - `Wrap` and `Parts` keep the chosen staging location active until the operator changes it or changes department.
+  - `Roll` treats the chosen staging location as single-use, even when it was preselected manually before scanning the label.
+- Durable implementation note: the behavior change lives in `src/lib/workflow/staging-scan-controller.ts`; the page already had the right retry and Roll-clearing behavior once the controller started returning `openLocationModal: true` for `needs-location`.
+- Focused regressions added or updated:
+  - `src/lib/workflow/staging-scan-controller.spec.ts`
+  - `src/routes/(app)/staging/staging-page.svelte.spec.ts`
+- Verification completed in this session:
+  - `bun run test:unit -- --run src/lib/workflow/staging-scan-controller.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/workflow/staging-scan-controller.spec.ts 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
+  - `npx @sveltejs/mcp svelte-autofixer ./src/routes/'(app)'/staging/+page.svelte --svelte-version 5`
+- Freshness note: `bun run check` still fails on pre-existing remote-query `.run()` typing issues in unrelated workflow files plus an older typed `pageState.data` mismatch in the staging page spec. No new repo-wide `check` failures were introduced beyond the controller contract updated here.
+
 ## 2026-04-16 Target-Scoped Lookup Query Keys
 
 - Current worktree: `main`

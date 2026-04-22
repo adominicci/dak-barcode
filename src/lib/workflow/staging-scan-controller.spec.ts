@@ -155,7 +155,7 @@ describe('createStagingScanController', () => {
 		expect(controller.hasPendingScan()).toBe(false);
 	});
 
-	it('stores a pending scan on needs-location without opening the manual selector', async () => {
+	it('stores a pending scan on needs-location and opens the location selector', async () => {
 		const processScan = vi
 			.fn()
 			.mockResolvedValue(
@@ -181,7 +181,7 @@ describe('createStagingScanController', () => {
 			kind: 'needs-location',
 			message: 'Location is required before staging.',
 			dropArea: null,
-			openLocationModal: false,
+			openLocationModal: true,
 			clearCurrentDropArea: false,
 			showSuccessToast: false
 		});
