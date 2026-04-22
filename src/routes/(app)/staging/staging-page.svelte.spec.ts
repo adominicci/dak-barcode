@@ -839,7 +839,51 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W12');
 	});
 
-	it('keeps the main scan input active when a label needs a location and retries after a numeric location scan', async () => {
+	it('opens the location modal when Parts needs a location, retries the pending label, and keeps the location selected', async () => {
+		processStagingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					status: 'needs-location',
+					message: 'Location is required before staging.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Parts' }).click();
+		await submitMainScan('LP-100');
+
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Scan new location')).toHaveFocus();
+
+		await page.getByLabelText('Scan new location').fill('42');
+		await page.getByRole('button', { name: 'Set location' }).click();
+		await vi.waitFor(() => {
+			expect(processStagingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(getDropArea).toHaveBeenCalledWith(42);
+
+		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: null
+		});
+		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: 42
+		});
+		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 42,
+			dropAreaLabel: 'W13'
+		});
+	});
+
+	it('opens the location modal when Roll needs a location, retries the pending label, and clears the location after success', async () => {
 		processStagingScan
 			.mockResolvedValueOnce(
 				createScanResult({
@@ -850,50 +894,65 @@ describe('staging page department gate', () => {
 			)
 			.mockResolvedValueOnce(
 				createScanResult({
-					scanType: 'location',
-					message: 'Location updated.',
-					dropArea: {
-						id: 42,
-						label: 'W13'
-					}
+					scanType: 'single_label',
+					message: 'Roll label staged.'
 				})
-			)
-			.mockResolvedValueOnce(createScanResult());
+			);
 
 		render(StagingPage);
 
-		await page.getByRole('button', { name: 'Parts' }).click();
-		const scanInput = await submitMainScan('LP-100');
+		await page.getByRole('button', { name: 'Roll' }).click();
+		await submitMainScan('ROLL-100');
 
-		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
-		await expect.element(page.getByTestId('staging-scan-error')).toHaveTextContent(
-			'Please scan a location first'
-		);
-		await expect.element(scanInput).toHaveFocus();
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await page.getByLabelText('Scan new location').fill('51');
+		await page.getByRole('button', { name: 'Set location' }).click();
 
-		await submitMainScan('42');
 		await vi.waitFor(() => {
-			expect(processStagingScan).toHaveBeenCalledTimes(3);
+			expect(processStagingScan).toHaveBeenCalledTimes(2);
 		});
+		expect(getDropArea).toHaveBeenCalledWith(51);
 
 		expect(processStagingScan).toHaveBeenNthCalledWith(1, {
-			scannedText: 'LP-100',
-			department: 'Parts',
+			scannedText: 'ROLL-100',
+			department: 'Roll',
 			dropAreaId: null
 		});
 		expect(processStagingScan).toHaveBeenNthCalledWith(2, {
-			scannedText: '42',
-			department: 'Parts',
-			dropAreaId: null
-		});
-		expect(processStagingScan).toHaveBeenNthCalledWith(3, {
-			scannedText: 'LP-100',
-			department: 'Parts',
-			dropAreaId: 42
+			scannedText: 'ROLL-100',
+			department: 'Roll',
+			dropAreaId: 51
 		});
 		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
-		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('W13');
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('Select Location');
+		expect(get(workflowStores.currentDropArea)).toBeNull();
+	});
+
+	it('clears a manually preselected Roll location after the next successful label scan', async () => {
+		processStagingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: 'single_label',
+				message: 'Roll label staged.'
+			})
+		);
+
+		render(StagingPage);
+
+		await page.getByRole('button', { name: 'Roll' }).click();
+		await page.getByTestId('staging-location-trigger').click();
+		await page.getByRole('button', { name: 'R12' }).click();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('R12');
+
+		const scanInput = await submitMainScan('ROLL-200');
+
+		expect(processStagingScan).toHaveBeenCalledWith({
+			scannedText: 'ROLL-200',
+			department: 'Roll',
+			dropAreaId: 51
+		});
 		await expect.element(scanInput).toHaveFocus();
+		await expect.element(page.getByTestId('staging-location-trigger')).toHaveTextContent('Select Location');
+		expect(get(workflowStores.currentDropArea)).toBeNull();
 	});
 
 	it('cancels the pending label when the manual location modal is dismissed', async () => {

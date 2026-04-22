@@ -22,7 +22,7 @@ export type StagingScanAction =
 			kind: 'needs-location';
 			message: string;
 			dropArea: null;
-			openLocationModal: false;
+			openLocationModal: true;
 			clearCurrentDropArea: false;
 			showSuccessToast: false;
 	  }
@@ -73,7 +73,7 @@ export function createStagingScanController({
 				kind: 'needs-location',
 				message: result.message,
 				dropArea: null,
-				openLocationModal: false,
+				openLocationModal: true,
 				clearCurrentDropArea: false,
 				showSuccessToast: false
 			};
