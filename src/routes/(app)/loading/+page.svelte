@@ -199,7 +199,8 @@
 		!isLoadingDropLabels &&
 			selectedDropDetail !== null &&
 			selectedDropDetail.labelCount > 0 &&
-			selectedDropDetail.scannedCount >= selectedDropDetail.labelCount
+			(selectedDropDetail.scannedCount >= selectedDropDetail.labelCount ||
+				(dropLabels.length > 0 && unscannedDropLabels.length === 0))
 	);
 
 	$effect(() => {
