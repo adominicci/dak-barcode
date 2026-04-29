@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-04-22
+  last_updated_at: 2026-04-29
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-04-22
+  last_verified_at: 2026-04-29
   verified_against:
     - AGENTS.md
     - README.md
@@ -97,7 +97,7 @@ architecture:
     - auth and target resolution are server-side concerns
     - operator-facing loaders, trailers, and drop-area lookups now fetch fresh remote query state instead of hydrating from browser cache
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
-    - imperative reads from SvelteKit remote `query(...)` helpers must use `.run()` in event handlers, modal submissions, and other one-off client actions instead of awaiting the query directly
+    - imperative reads from SvelteKit remote `query(...)` helpers must use `src/lib/remote-query-read.ts` so the app supports the installed promise-like query contract and future `.run()`-capable contracts
     - target-sensitive lookup wrappers must include a target cache qualifier in the serialized remote `query(...)` input so deployed clients cannot reuse the wrong reactive query instance across target changes
   access_states:
     - anonymous
@@ -107,7 +107,7 @@ architecture:
     - admin-ready
 
 workflows:
-  last_verified_at: 2026-04-22
+  last_verified_at: 2026-04-29
   verified_against:
     - AGENTS.md
     - src/routes/(app)/staging/+page.svelte
@@ -140,12 +140,17 @@ workflows:
       - Loader session creation
       - Loading
     rules:
+      - Select Category keeps support actions and Complete Load in one compact sticky action row so loader cards remain visible on shared iPad A16 screens
       - loading opens on the last available drop and navigates backward numerically by default
       - numeric scans are driver locations only
       - non-numeric scans go through pallet or single-label processing
       - Roll resets the current location after each successful scan
+      - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to five raw scans, and drains them only after refreshed drop data has settled
+      - loading clears queued scan texts on drop navigation so they cannot submit against a newly selected drop
+      - the Loading route title appends the active scanned driver location while selected so operators can confirm the location used by subsequent scans
       - leaving Loading should record loader end time
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors
+      - the visible loading label list is frontend-guarded by the active loading department category mapping so mixed union endpoint rows do not show wrong-department labels
   support_views:
     status: live
     included:
@@ -154,7 +159,7 @@ workflows:
       - Add Loader
 
 integrations:
-  last_verified_at: 2026-04-16
+  last_verified_at: 2026-04-29
   verified_against:
     - docs/architecture.md
     - docs/prd.md
@@ -177,6 +182,11 @@ integrations:
     - PUBLIC_SUPABASE_ANON_KEY
     - DST_PORTAL_URL
     - DAK_WEB_URL
+  local_backend_projects:
+    - path: /Users/andresdominicci/Projects/CustomerPortalAPI-PY
+      rule: inspect allowed; modify only after explicit approval because endpoints may support production
+    - path: /Users/andresdominicci/Projects/dakview-web
+      rule: inspect allowed; modify only after explicit approval because endpoints may support production
 
 testing:
   last_verified_at: 2026-04-16

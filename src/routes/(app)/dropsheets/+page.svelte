@@ -63,7 +63,7 @@
 	});
 
 	const TABLE_SELECTION_BUTTON_CLASSES =
-		'inline-flex min-h-12 max-w-full items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-4 py-2 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
+		'inline-flex min-h-12 w-full max-w-full items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-3 py-2 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
 
 	let { data }: PageProps = $props();
 	let selectedDateValue = $derived(parseDate(data.selectedDate));
@@ -422,15 +422,15 @@
 				</p>
 			</div>
 		{:else}
-			<div class="overflow-x-auto">
-				<table class="min-w-[980px] w-full border-separate border-spacing-0">
+			<div>
+				<table class="w-full table-fixed border-separate border-spacing-0">
 					<thead class="sticky top-0 z-10 bg-slate-50">
 						<tr class="text-left text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
-							<th class="px-3 py-3 font-semibold">Delivery Number</th>
-							<th class="px-3 py-3 text-center font-semibold">Drop Weight</th>
-							<th class="px-3 py-3 text-center font-semibold">Load Number</th>
-							<th class="px-3 py-3 text-center font-semibold">Trailer Number</th>
-							<th class="px-3 py-3 text-center font-semibold">
+							<th class="w-[18%] px-2 py-3 font-semibold sm:px-3">Delivery Number</th>
+							<th class="w-[13%] px-2 py-3 text-center font-semibold sm:px-3">Drop Weight</th>
+							<th class="hidden w-[10%] px-2 py-3 text-center font-semibold xl:table-cell sm:px-3">Load Number</th>
+							<th class="w-[18%] px-2 py-3 text-center font-semibold sm:px-3">Trailer Number</th>
+							<th class="w-[13%] px-2 py-3 text-center font-semibold sm:px-3">
 								<span
 									data-testid="dropsheets-percent-completed-header"
 									class="inline-flex items-center justify-center gap-0.5"
@@ -438,42 +438,42 @@
 									<span>Completed</span><span class="text-[9px] leading-none text-on-surface-variant">%</span>
 								</span>
 							</th>
-							<th class="px-3 py-3 text-center font-semibold">Loaded TS</th>
-							<th class="px-3 py-3 text-center font-semibold">Completed</th>
-							<th class="px-3 py-3 text-center font-semibold">Loader</th>
-							<th class="px-3 py-3 text-right font-semibold">Go</th>
+							<th class="hidden w-[15%] px-2 py-3 text-center font-semibold lg:table-cell sm:px-3">Loaded TS</th>
+							<th class="w-[8%] px-2 py-3 text-center font-semibold sm:px-3">Completed</th>
+							<th class="w-[18%] px-2 py-3 text-center font-semibold sm:px-3">Loader</th>
+							<th class="w-[8%] px-2 py-3 text-right font-semibold sm:px-3">Go</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each dropsheets as dropSheet (dropSheet.id)}
 							{@const isComplete = dropSheet.percentCompleted >= 1}
 							<tr class="group bg-white transition hover:bg-slate-50/70">
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-sm font-semibold text-slate-950">
+								<td class="break-words border-b border-slate-100 px-2 py-4 text-sm font-semibold text-slate-950 sm:px-3">
 									{dropSheet.loadNumber}
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm tabular-nums text-slate-700">
+								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm tabular-nums text-slate-700 sm:px-3">
 									{WEIGHT_FORMATTER.format(dropSheet.dropWeight)}
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm text-slate-700">
+								<td class="hidden whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm text-slate-700 xl:table-cell sm:px-3">
 									{dropSheet.loadNumberShort ?? '--'}
 								</td>
-								<td class="border-b border-slate-100 px-3 py-4 text-center">
-										<button
-											type="button"
-											class={TABLE_SELECTION_BUTTON_CLASSES}
-											aria-label={`Change trailer for ${dropSheet.loadNumber}`}
-											onclick={() => openPicker('trailer', dropSheet)}
-										>
-											<span class="truncate">{formatTrailerLabel(dropSheet.trailer)}</span>
-										</button>
-									</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm font-semibold text-slate-950">
+								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
+									<button
+										type="button"
+										class={TABLE_SELECTION_BUTTON_CLASSES}
+										aria-label={`Change trailer for ${dropSheet.loadNumber}`}
+										onclick={() => openPicker('trailer', dropSheet)}
+									>
+										<span class="truncate">{formatTrailerLabel(dropSheet.trailer)}</span>
+									</button>
+								</td>
+								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm font-semibold text-slate-950 sm:px-3">
 									<span class="inline-flex items-baseline justify-center gap-0.5 tabular-nums"><span>{formatPercentCompleted(dropSheet.percentCompleted)}</span><span class="text-[9px] leading-none text-slate-500">%</span></span>
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center text-sm text-slate-700">
+								<td class="hidden whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm text-slate-700 lg:table-cell sm:px-3">
 									{formatLoadedAt(dropSheet.loadedAt, isComplete)}
 								</td>
-								<td class="border-b border-slate-100 px-3 py-4 text-center">
+								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
 									<div class="flex justify-center">
 										<Checkbox
 											checked={dropSheet.allLoaded}
@@ -482,20 +482,20 @@
 										/>
 									</div>
 								</td>
-								<td class="border-b border-slate-100 px-3 py-4 text-center">
-										<button
-											type="button"
-											class={TABLE_SELECTION_BUTTON_CLASSES}
-											aria-label={`Change loader for ${dropSheet.loadNumber}`}
-											onclick={() => openPicker('loader', dropSheet)}
-										>
-											<span class="truncate">{formatLoaderLabel(dropSheet.loaderName)}</span>
-										</button>
-								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-right">
+								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
 									<button
 										type="button"
-										class="inline-flex size-12 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white"
+										class={TABLE_SELECTION_BUTTON_CLASSES}
+										aria-label={`Change loader for ${dropSheet.loadNumber}`}
+										onclick={() => openPicker('loader', dropSheet)}
+									>
+										<span class="truncate">{formatLoaderLabel(dropSheet.loaderName)}</span>
+									</button>
+								</td>
+								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-right sm:px-3">
+									<button
+										type="button"
+										class="inline-flex size-11 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white sm:size-12"
 										aria-label={`Open select category for ${dropSheet.loadNumber}`}
 										onclick={() => goToDropSheetCategory(dropSheet)}
 									>

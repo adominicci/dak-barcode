@@ -60,6 +60,13 @@ Important folders:
 
 This repo does **not** own the new `dak-web` scan endpoints. Backend work happens in a separate FastAPI repository and is tracked here only as an external dependency.
 
+Related FastAPI backend projects are available locally for inspection:
+
+- `/Users/andresdominicci/Projects/CustomerPortalAPI-PY`
+- `/Users/andresdominicci/Projects/dakview-web`
+
+Agents may read those projects when debugging frontend/backend contracts. Do **not** modify either backend project without explicit approval first; those endpoints may support the current production app, and accidental backend changes can affect live workflows.
+
 ### Current implementation snapshot
 
 Keep these status notes in mind so you do not treat intentionally limited areas as broader than they are:

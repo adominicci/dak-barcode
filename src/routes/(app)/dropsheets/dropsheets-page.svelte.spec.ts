@@ -248,6 +248,42 @@ describe("dropsheets page", () => {
       .toHaveClass(/size-12/);
   });
 
+  it("does not force the dropsheets list into a horizontally scrolling iPad layout", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 42,
+          loadNumber: "L-042",
+          loadNumberShort: "042",
+          trailer: null,
+          percentCompleted: 0.875,
+          loadedAt: null,
+          dropWeight: 4.3,
+          driverId: 12,
+          driverName: "Dylan Driver",
+          allLoaded: false,
+          loaderName: null,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await expect.element(page.getByText("L-042")).toBeInTheDocument();
+    expect(document.querySelector(".overflow-x-auto")).toBeNull();
+    expect(document.querySelector(".min-w-\\[980px\\]")).toBeNull();
+  });
+
   it("shows the shared spinner in the refresh button while dropsheets are loading", async () => {
     getDropsheets.mockReturnValue(
       createQueryState([], { loading: true }),
@@ -272,6 +308,7 @@ describe("dropsheets page", () => {
 
 
   it("opens the date picker and reloads the list when a new day is chosen", async () => {
+    vi.useRealTimers();
     const dayOneRefresh = vi.fn();
     const dayTwoRefresh = vi.fn();
 

@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
+import type { Target } from '$lib/auth/types';
 import type { DropArea, ScanResult } from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
@@ -58,7 +59,7 @@ const { withTimeout } = vi.hoisted(() => ({
 const { pageState } = vi.hoisted(() => ({
 	pageState: {
 		data: {
-			activeTarget: 'Canton' as const
+			activeTarget: 'Canton' as Target
 		}
 	}
 }));

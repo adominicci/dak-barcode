@@ -327,11 +327,10 @@ describe('select-category page', () => {
 		await expect.element(page.getByRole('button', { name: 'Signature' })).not.toBeInTheDocument();
 	});
 
-	it('loads the current will call signature through getWillCallSignature().run() before opening the modal', async () => {
-		const runSignature = vi
-			.fn()
-			.mockResolvedValue(createWillCallSignatureRecord({ receivedBy: 'Jordan' }));
-		getWillCallSignature.mockReturnValue({ run: runSignature });
+	it('loads the current will call signature from a promise-like query before opening the modal', async () => {
+		getWillCallSignature.mockReturnValue(
+			Promise.resolve(createWillCallSignatureRecord({ receivedBy: 'Jordan' }))
+		);
 
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
@@ -352,21 +351,16 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Signature' }).click();
 
 		expect(getWillCallSignature).toHaveBeenCalledWith(42);
-		expect(runSignature).toHaveBeenCalledOnce();
 		await expect.element(page.getByRole('dialog', { name: 'Customer signature' })).toBeInTheDocument();
 		await expect.element(page.getByLabelText('Received By')).toHaveValue('Jordan');
 	});
 
-	it('refreshes the will call signature through getWillCallSignature().run() after upload', async () => {
-		const runInitialSignature = vi.fn().mockResolvedValue(createWillCallSignatureRecord());
-		const runRefreshedSignature = vi
-			.fn()
-			.mockResolvedValue(
-				createWillCallSignatureRecord({
-					receivedBy: 'Jordan',
-					signaturePath: 'will-call/42/signature_123.png'
-				})
-			);
+	it('refreshes the will call signature from a promise-like query after upload', async () => {
+		const initialSignature = createWillCallSignatureRecord();
+		const refreshedSignature = createWillCallSignatureRecord({
+			receivedBy: 'Jordan',
+			signaturePath: 'will-call/42/signature_123.png'
+		});
 		const upload = vi.fn().mockResolvedValue({
 			data: { path: 'will-call/42/signature_123.png' },
 			error: null
@@ -382,8 +376,8 @@ describe('select-category page', () => {
 		const canvasRenderingContext = createCanvasRenderingContextMock();
 
 		getWillCallSignature
-			.mockReturnValueOnce({ run: runInitialSignature })
-			.mockReturnValueOnce({ run: runRefreshedSignature });
+			.mockReturnValueOnce(Promise.resolve(initialSignature))
+			.mockReturnValueOnce(Promise.resolve(refreshedSignature));
 		createSupabaseBrowserClient.mockReturnValue({
 			storage: {
 				from: () => ({
@@ -454,14 +448,14 @@ describe('select-category page', () => {
 
 		await page.getByRole('button', { name: 'Upload Signature' }).click();
 
-		expect(runInitialSignature).toHaveBeenCalledOnce();
+		expect(getWillCallSignature).toHaveBeenCalledWith(42);
 		await vi.waitFor(() => {
 			expect(uploadWillCallSignature).toHaveBeenCalledWith({
 				dropSheetId: 42,
 				signaturePath: 'will-call/42/signature_123.png',
 				receivedBy: 'Jordan'
 			});
-			expect(runRefreshedSignature).toHaveBeenCalledOnce();
+			expect(getWillCallSignature).toHaveBeenCalledTimes(2);
 		});
 		await expect
 			.element(page.getByRole('dialog', { name: 'Customer signature' }))
@@ -644,11 +638,8 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-loader-grid')).not.toBeInTheDocument();
 	});
 
-	it('opens the loader modal on every department tap and persists the chosen loader for the loading handoff', async () => {
-		const runNumberOfDrops = vi.fn().mockResolvedValue(14);
-		getNumberOfDrops.mockReturnValue({
-			run: runNumberOfDrops
-		});
+	it('opens the loader modal and starts loading when the drops query is promise-like', async () => {
+		getNumberOfDrops.mockReturnValue(Promise.resolve(14));
 		const refresh = vi.fn();
 		getLoaders.mockReturnValue(
 			createLoadersQuery([
@@ -697,7 +688,6 @@ describe('select-category page', () => {
 			dropSheetId: 42,
 			locationId: 2
 		});
-		expect(runNumberOfDrops).toHaveBeenCalledOnce();
 		expect(upsertLoaderSession).toHaveBeenCalledWith(
 			expect.objectContaining({
 				dropSheetId: 42,
@@ -831,7 +821,7 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 	});
 
-	it('shows the legacy stacked complete-load footer only when percent completed reaches one', async () => {
+	it('keeps complete load inside the compact action row when percent completed reaches one', async () => {
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
 			form: null,
@@ -849,11 +839,45 @@ describe('select-category page', () => {
 
 		await expect.element(page.getByTestId('select-category-action-footer')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-utility-actions')).toBeInTheDocument();
-		await expect.element(page.getByTestId('select-category-complete-action-row')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: 'Complete Load' })).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-utility-actions')).toHaveClass(/sm:grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-complete-action-row')).not.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('select-category-utility-actions').getByRole('button', { name: 'Complete Load' }))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'Complete Load' }))
+			.toHaveClass(/min-h-12/);
+		await expect
+			.element(page.getByRole('button', { name: 'Complete Load' }))
+			.not.toHaveClass(/min-h-16/);
 		await expect
 			.element(page.getByRole('button', { name: 'Complete Load' }))
 			.toHaveTextContent('Complete Load');
+	});
+
+	it('shows will-call support actions and complete load as four compact buttons in one row', async () => {
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'WILL CALL',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				willCall: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByTestId('select-category-utility-actions')).toHaveClass(/sm:grid-cols-4/);
+		await expect.element(page.getByTestId('select-category-complete-action-row')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-2\.5/);
+		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-2\.5/);
+		await expect.element(page.getByRole('button', { name: 'Signature' })).toHaveClass(/py-2\.5/);
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).toHaveClass(/py-2\.5/);
 	});
 
 	it('opens the completion modal, shows the shared spinner while pending, and returns to dropsheets on success', async () => {
