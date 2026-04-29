@@ -33,9 +33,9 @@ describe('staging location modal', () => {
 		getDropArea.mockReset();
 	});
 
-	it('resolves numeric lookup through getDropArea().run()', async () => {
+	it('resolves numeric lookup from a promise-like getDropArea query', async () => {
 		const onSelect = vi.fn();
-		const runLookup = vi.fn().mockResolvedValue({
+		getDropArea.mockReturnValue(Promise.resolve({
 			id: 31,
 			name: 'C3',
 			supportsWrap: true,
@@ -44,8 +44,7 @@ describe('staging location modal', () => {
 			supportsLoading: false,
 			supportsDriverLocation: false,
 			firstCharacter: 'C'
-		} satisfies DropArea);
-		getDropArea.mockReturnValue({ run: runLookup });
+		} satisfies DropArea));
 		getDropAreasByDepartment.mockReturnValue(createQueryState([]));
 
 		render(StagingLocationModal, {
@@ -62,7 +61,6 @@ describe('staging location modal', () => {
 		await page.getByRole('button', { name: 'Set location' }).click();
 
 		expect(getDropArea).toHaveBeenCalledWith(31);
-		expect(runLookup).toHaveBeenCalledOnce();
 		await vi.waitFor(() => {
 			expect(onSelect).toHaveBeenCalledWith({
 				dropAreaId: 31,

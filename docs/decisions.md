@@ -2,6 +2,26 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-29 - Keep loading scans sequential but queue input during refresh
+
+- Tags: product, loading, scanner-ux, reliability
+- Decision: Keep Loading scan mutations and post-scan refreshes strictly sequential, but do not disable the main scanner input while `isScanning`; instead queue up to five raw scan texts and drain them after the current scan plus detail/union refresh has settled.
+- Rationale: DAK-245 scan-speed feedback points to a perceived 2-3 second dead window while the frontend waits on the mutation and refreshes. The safer production change is to preserve the existing backend contract and refresh-driven drop movement while preventing hardware scanner input from being dropped during that window.
+- Impacted areas: `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that `isScanning` should disable the main Loading scan input until all follow-up refresh work completes
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Guard loading labels by active department category
+
+- Tags: product, loading, legacy-dst, reliability
+- Decision: Keep the existing DST union endpoint call unchanged, but filter the Loading page's visible unscanned label list by the active loading department category mapping before rendering labels.
+- Rationale: DAK-245 showed wrong-department rows appearing in Loading on shared iPads. The endpoint may return mixed union rows, and the operator surface should not rely solely on backend filtering when the active department is already known from the loader session.
+- Impacted areas: `src/lib/workflow/loading-entry.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that `load-labels-union-view` always returns only rows for the selected loading department
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-16 - Fetch target-sensitive lookup lists fresh in the browser
 
 - Tags: runtime, sveltekit, caching, reliability
@@ -22,6 +42,16 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 - `project-state.yaml` updated: yes
 - Folded into long-lived docs: yes; the lookup-key rule now lives in the memory bundle and this decision log
 
+## 2026-04-29 - Use `readRemoteQuery` for imperative remote query reads
+
+- Tags: runtime, sveltekit, remote-functions
+- Decision: Imperative browser reads from SvelteKit remote `query(...)` helpers must go through `src/lib/remote-query-read.ts` instead of calling `.run()` directly or hand-awaiting a fresh query object inline.
+- Rationale: The installed `@sveltejs/kit@2.55.0` runtime/types in this repo expose remote queries as promise-like resources with `refresh`, `set`, and `withOverride`, but no public `.run()`. On Select Category, that mismatch surfaced as `getNumberOfDrops(...).run is not a function` and blocked the loader handoff into Loading. The shared helper preserves compatibility if a future dependency exposes `.run()` while keeping the current installed contract working.
+- Impacted areas: `src/lib/remote-query-read.ts`, `src/lib/components/workflow/will-call-scan-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related component specs, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`
+- Supersedes: the 2026-04-16 blanket rule to call `.run()` directly for imperative remote query reads
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the compatibility helper rule now lives in the memory bundle and architecture notes
+
 ## 2026-04-16 - Use `.run()` for imperative remote query reads
 
 - Tags: runtime, sveltekit, remote-functions
@@ -29,6 +59,7 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 - Rationale: The production select-category loading handoff stalled after local UI updates because imperative code awaited the query object directly. Current SvelteKit remote-function guidance requires `.run()` for non-reactive one-off reads, and the remaining audited hotspots followed the same unsupported pattern.
 - Impacted areas: `src/lib/components/workflow/will-call-scan-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/home/home-page.svelte.spec.ts`, `src/routes/(app)/staging/staging-page.svelte.spec.ts`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
 - Supersedes: the implicit assumption that remote `query(...)` helpers were safe to `await` directly inside imperative browser code as long as they happened to work in local preview
+- Superseded by: 2026-04-29 `readRemoteQuery` compatibility helper rule, after the installed SvelteKit runtime/types proved `.run()` is not public in this worktree
 - `project-state.yaml` updated: yes
 - Folded into long-lived docs: yes; the rule now lives in the memory bundle and this decision log
 

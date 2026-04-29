@@ -1,5 +1,35 @@
 # Current Context
 
+## 2026-04-29 DAK-245 iPad Layout And Loading Department Guard
+
+- Current worktree: `features/dak-245`
+- Linked Linear issue: `DAK-245`
+- Scope handled here: DAK-245 concerns 1 and 2 plus a frontend-only loading scan-readiness mitigation for speed feedback. Backend SQL/API optimization and scanned-location confirmation remain deferred.
+- Dropsheets no longer renders the fixed `min-w-[980px]` horizontally scrolling table shell that overflowed on shared iPad A16 Safari widths. The table keeps existing controls but uses a fluid table layout with lower-priority columns hidden at narrower widths.
+- Loading now filters the visible unscanned label list by the active loading department category mapping (`Roll=1`, `Wrap=2`, `Parts=3`) in addition to `scanned === false`, so mixed rows returned by the DST union endpoint do not show wrong-department labels.
+- Select Category now keeps support actions and Complete Load in one compact sticky action grid. Normal completed loads show three compact buttons; Will Call completed loads show Order Status, Dropsheet, Signature, and Complete Load as four compact buttons so the loader cards remain visible on iPad.
+- Select Category loader handoff now reads `getNumberOfDrops` through the shared `readRemoteQuery` helper, preventing the iPad runtime error `getNumberOfDrops(...).run is not a function` and allowing the loader session to navigate into Loading. The same helper now covers Will Call scan lookup and staging/location modal lookup reads.
+- Loading scan input now stays enabled while a scan is in flight. If operators scan during the post-scan mutation/refresh window, the page queues up to five raw scan texts, drains them sequentially after refreshed drop data settles, and builds each queued request from the latest active drop state.
+- AGENTS now records the two local FastAPI projects available for contract inspection: `/Users/andresdominicci/Projects/CustomerPortalAPI-PY` and `/Users/andresdominicci/Projects/dakview-web`. Modifying either backend still requires explicit approval because those endpoints may support production.
+- Focused regressions added or updated:
+  - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+  - `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`
+  - `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`
+- Verification completed in this session:
+  - `bun run test:unit -- --run 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/staging-location-modal.svelte.spec.ts src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
+  - `bun run check`
+  - `bun run test:unit -- --run --project client`
+  - `bun run test:unit -- --run --project server`
+  - `bun run test:unit -- --run`
+  - Svelte autofixer checked edited Dropsheets, Loading, Select Category, staging-location modal, and Will Call scan modal Svelte files
+- Freshness note: `bun run check` is clean and the combined unit suite passes as of this update; Loading scan-readiness queue tests are included in the Loading page spec.
+
 ## 2026-04-22 Staging Location Memory Refresh
 
 - Current worktree: `dev`
@@ -16,7 +46,7 @@
   - `bun run test:unit -- --run 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
   - `bun run test:unit -- --run src/lib/workflow/staging-scan-controller.spec.ts 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
   - `npx @sveltejs/mcp svelte-autofixer ./src/routes/'(app)'/staging/+page.svelte --svelte-version 5`
-- Freshness note: `bun run check` still fails on pre-existing remote-query `.run()` typing issues in unrelated workflow files plus an older typed `pageState.data` mismatch in the staging page spec. No new repo-wide `check` failures were introduced beyond the controller contract updated here.
+- Freshness note: the older remote-query `.run()` and staging spec type diagnostics mentioned for this session were resolved on 2026-04-29; `bun run check` is now clean.
 
 ## 2026-04-16 Target-Scoped Lookup Query Keys
 
@@ -39,11 +69,12 @@
   - `bun run build`
 - Freshness note: the widened Vitest batch still hit the pre-existing `dropsheets-page.svelte.spec.ts` date-picker timeout; the new target-scoping regression passed and the production build stayed green.
 
-## 2026-04-16 Remote Query `.run()` Hardening
+## 2026-04-16 Remote Query One-Off Read Hardening
 
 - Current worktree: `dev`
-- The select-category loading handoff bug was traced to imperative client code awaiting SvelteKit remote `query(...)` helpers directly instead of calling `.run()`.
-- The repo now hardens the remaining operator-facing hotspots to use `.run()` for one-off client actions:
+- The select-category loading handoff bug was originally traced to imperative client code awaiting SvelteKit remote `query(...)` helpers directly.
+- Current superseding rule from 2026-04-29: operator-facing imperative remote query reads must use `src/lib/remote-query-read.ts`, because the installed SvelteKit runtime/types expose promise-like query objects without public `.run()`.
+- The repo hardens the remaining operator-facing hotspots through that shared helper:
   - `src/lib/components/workflow/will-call-scan-modal.svelte`
   - `src/lib/components/workflow/staging-location-modal.svelte`
   - `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`
@@ -58,7 +89,7 @@
 - Verification completed in this session:
   - `bunx vitest run 'src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts' 'src/lib/components/workflow/staging-location-modal.svelte.spec.ts' 'src/routes/(app)/home/home-page.svelte.spec.ts' 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' 'src/routes/(app)/staging/staging-page.svelte.spec.ts' 'src/routes/(app)/loading/loading-page.svelte.spec.ts' 'src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts'`
   - `bun run build`
-- Freshness note: this bug class is now covered in the audited imperative query call sites, but future remote-query reads added to event handlers or modal submit flows must use `.run()` from the start.
+- Freshness note: this bug class is now covered in the audited imperative query call sites; future remote-query reads added to event handlers or modal submit flows must use `readRemoteQuery` from the start.
 
 ## 2026-04-16 Remote Functions Async Guard Fix
 
@@ -136,11 +167,11 @@
 - Last updated: 2026-04-16
 - Branch basis: `dev`
 - Linked Linear issue: `None captured in this session`
-- Open diffs already reflected: `Yes. This file reflects the remote-function async fix, the imperative remote-query .run() hardening, and the target-scoped fresh-lookup fix currently in the worktree.`
+- Open diffs already reflected: `Yes. This file reflects the remote-function async fix, the imperative remote-query compatibility helper, and the target-scoped fresh-lookup fix currently in the worktree.`
 
 ## Active Branch Assumptions
 
-- This worktree currently carries the production runtime fix for Svelte remote functions, operator-safe error banners, and imperative remote-query `.run()` hardening for affected client flows.
+- This worktree currently carries the production runtime fix for Svelte remote functions, operator-safe error banners, and imperative remote-query compatibility hardening for affected client flows.
 - `docs/project-state.yaml` is the canonical fast-reload record and should be updated when durable current truth changes.
 - `docs/current-context.md` is the rolling handoff and should absorb branch-specific focus, risk, and freshness notes.
 - Files under `docs/handoffs/` remain historical snapshots only and should not outrank the current memory bundle.
@@ -157,7 +188,7 @@
 - `69be8b2` updated docs to reflect the current app migration status and is part of the baseline truth for this bundle.
 - `b1b80d4` merged the markdown-docs work, which means repo documentation is the freshest baseline available before this branch.
 - This branch now records the remote-functions async-mode requirement and the shared operator error-sanitization helper.
-- This worktree also records that imperative remote `query(...)` reads must use `.run()` and that target-sensitive lookup wrappers should fetch fresh state while still including the target qualifier in the serialized remote query input, with focused regressions for the affected flows.
+- This worktree also records that imperative remote `query(...)` reads must use `src/lib/remote-query-read.ts` and that target-sensitive lookup wrappers should fetch fresh state while still including the target qualifier in the serialized remote query input, with focused regressions for the affected flows.
 - Verification on this branch confirmed the production build succeeds after enabling async mode and the new operator-safe banner path.
 
 ## Next Reload Order

@@ -154,6 +154,43 @@ function createRemoteQuery<T>(
 	};
 }
 
+function createMutableRemoteQuery<T>(
+	initialCurrent: T,
+	overrides: Omit<Partial<RemoteQueryState<T>>, 'current'> = {}
+) {
+	let current = $state(initialCurrent);
+
+	return {
+		query: {
+			get current() {
+				return current;
+			},
+			loading: false,
+			error: null,
+			refresh: vi.fn(),
+			...overrides
+		} satisfies RemoteQueryState<T>,
+		setCurrent(nextCurrent: T) {
+			current = nextCurrent;
+		}
+	};
+}
+
+function createDeferred<T>() {
+	let resolve: (value: T | PromiseLike<T>) => void;
+	let reject: (reason?: unknown) => void;
+	const promise = new Promise<T>((promiseResolve, promiseReject) => {
+		resolve = promiseResolve;
+		reject = promiseReject;
+	});
+
+	return {
+		promise,
+		resolve: resolve!,
+		reject: reject!
+	};
+}
+
 function createDropDetail(overrides: Partial<LoadViewDetail> = {}): LoadViewDetail {
 	return {
 		dropSequence: 1,
@@ -526,6 +563,76 @@ describe('loading page', () => {
 		await expect.element(page.getByRole('button', { name: /Next drop/i })).toBeEnabled();
 	});
 
+	it.each([
+		{
+			department: 'Roll' as const,
+			locationId: 1,
+			expectedPartListId: 'ROLL-ONLY',
+			hiddenPartListIds: ['WRAP-ONLY', 'PARTS-ONLY']
+		},
+		{
+			department: 'Wrap' as const,
+			locationId: 2,
+			expectedPartListId: 'WRAP-ONLY',
+			hiddenPartListIds: ['ROLL-ONLY', 'PARTS-ONLY']
+		},
+		{
+			department: 'Parts' as const,
+			locationId: 3,
+			expectedPartListId: 'PARTS-ONLY',
+			hiddenPartListIds: ['ROLL-ONLY', 'WRAP-ONLY']
+		}
+	])(
+		'shows only $department labels when the union endpoint returns mixed department rows',
+		async ({ department, locationId, expectedPartListId, hiddenPartListIds }) => {
+			pageState.url = new URL(
+				`https://app.local/loading?dropsheetId=42&locationId=${locationId}&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4`
+			);
+			workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+			workflowStores.setSelectedDepartment(department);
+			getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department })));
+			getLoadViewDetailAll.mockReturnValue(
+				createRemoteQuery([
+					createDropDetail({
+						locationId,
+						sequence: 1,
+						dropSheetCustomerId: 84,
+						customerName: 'Acme Metals'
+					})
+				])
+			);
+			getLoadViewUnion.mockReturnValue(
+				createRemoteQuery([
+					createUnionLabel({
+						partListId: 'ROLL-ONLY',
+						categoryId: 1,
+						locationId,
+						scanned: false
+					}),
+					createUnionLabel({
+						partListId: 'WRAP-ONLY',
+						categoryId: 2,
+						locationId,
+						scanned: false
+					}),
+					createUnionLabel({
+						partListId: 'PARTS-ONLY',
+						categoryId: 3,
+						locationId,
+						scanned: false
+					})
+				])
+			);
+
+			render(LoadingPage);
+
+			await expect.element(page.getByText(expectedPartListId)).toBeInTheDocument();
+			for (const hiddenPartListId of hiddenPartListIds) {
+				await expect.element(page.getByText(hiddenPartListId)).not.toBeInTheDocument();
+			}
+		}
+	);
+
 	it('focuses the scan barcode input when the loading context is ready', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
@@ -714,6 +821,118 @@ describe('loading page', () => {
 		expect(document.activeElement).toBe(inputElement);
 	});
 
+	it('queues a scan while refresh is pending and submits it with refreshed active drop context', async () => {
+		const detailRefreshDeferred = createDeferred<void>();
+		const unionRefreshDeferred = createDeferred<void>();
+		const detailQuery = createMutableRemoteQuery([
+			createDropDetail({
+				dropSequence: 1,
+				sequence: 1,
+				loadNumber: 'L-OLD-1',
+				customerName: 'Old first drop'
+			}),
+			createDropDetail({
+				dropSequence: 2,
+				dropSheetCustomerId: 85,
+				sequence: 2,
+				loadNumber: 'L-OLD-2',
+				customerName: 'Old active drop'
+			})
+		]);
+		let detailRefreshCount = 0;
+		let unionRefreshCount = 0;
+		detailQuery.query.refresh.mockImplementation(async () => {
+			detailRefreshCount += 1;
+			if (detailRefreshCount === 1) {
+				await detailRefreshDeferred.promise;
+				detailQuery.setCurrent([
+					createDropDetail({
+						dropSequence: 1,
+						sequence: 1,
+						loadNumber: 'L-REFRESHED',
+						customerName: 'Refreshed active drop'
+					})
+				]);
+			}
+		});
+		const unionQuery = createRemoteQuery([createUnionLabel()], {
+			refresh: vi.fn(async () => {
+				unionRefreshCount += 1;
+				if (unionRefreshCount === 1) {
+					await unionRefreshDeferred.promise;
+				}
+			})
+		});
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(detailQuery.query);
+		getLoadViewUnion.mockReturnValue(unionQuery);
+		processLoadingScan.mockResolvedValue(createScanResult());
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		await submitMainScan('LP-200');
+
+		expect(inputElement.value).toBe('');
+		await expect.element(page.getByTestId('loading-scan-input')).toBeEnabled();
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
+
+		detailRefreshDeferred.resolve();
+		await Promise.resolve();
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
+
+		unionRefreshDeferred.resolve();
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-200',
+			department: 'Wrap',
+			dropAreaId: null,
+			loadNumber: 'L-REFRESHED',
+			loaderName: 'Alex'
+		});
+	});
+
+	it('ignores duplicate in-flight and most-recent queued loading scans', async () => {
+		const scanDeferred = createDeferred<ScanResult>();
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockImplementationOnce(() => scanDeferred.promise)
+			.mockResolvedValue(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		await submitMainScan('LP-100');
+		await submitMainScan('LP-200');
+		await submitMainScan('LP-200');
+
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		scanDeferred.resolve(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-200',
+			department: 'Wrap',
+			dropAreaId: null,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+	});
+
 	it('updates the in-memory drop area for successful location scans without refreshing detail queries', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
@@ -862,7 +1081,7 @@ describe('loading page', () => {
 		});
 	});
 
-	it('keeps the scan input disabled while the modal-selected retry is in flight', async () => {
+	it('keeps the scan input enabled while the modal-selected retry is in flight', async () => {
 		let resolveRetry: ((result: ScanResult) => void) | null = null;
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
@@ -888,7 +1107,7 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		await page.getByRole('button', { name: /D12/i }).click();
 
-		await expect.element(page.getByTestId('loading-scan-input')).toBeDisabled();
+		await expect.element(page.getByTestId('loading-scan-input')).toBeEnabled();
 
 		const retryResolver = resolveRetry as ((result: ScanResult) => void) | null;
 		if (!retryResolver) {
@@ -1024,13 +1243,86 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
-			scannedText: '42',
-			department: 'Wrap',
+			expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+				scannedText: '42',
+				department: 'Wrap',
 			dropAreaId: null,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
+			});
 		});
+
+	it('pauses queued scans while a location modal is open and drains after the pending scan is retried', async () => {
+		let resolveFirstScan: ((result: ScanResult) => void) | null = null;
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail()], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		processLoadingScan
+			.mockImplementationOnce(
+				() =>
+					new Promise<ScanResult>((resolve) => {
+						resolveFirstScan = resolve;
+					})
+			)
+			.mockResolvedValue(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		await submitMainScan('LP-200');
+
+		const firstScanResolver = resolveFirstScan as ((result: ScanResult) => void) | null;
+		if (!firstScanResolver) {
+			throw new Error('Expected first scan resolver to be captured.');
+		}
+		firstScanResolver(
+			createScanResult({
+				scanType: null,
+				status: 'needs-location',
+				message: 'Scan a driver location next.',
+				needsLocation: true
+			})
+		);
+
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
+
+		await page.getByRole('button', { name: /D12/i }).click();
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(3);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-100',
+			department: 'Wrap',
+			dropAreaId: 41,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(3, {
+			scannedText: 'LP-200',
+			department: 'Wrap',
+			dropAreaId: 41,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		expect(detailRefresh).toHaveBeenCalledTimes(2);
+		expect(unionRefresh).toHaveBeenCalledTimes(2);
 	});
 
 	it('keeps an in-flight successful scan visible when the operator changes drops', async () => {
@@ -1111,6 +1403,26 @@ describe('loading page', () => {
 
 		await expect.element(page.getByText('Connection issue')).not.toBeInTheDocument();
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('clears queued scans when a direct scan fails with a transport error', async () => {
+		const scanDeferred = createDeferred<ScanResult>();
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockImplementationOnce(() => scanDeferred.promise);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		await submitMainScan('LP-200');
+		scanDeferred.reject(new Error('Failed to execute remote function'));
+
+		await expect.element(page.getByText('Connection issue')).toBeInTheDocument();
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
 	});
 
 	it('retries the last thrown loading scan request from the recovery panel', async () => {

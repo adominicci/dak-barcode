@@ -12,6 +12,7 @@
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { getOperatorErrorMessage } from '$lib/operator-error';
+	import { readRemoteQuery } from '$lib/remote-query-read';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
@@ -148,6 +149,22 @@
 	);
 	const blueBadgeClasses =
 		'rounded-full bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
+	const footerActionButtonClasses =
+		'flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-[1.25rem] bg-surface-container-low px-3 py-2.5 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]';
+	const footerActionIconClasses =
+		'flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/8 text-primary';
+	const footerActionLabelClasses = 'truncate text-sm font-bold tracking-tight text-slate-950';
+	const footerGridClasses = $derived.by(() => {
+		if (data.willCall && canCompleteLoad) {
+			return 'sm:grid-cols-4';
+		}
+
+		if (data.willCall || canCompleteLoad) {
+			return 'sm:grid-cols-3';
+		}
+
+		return 'sm:grid-cols-2';
+	});
 
 	onMount(() => {
 		const unsubscribeCurrentLoader = workflowStores.currentLoader.subscribe((loader) => {
@@ -170,7 +187,7 @@
 		];
 	}
 
-	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: string) {
+	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: '/dropsheets') {
 		return returnTo ?? resolve(fallbackPath);
 	}
 
@@ -305,10 +322,12 @@
 		submitError = null;
 
 		try {
-			await getNumberOfDrops({
-				dropSheetId: data.dropSheetId,
-				locationId
-			}).run();
+			await readRemoteQuery(
+				getNumberOfDrops({
+					dropSheetId: data.dropSheetId,
+					locationId
+				})
+			);
 
 			const session = await upsertLoaderSession({
 				dropSheetId: data.dropSheetId,
@@ -380,7 +399,7 @@
 		submitError = null;
 
 		try {
-			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId).run();
+			willCallSignatureRecord = await readRemoteQuery(getWillCallSignature(data.dropSheetId));
 			isWillCallSignatureModalOpen = true;
 		} catch (error) {
 			submitError =
@@ -585,11 +604,11 @@
 
 	<div
 		data-testid="select-category-action-footer"
-		class="sticky bottom-4 z-10 space-y-3 rounded-[2rem] bg-white/94 p-3 shadow-[0_-18px_50px_-30px_rgba(15,23,42,0.36)] ring-1 ring-white/80 backdrop-blur-xl"
+		class="sticky bottom-3 z-10 rounded-[1.6rem] bg-white/94 p-2 shadow-[0_-18px_50px_-30px_rgba(15,23,42,0.36)] ring-1 ring-white/80 backdrop-blur-xl"
 	>
 		<div
 			data-testid="select-category-utility-actions"
-			class={`grid gap-3 ${data.willCall ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+			class={`grid gap-2 ${footerGridClasses}`}
 		>
 			<button
 				type="button"
@@ -603,17 +622,17 @@
 						)
 					)
 				}
-				class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+				class={footerActionButtonClasses}
 			>
-				<div class="flex items-center gap-3">
-					<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
-						<ClipboardList class="size-5" />
+				<div class="flex min-w-0 items-center gap-2">
+					<span class={footerActionIconClasses}>
+						<ClipboardList class="size-4.5" />
 					</span>
-					<div>
-						<p class="text-base font-bold tracking-tight text-slate-950">Order Status</p>
+					<div class="min-w-0">
+						<p class={footerActionLabelClasses}>Order Status</p>
 					</div>
 				</div>
-				<ChevronRight class="size-5 text-slate-400" />
+				<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
 			</button>
 
 			<button
@@ -628,59 +647,57 @@
 						)
 					)
 				}
-				class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
+				class={footerActionButtonClasses}
 			>
-				<div class="flex items-center gap-3">
-					<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
-						<Truck class="size-5" />
+				<div class="flex min-w-0 items-center gap-2">
+					<span class={footerActionIconClasses}>
+						<Truck class="size-4.5" />
 					</span>
-					<div>
-						<p class="text-base font-bold tracking-tight text-slate-950">Dropsheet</p>
+					<div class="min-w-0">
+						<p class={footerActionLabelClasses}>Dropsheet</p>
 					</div>
 				</div>
-				<ChevronRight class="size-5 text-slate-400" />
+				<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
 			</button>
 
 			{#if data.willCall}
 				<button
 					type="button"
 					onclick={openWillCallSignatureModal}
-					class="flex items-center justify-between gap-4 rounded-[1.6rem] bg-surface-container-low px-5 py-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
+					class={`${footerActionButtonClasses} disabled:cursor-not-allowed disabled:opacity-60`}
 					disabled={isLoadingWillCallSignature}
 				>
-					<div class="flex items-center gap-3">
-						<span class="flex size-11 items-center justify-center rounded-2xl bg-primary/8 text-primary">
-							<PenLine class="size-5" />
+					<div class="flex min-w-0 items-center gap-2">
+						<span class={footerActionIconClasses}>
+							<PenLine class="size-4.5" />
 						</span>
-						<div>
-							<p class="text-base font-bold tracking-tight text-slate-950">Signature</p>
+						<div class="min-w-0">
+							<p class={footerActionLabelClasses}>Signature</p>
 						</div>
 					</div>
 					{#if isLoadingWillCallSignature}
-						<LoaderCircle class="size-5 animate-spin text-slate-400" />
+						<LoaderCircle class="size-4.5 shrink-0 animate-spin text-slate-400" />
 					{:else}
-						<ChevronRight class="size-5 text-slate-400" />
+						<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
 					{/if}
 				</button>
 			{/if}
-		</div>
 
-		{#if canCompleteLoad}
-			<div data-testid="select-category-complete-action-row" class="flex justify-center">
+			{#if canCompleteLoad}
 				<button
 					type="button"
-					class="inline-flex min-h-16 min-w-[18rem] items-center justify-center gap-3 rounded-[1.6rem] bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-7 py-4 text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03]"
+					class="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-[1.25rem] bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-3 py-2.5 text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03]"
 					onclick={openCompleteLoadingModal}
 				>
 					<span
-						class={`flex size-10 items-center justify-center rounded-full border-[3px] ${completeLoadAccentClasses}`}
+						class={`flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] ${completeLoadAccentClasses}`}
 					>
-						<CheckCircle2 class="size-5" />
+						<CheckCircle2 class="size-4.5" />
 					</span>
-					<span class="text-lg font-black uppercase tracking-[0.18em]">Complete Load</span>
+					<span class="truncate text-sm font-black uppercase tracking-[0.12em]">Complete Load</span>
 				</button>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 
 	{#if submitError}
@@ -730,7 +747,7 @@
 			willCallSignatureRecord = null;
 		}}
 		onUploaded={async () => {
-			willCallSignatureRecord = await getWillCallSignature(data.dropSheetId).run();
+			willCallSignatureRecord = await readRemoteQuery(getWillCallSignature(data.dropSheetId));
 		}}
 	/>
 {/if}

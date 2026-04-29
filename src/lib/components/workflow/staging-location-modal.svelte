@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
 	import { getOperatorErrorMessage } from '$lib/operator-error';
+	import { readRemoteQuery } from '$lib/remote-query-read';
 	import { getDropArea } from '$lib/drop-areas.remote';
 	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
 	import type { Target } from '$lib/auth/types';
@@ -410,7 +411,7 @@
 		activeLookupRequestToken = lookupRequestToken;
 
 		try {
-			const dropArea = await getDropArea(parsedDropAreaId).run();
+			const dropArea = await readRemoteQuery(getDropArea(parsedDropAreaId));
 			if (activeLookupRequestToken !== lookupRequestToken) {
 				return;
 			}

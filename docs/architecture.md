@@ -339,7 +339,7 @@ export const getWeather = query.batch(v.string(), async (cityIds) => {
 ### Component calling patterns
 
 - Queries can be awaited directly in Svelte templates or handled via their loading/error/current state when they are created in a reactive context.
-- Imperative one-off reads in event handlers, modal submits, or other non-reactive browser code must call `.run()` instead of awaiting the query directly.
+- Imperative one-off reads in event handlers, modal submits, or other non-reactive browser code must use `src/lib/remote-query-read.ts`. The installed SvelteKit remote query object is promise-like and does not expose public `.run()`, while the helper remains compatible with future `.run()`-capable contracts.
 - Commands are called from event handlers and should be wrapped in clear error handling.
 - Successful scan commands should refresh the affected queries and immediately restore scanner readiness.
 - Loading scan commands can keep a non-numeric scan pending when the backend returns `needs_location`; the page should stay scanner-ready, accept the next numeric driver-location scan, and only hand off the richer modal flow to the dedicated follow-on issue.

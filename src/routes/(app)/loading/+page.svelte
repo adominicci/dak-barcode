@@ -27,6 +27,7 @@
 		createLoadingDropNavigationState,
 		moveLoadingDropSelection
 	} from '$lib/workflow/loading-drop-navigation';
+	import { isLoadingDepartmentVisibleCategory } from '$lib/workflow/loading-entry';
 	import {
 		getLoadingDepartmentStatusEntries
 	} from '$lib/workflow/loading-department-status';
@@ -47,6 +48,8 @@
 
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
+	const LOADING_SCAN_TIMING_STORAGE_KEY = 'dak.loadingScanTiming';
+	const MAX_QUEUED_SCAN_TEXTS = 5;
 
 	type LoadingRetryState =
 		| {
@@ -83,6 +86,9 @@
 	let scanInputElement = $state<HTMLInputElement | null>(null);
 	let isScanning = $state(false);
 	let pendingTimedOutScan = $state<Promise<unknown> | null>(null);
+	let queuedScanTexts = $state<string[]>([]);
+	let inFlightScanText = $state<string | null>(null);
+	let isDrainingQueuedScans = $state(false);
 
 	const loadingEntry = $derived(parseLoadingEntryContext(page.url));
 	const hasWorkflowContext = hasLoadingWorkflowContext({
@@ -180,7 +186,18 @@
 	});
 	const dropLabels = $derived(dropLabelsState.current);
 	const isLoadingDropLabels = $derived(dropLabelsState.loading && dropLabels.length === 0);
-	const unscannedDropLabels = $derived(dropLabels.filter((label) => !label.scanned));
+	const unscannedDropLabels = $derived(
+		loaderInfo
+			? dropLabels.filter(
+					(label) =>
+						!label.scanned &&
+						isLoadingDepartmentVisibleCategory({
+							department: loaderInfo.department,
+							categoryId: label.categoryId
+						})
+				)
+			: []
+	);
 	const isEmptyDrop = $derived(!isLoadingDropLabels && dropLabels.length === 0);
 	const isFullyScannedDrop = $derived(
 		!isLoadingDropLabels && dropLabels.length > 0 && unscannedDropLabels.length === 0
@@ -207,7 +224,17 @@
 	onMount(() => {
 		if (redirectHandled || !shouldRedirectHome) {
 			loadingScanController = createLoadingScanController({
-				processScan: processLoadingScan,
+				processScan: async (input) => {
+					const mutationStartedAt = getLoadingScanTimestamp();
+					try {
+						return await processLoadingScan(input);
+					} finally {
+						logLoadingScanTiming('scan-mutation', mutationStartedAt, {
+							scannedTextLength: input.scannedText.length,
+							hasDropArea: input.dropAreaId !== null
+						});
+					}
+				},
 				refreshActiveDropData
 			});
 		}
@@ -322,6 +349,7 @@
 	}
 
 	function setTransportError(message: string, retryState: LoadingRetryState | null) {
+		clearQueuedScans();
 		scanError = {
 			title: 'Connection issue',
 			message,
@@ -330,18 +358,119 @@
 		};
 	}
 
+	function getLoadingScanTimestamp() {
+		return typeof performance !== 'undefined' && typeof performance.now === 'function'
+			? performance.now()
+			: Date.now();
+	}
+
+	function shouldLogLoadingScanTiming() {
+		if (typeof window === 'undefined') {
+			return false;
+		}
+
+		try {
+			return window.localStorage.getItem(LOADING_SCAN_TIMING_STORAGE_KEY) === '1';
+		} catch {
+			return false;
+		}
+	}
+
+	function logLoadingScanTiming(
+		event: string,
+		startedAt: number,
+		details: Record<string, number | string | boolean | null> = {}
+	) {
+		if (!shouldLogLoadingScanTiming()) {
+			return;
+		}
+
+		console.debug('[dak-loading-scan]', event, {
+			durationMs: Math.round((getLoadingScanTimestamp() - startedAt) * 10) / 10,
+			...details
+		});
+	}
+
+	function clearQueuedScans() {
+		queuedScanTexts = [];
+	}
+
+	function isDuplicateQueuedScan(scannedText: string) {
+		return inFlightScanText === scannedText || queuedScanTexts.at(-1) === scannedText;
+	}
+
+	function enqueueScanText(scannedText: string) {
+		if (isDuplicateQueuedScan(scannedText) || queuedScanTexts.length >= MAX_QUEUED_SCAN_TEXTS) {
+			return false;
+		}
+
+		queuedScanTexts = [...queuedScanTexts, scannedText];
+		return true;
+	}
+
+	function buildCurrentLoadingScanRequest(scannedText: string): LoadingScanRequest | null {
+		if (
+			!loadingScanController ||
+			!loaderInfo ||
+			selectedDropDetail === null ||
+			isLocationModalOpen ||
+			pendingTimedOutScan !== null
+		) {
+			return null;
+		}
+
+		return {
+			scannedText,
+			department: loaderInfo.department,
+			dropAreaId: currentDropArea?.dropAreaId ?? null,
+			loadNumber: selectedDropDetail.loadNumber,
+			loaderName: loaderInfo.loaderName
+		};
+	}
+
 	async function refreshActiveDropData() {
 		if (selectedDropDetail === null || !dropDetailsState.refresh) {
 			return;
 		}
 
+		const refreshStartedAt = getLoadingScanTimestamp();
 		const activeUnionQuery = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
 			locationId: selectedDropDetail.locationId
 		});
 
-		await Promise.all([dropDetailsState.refresh(), activeUnionQuery.refresh()]);
+		const detailRefreshStartedAt = getLoadingScanTimestamp();
+		const detailRefresh = (async () => {
+			try {
+				await dropDetailsState.refresh?.();
+			} finally {
+				logLoadingScanTiming('detail-refresh', detailRefreshStartedAt, {
+					dropSheetId: selectedDropDetail.dropSheetId,
+					locationId: selectedDropDetail.locationId
+				});
+			}
+		})();
+		const unionRefreshStartedAt = getLoadingScanTimestamp();
+		const unionRefresh = (async () => {
+			try {
+				await activeUnionQuery.refresh();
+			} finally {
+				logLoadingScanTiming('union-refresh', unionRefreshStartedAt, {
+					loadNumber: selectedDropDetail.loadNumber,
+					sequence: selectedDropDetail.sequence,
+					locationId: selectedDropDetail.locationId
+				});
+			}
+		})();
+
+		try {
+			await Promise.all([detailRefresh, unionRefresh]);
+		} finally {
+			logLoadingScanTiming('post-scan-refresh', refreshStartedAt, {
+				queuedCount: queuedScanTexts.length
+			});
+		}
 	}
 
 	async function applyScanAction(
@@ -495,18 +624,61 @@
 		}
 	}
 
-	async function submitScan(rawValue: string) {
-		if (
-			!loadingScanController ||
-			!loaderInfo ||
-			selectedDropDetail === null ||
-			isLocationModalOpen ||
-			isScanning ||
-			pendingTimedOutScan !== null
-		) {
+	async function processScanText(scannedText: string) {
+		const request = buildCurrentLoadingScanRequest(scannedText);
+		if (!request) {
+			await focusScanInput();
+			return false;
+		}
+
+		const busyStartedAt = getLoadingScanTimestamp();
+		isScanning = true;
+		inFlightScanText = scannedText;
+
+		try {
+			await executeDirectScan(request);
+			return true;
+		} finally {
+			inFlightScanText = null;
+			isScanning = false;
+			logLoadingScanTiming('scanner-busy', busyStartedAt, {
+				queuedCount: queuedScanTexts.length
+			});
+		}
+	}
+
+	async function drainQueuedScans() {
+		if (isDrainingQueuedScans) {
 			return;
 		}
 
+		isDrainingQueuedScans = true;
+
+		try {
+			await settled();
+
+			while (
+				queuedScanTexts.length > 0 &&
+				!isScanning &&
+				!isLocationModalOpen &&
+				pendingTimedOutScan === null
+			) {
+				const [nextScanText, ...remainingScanTexts] = queuedScanTexts;
+				queuedScanTexts = remainingScanTexts;
+
+				const processed = await processScanText(nextScanText);
+				await settled();
+
+				if (!processed || isLocationModalOpen || pendingTimedOutScan !== null) {
+					break;
+				}
+			}
+		} finally {
+			isDrainingQueuedScans = false;
+		}
+	}
+
+	async function submitScan(rawValue: string) {
 		const scannedText = rawValue.trim();
 		clearScanInput();
 
@@ -517,20 +689,24 @@
 			return;
 		}
 
-		isScanning = true;
-		const request: LoadingScanRequest = {
-			scannedText,
-			department: loaderInfo.department,
-			dropAreaId: currentDropArea?.dropAreaId ?? null,
-			loadNumber: selectedDropDetail.loadNumber,
-			loaderName: loaderInfo.loaderName
-		};
-
-		try {
-			await executeDirectScan(request);
-		} finally {
-			isScanning = false;
+		if (!loadingScanController || !loaderInfo || selectedDropDetail === null) {
+			await focusScanInput();
+			return;
 		}
+
+		if (isScanning) {
+			enqueueScanText(scannedText);
+			await focusScanInput();
+			return;
+		}
+
+		if (isLocationModalOpen || pendingTimedOutScan !== null) {
+			await focusScanInput();
+			return;
+		}
+
+		await processScanText(scannedText);
+		await drainQueuedScans();
 	}
 
 	async function handleScanKeydown(event: KeyboardEvent) {
@@ -545,6 +721,7 @@
 	function moveToDrop(direction: 'previous' | 'next') {
 		if (loadingScanController?.hasPendingScan() && loadingScanController.cancelPendingScan()) {
 			scanPrompt = null;
+			clearQueuedScans();
 		}
 
 		clearScanError();
@@ -570,10 +747,12 @@
 		}
 
 		await focusScanInput();
+		await drainQueuedScans();
 	}
 
 	async function handleLocationModalClose() {
 		loadingScanController?.cancelPendingScan();
+		clearQueuedScans();
 		clearScanError();
 		scanPrompt = null;
 		isLocationModalOpen = false;
@@ -585,6 +764,7 @@
 			loadingScanController?.cancelPendingScan();
 		}
 
+		clearQueuedScans();
 		clearScanError();
 		await focusScanInput();
 	}
@@ -610,6 +790,7 @@
 		}
 
 		await focusScanInput();
+		await drainQueuedScans();
 	}
 
 </script>
@@ -782,20 +963,20 @@
 								<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
 								<div class="relative">
 									<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
-									<input
-										id="loading-scan-input"
-										data-testid="loading-scan-input"
-										type="text"
-										bind:value={scanInputValue}
-										bind:this={scanInputElement}
-										placeholder={currentDropArea?.dropAreaLabel
-											? 'Scan or type loading barcode...'
-											: 'Scan a driver location or loading barcode...'}
-										disabled={isScanning || pendingTimedOutScan !== null || isLocationModalOpen}
-										onkeydown={handleScanKeydown}
-										class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
-									/>
-								</div>
+										<input
+											id="loading-scan-input"
+											data-testid="loading-scan-input"
+											type="text"
+											bind:value={scanInputValue}
+											bind:this={scanInputElement}
+											placeholder={currentDropArea?.dropAreaLabel
+												? 'Scan or type loading barcode...'
+												: 'Scan a driver location or loading barcode...'}
+											disabled={pendingTimedOutScan !== null || isLocationModalOpen}
+											onkeydown={handleScanKeydown}
+											class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
+										/>
+									</div>
 
 								{#if scanError}
 									<div
