@@ -148,9 +148,11 @@ workflows:
       - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to five raw scans, and drains them only after refreshed drop data has settled
       - loading clears queued scan texts on drop navigation so they cannot submit against a newly selected drop
       - the Loading route title appends the active scanned driver location while selected so operators can confirm the location used by subsequent scans
+      - Loading location selection accepts numeric drop areas when DriverLocation is true and does not require department-specific location support
+      - the Loading driver-location modal is a compact centered scan-only prompt and does not show the browseable location-list card
       - leaving Loading should record loader end time
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors
-      - the visible loading label list is frontend-guarded by the active loading department category mapping so mixed union endpoint rows do not show wrong-department labels
+      - the visible loading label list follows the legacy LocationID contract and shows unscanned rows whose returned LocationID matches the active drop; CategoryID is not used as a loading department guard because valid legacy rows may return CategoryID 0
   support_views:
     status: live
     included:

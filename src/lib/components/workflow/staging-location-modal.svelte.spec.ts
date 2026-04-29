@@ -69,6 +69,57 @@ describe('staging location modal', () => {
 		});
 	});
 
+	it('accepts any driver location in loading mode without department or load-location support', async () => {
+		const onSelect = vi.fn();
+		getDropArea.mockReturnValue(Promise.resolve({
+			id: 25,
+			name: 'DM',
+			supportsWrap: false,
+			supportsParts: false,
+			supportsRoll: false,
+			supportsLoading: false,
+			supportsDriverLocation: true,
+			firstCharacter: 'D'
+		} satisfies DropArea));
+		getDropAreasByDepartment.mockReturnValue(createQueryState([]));
+
+		render(StagingLocationModal, {
+			props: {
+				department: 'Parts',
+				driverLocationOnly: true,
+				mode: 'loading',
+				target: 'Canton',
+				onClose: vi.fn(),
+				onSelect
+			}
+		});
+
+		await expect
+			.element(page.getByTestId('staging-location-modal'))
+			.not.toHaveClass('h-[calc(100dvh-2rem)]');
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-5xl/);
+		await expect
+			.element(page.getByTestId('staging-location-list-scroll-region'))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByText('Scan a driver location to continue.'))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByText('No locations are available for this department yet.'))
+			.not.toBeInTheDocument();
+
+		await page.getByLabelText('Scan new location').fill('25');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		expect(getDropArea).toHaveBeenCalledWith(25);
+		await vi.waitFor(() => {
+			expect(onSelect).toHaveBeenCalledWith({
+				dropAreaId: 25,
+				dropAreaLabel: 'DM'
+			});
+		});
+	});
+
 	it('groups drop areas into letter tabs, defaults to the first tab, and refreshes the query when clicked', async () => {
 		const refresh = vi.fn();
 		getDropAreasByDepartment.mockReturnValue(

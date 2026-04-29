@@ -1,12 +1,31 @@
 # Current Context
 
+## 2026-04-29 Loading List LocationID Correction
+
+- Current worktree: `features/dak-245`
+- Linked Linear issue: `DAK-245`
+- Live read-only DST checks for load `04302026-1258` confirmed `load-labels-union-view` returns valid unscanned Roll and Parts rows with the selected `LocationID`, `Scanned: false`, and `CategoryID: 0`.
+- Live read-only DST lookup for drop area `25` confirmed it is valid for Loading because `DriverLocation: true`, even though `WrapLocation`, `PartLocation`, `RollLocation`, and `LoadLocation` are false.
+- Loading no longer treats `CategoryID` as the department guard. The visible unscanned label list now uses the legacy contract: selected department maps to `LocationID`, the endpoint is called with that `LocationID`, and the frontend only keeps rows whose returned `LocationID` matches the active drop and `scanned === false`.
+- The Loading page now opens the shared location modal with an explicit driver-location-only mode. It does not call the department-filtered location list and does not require department or load-location support; numeric lookup only requires `supportsDriverLocation`.
+- The driver-location-only Loading modal is scan-only, compact, and centered. It hides the browseable location-list card so operators only see the location input and close action.
+- The empty/completed drop messages now use `items` wording: `No items are attached to this drop yet.` and `All items in this drop are scanned.`
+- Verification for this correction:
+  - `bun run test:unit -- --run src/lib/components/workflow/staging-location-modal.svelte.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run`
+  - Svelte autofixer checked `src/routes/(app)/loading/+page.svelte` with no blocking issues
+  - Svelte autofixer checked `src/lib/components/workflow/staging-location-modal.svelte` with no blocking issues
+- Current known verification gap: `bun run check` is blocked by an unrelated Staging remote-command type mismatch in `src/routes/(app)/staging/+page.svelte`.
+
 ## 2026-04-29 DAK-245 iPad Layout And Loading Department Guard
 
 - Current worktree: `features/dak-245`
 - Linked Linear issue: `DAK-245`
 - Scope handled here: DAK-245 concerns 1 and 2, a frontend-only loading scan-readiness mitigation for speed feedback, and the Loading scanned-location confirmation requested as point 4. Backend SQL/API optimization remains deferred.
 - Dropsheets no longer renders the fixed `min-w-[980px]` horizontally scrolling table shell that overflowed on shared iPad A16 Safari widths. The table keeps existing controls but uses a fluid table layout with lower-priority columns hidden at narrower widths.
-- Loading now filters the visible unscanned label list by the active loading department category mapping (`Roll=1`, `Wrap=2`, `Parts=3`) in addition to `scanned === false`, so mixed rows returned by the DST union endpoint do not show wrong-department labels.
+- Loading visible unscanned labels are governed by the active loading `LocationID` and `scanned === false`; `CategoryID` is not a reliable department guard for this legacy union response.
 - Select Category now keeps support actions and Complete Load in one compact sticky action grid. Normal completed loads show three compact buttons; Will Call completed loads show Order Status, Dropsheet, Signature, and Complete Load as four compact buttons so the loader cards remain visible on iPad.
 - Select Category loader handoff now reads `getNumberOfDrops` through the shared `readRemoteQuery` helper, preventing the iPad runtime error `getNumberOfDrops(...).run is not a function` and allowing the loader session to navigate into Loading. The same helper now covers Will Call scan lookup and staging/location modal lookup reads.
 - Loading scan input now stays enabled while a scan is in flight. If operators scan during the post-scan mutation/refresh window, the page queues up to five raw scan texts, drains them sequentially after refreshed drop data settles, and builds each queued request from the latest active drop state.
@@ -33,7 +52,7 @@
   - `bun run test:unit -- --run`
   - Svelte autofixer checked edited Dropsheets, Loading, Select Category, staging-location modal, and Will Call scan modal Svelte files
   - Svelte autofixer checked edited app layout file
-- Freshness note: `bun run check` is clean and the combined unit suite passes as of this update; Loading scan-readiness queue tests are included in the Loading page spec and scanned-location title confirmation is covered in the app layout spec.
+- Freshness note: the combined unit suite passes as of the Loading List LocationID correction above; `bun run check` is currently blocked by an unrelated Staging remote-command type mismatch.
 
 ## 2026-04-22 Staging Location Memory Refresh
 

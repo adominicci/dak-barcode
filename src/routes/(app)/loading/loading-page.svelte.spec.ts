@@ -567,24 +567,24 @@ describe('loading page', () => {
 		{
 			department: 'Roll' as const,
 			locationId: 1,
-			expectedPartListId: 'ROLL-ONLY',
-			hiddenPartListIds: ['WRAP-ONLY', 'PARTS-ONLY']
+			expectedPartListId: 'ROLL-LOCATION',
+			hiddenPartListId: 'WRONG-LOCATION'
 		},
 		{
 			department: 'Wrap' as const,
 			locationId: 2,
-			expectedPartListId: 'WRAP-ONLY',
-			hiddenPartListIds: ['ROLL-ONLY', 'PARTS-ONLY']
+			expectedPartListId: 'WRAP-LOCATION',
+			hiddenPartListId: 'WRONG-LOCATION'
 		},
 		{
 			department: 'Parts' as const,
 			locationId: 3,
-			expectedPartListId: 'PARTS-ONLY',
-			hiddenPartListIds: ['ROLL-ONLY', 'WRAP-ONLY']
+			expectedPartListId: 'PARTS-LOCATION',
+			hiddenPartListId: 'WRONG-LOCATION'
 		}
 	])(
-		'shows only $department labels when the union endpoint returns mixed department rows',
-		async ({ department, locationId, expectedPartListId, hiddenPartListIds }) => {
+		'shows $department labels returned for the selected loading location even when legacy category id is zero',
+		async ({ department, locationId, expectedPartListId, hiddenPartListId }) => {
 			pageState.url = new URL(
 				`https://app.local/loading?dropsheetId=42&locationId=${locationId}&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4`
 			);
@@ -604,21 +604,15 @@ describe('loading page', () => {
 			getLoadViewUnion.mockReturnValue(
 				createRemoteQuery([
 					createUnionLabel({
-						partListId: 'ROLL-ONLY',
-						categoryId: 1,
+						partListId: expectedPartListId,
+						categoryId: 0,
 						locationId,
 						scanned: false
 					}),
 					createUnionLabel({
-						partListId: 'WRAP-ONLY',
-						categoryId: 2,
-						locationId,
-						scanned: false
-					}),
-					createUnionLabel({
-						partListId: 'PARTS-ONLY',
+						partListId: hiddenPartListId,
 						categoryId: 3,
-						locationId,
+						locationId: locationId === 1 ? 3 : 1,
 						scanned: false
 					})
 				])
@@ -627,9 +621,7 @@ describe('loading page', () => {
 			render(LoadingPage);
 
 			await expect.element(page.getByText(expectedPartListId)).toBeInTheDocument();
-			for (const hiddenPartListId of hiddenPartListIds) {
-				await expect.element(page.getByText(hiddenPartListId)).not.toBeInTheDocument();
-			}
+			await expect.element(page.getByText(hiddenPartListId)).not.toBeInTheDocument();
 		}
 	);
 
@@ -674,8 +666,8 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByText('No parts are attached to this drop yet.')).toBeInTheDocument();
-		await expect.element(page.getByText('All parts in this drop are scanned.')).not.toBeInTheDocument();
+		await expect.element(page.getByText('No items are attached to this drop yet.')).toBeInTheDocument();
+		await expect.element(page.getByText('All items in this drop are scanned.')).not.toBeInTheDocument();
 	});
 
 	it('shows the completion message only when every attached label is scanned', async () => {
@@ -703,8 +695,37 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByText('All parts in this drop are scanned.')).toBeInTheDocument();
-		await expect.element(page.getByText('No parts are attached to this drop yet.')).not.toBeInTheDocument();
+		await expect.element(page.getByText('All items in this drop are scanned.')).toBeInTheDocument();
+		await expect.element(page.getByText('No items are attached to this drop yet.')).not.toBeInTheDocument();
+	});
+
+	it('keeps the completion message visible when refreshed labels settle before detail counts', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					labelCount: 1,
+					scannedCount: 0,
+					needPickCount: 1,
+					totalCountText: '0/1'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					partListId: 'PL-101',
+					orderSoNumber: 'SO-101',
+					scanned: true
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('All items in this drop are scanned.')).toBeInTheDocument();
+		await expect.element(page.getByText('PL-101')).not.toBeInTheDocument();
 	});
 
 	it('shows the need-pick summary only once for the active drop', async () => {
@@ -1052,9 +1073,10 @@ describe('loading page', () => {
 		await submitMainScan('LP-100');
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		await expect.element(page.getByLabelText('Scan new location')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /D12/i })).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /D13/i })).toBeInTheDocument();
-		expect(getDropAreasByDepartment).toHaveBeenCalledWith('Wrap', null);
+		await expect
+			.element(page.getByTestId('staging-location-list-scroll-region'))
+			.not.toBeInTheDocument();
+		expect(getDropAreasByDepartment).not.toHaveBeenCalled();
 
 		await page.getByLabelText('Scan new location').fill('42');
 		await page.getByRole('button', { name: 'Set location' }).click();
@@ -1078,6 +1100,64 @@ describe('loading page', () => {
 		expect(get(workflowStores.currentDropArea)).toEqual({
 			dropAreaId: 42,
 			dropAreaLabel: 'D13'
+		});
+	});
+
+	it('accepts scanned driver locations in Loading even when they do not support the selected department', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Parts');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Parts' })));
+		getDropArea.mockImplementation((dropAreaId) =>
+			createDropAreaLookup(
+				dropAreaId === 25
+					? createDropArea({
+							id: 25,
+							name: 'DM',
+							supportsWrap: false,
+							supportsParts: false,
+							supportsRoll: false,
+							supportsLoading: false,
+							supportsDriverLocation: true,
+							firstCharacter: 'D'
+						})
+					: null
+			)
+		);
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'needs-location',
+					message: 'Scan a driver location next.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-list-scroll-region'))
+			.not.toBeInTheDocument();
+
+		await page.getByLabelText('Scan new location').fill('25');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			scannedText: 'LP-100',
+			department: 'Parts',
+			dropAreaId: 25,
+			loadNumber: 'L-042',
+			loaderName: 'Alex'
+		});
+		expect(get(workflowStores.currentDropArea)).toEqual({
+			dropAreaId: 25,
+			dropAreaLabel: 'DM'
 		});
 	});
 
@@ -1105,7 +1185,8 @@ describe('loading page', () => {
 
 		await submitMainScan('LP-100');
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-		await page.getByRole('button', { name: /D12/i }).click();
+		await page.getByLabelText('Scan new location').fill('41');
+		await page.getByRole('button', { name: 'Set location' }).click();
 
 		await expect.element(page.getByTestId('loading-scan-input')).toBeEnabled();
 
@@ -1121,7 +1202,7 @@ describe('loading page', () => {
 		});
 	});
 
-	it('hides non-driver loading locations and rejects numeric lookup for them', async () => {
+	it('rejects non-driver loading location lookup', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		getDropAreasByDepartment.mockReturnValue(
@@ -1174,8 +1255,9 @@ describe('loading page', () => {
 
 		await submitMainScan('LP-100');
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /D12/i })).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /W12/i })).not.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('staging-location-list-scroll-region'))
+			.not.toBeInTheDocument();
 
 		await page.getByLabelText('Scan new location').fill('51');
 		await page.getByRole('button', { name: 'Set location' }).click();
@@ -1302,7 +1384,8 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
 		expect(processLoadingScan).toHaveBeenCalledTimes(1);
 
-		await page.getByRole('button', { name: /D12/i }).click();
+		await page.getByLabelText('Scan new location').fill('41');
+		await page.getByRole('button', { name: 'Set location' }).click();
 
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(3);
@@ -1543,7 +1626,8 @@ describe('loading page', () => {
 
 			await submitMainScan('LP-100');
 			await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
-			await page.getByRole('button', { name: /D12/i }).click();
+			await page.getByLabelText('Scan new location').fill('41');
+			await page.getByRole('button', { name: 'Set location' }).click();
 
 			await vi.advanceTimersByTimeAsync(8000);
 			await expect.element(page.getByText('Connection issue')).toBeInTheDocument();

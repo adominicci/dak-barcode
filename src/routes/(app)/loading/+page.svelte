@@ -27,7 +27,6 @@
 		createLoadingDropNavigationState,
 		moveLoadingDropSelection
 	} from '$lib/workflow/loading-drop-navigation';
-	import { isLoadingDepartmentVisibleCategory } from '$lib/workflow/loading-entry';
 	import {
 		getLoadingDepartmentStatusEntries
 	} from '$lib/workflow/loading-department-status';
@@ -187,20 +186,21 @@
 	const dropLabels = $derived(dropLabelsState.current);
 	const isLoadingDropLabels = $derived(dropLabelsState.loading && dropLabels.length === 0);
 	const unscannedDropLabels = $derived(
-		loaderInfo
+		selectedDropDetail
 			? dropLabels.filter(
-					(label) =>
-						!label.scanned &&
-						isLoadingDepartmentVisibleCategory({
-							department: loaderInfo.department,
-							categoryId: label.categoryId
-						})
+					(label) => !label.scanned && label.locationId === selectedDropDetail.locationId
 				)
 			: []
 	);
-	const isEmptyDrop = $derived(!isLoadingDropLabels && dropLabels.length === 0);
+	const isEmptyDrop = $derived(
+		!isLoadingDropLabels && selectedDropDetail !== null && selectedDropDetail.labelCount === 0
+	);
 	const isFullyScannedDrop = $derived(
-		!isLoadingDropLabels && dropLabels.length > 0 && unscannedDropLabels.length === 0
+		!isLoadingDropLabels &&
+			selectedDropDetail !== null &&
+			selectedDropDetail.labelCount > 0 &&
+			(selectedDropDetail.scannedCount >= selectedDropDetail.labelCount ||
+				(dropLabels.length > 0 && unscannedDropLabels.length === 0))
 	);
 
 	$effect(() => {
@@ -1033,11 +1033,11 @@
 								</div>
 							{:else if isEmptyDrop}
 								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
-									No parts are attached to this drop yet.
+									No items are attached to this drop yet.
 								</div>
 							{:else if isFullyScannedDrop}
 								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
-									All parts in this drop are scanned.
+									All items in this drop are scanned.
 								</div>
 							{:else}
 								<div
@@ -1130,6 +1130,7 @@
 	{#if isLocationModalOpen && loaderInfo}
 		<StagingLocationModal
 			department={loaderInfo.department}
+			driverLocationOnly
 			mode="loading"
 			target={activeTarget}
 			onClose={handleLocationModalClose}

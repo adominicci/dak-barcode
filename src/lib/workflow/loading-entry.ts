@@ -3,7 +3,6 @@ import type { DepartmentStatus, OperationalDepartment } from '$lib/types';
 export type LoadingEntryDepartment = {
 	department: OperationalDepartment;
 	locationId: number;
-	visibleCategoryId: number;
 	description: string;
 	statusKey: keyof Pick<DepartmentStatus, 'wrap' | 'roll' | 'parts'>;
 };
@@ -12,21 +11,18 @@ export const LOADING_ENTRY_DEPARTMENTS: LoadingEntryDepartment[] = [
 	{
 		department: 'Wrap',
 		locationId: 2,
-		visibleCategoryId: 2,
 		description: 'Protect wrapped orders and finish the trailer handoff.',
 		statusKey: 'wrap'
 	},
 	{
 		department: 'Roll',
 		locationId: 1,
-		visibleCategoryId: 1,
 		description: 'Stage roll inventory into driver-valid loading locations.',
 		statusKey: 'roll'
 	},
 	{
 		department: 'Parts',
 		locationId: 3,
-		visibleCategoryId: 3,
 		description: 'Load loose parts and accessory packs into the active drop flow.',
 		statusKey: 'parts'
 	}
@@ -42,11 +38,4 @@ export function getLoadingEntryDepartment(
 	}
 
 	return match;
-}
-
-export function isLoadingDepartmentVisibleCategory(input: {
-	department: OperationalDepartment;
-	categoryId: number;
-}): boolean {
-	return getLoadingEntryDepartment(input.department).visibleCategoryId === input.categoryId;
 }

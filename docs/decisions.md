@@ -2,6 +2,26 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-29 - Loading location modal accepts any driver location
+
+- Tags: product, loading, legacy-dst, location-selection
+- Decision: The Loading page opens the shared location modal with `driverLocationOnly`, making it scan-only and accepting numeric drop areas when the legacy lookup returns `DriverLocation: true`. This explicit mode does not use the department-filtered location list and does not require `WrapLocation`, `PartLocation`, `RollLocation`, or `LoadLocation`.
+- Rationale: Legacy Loading only validates that a numeric location exists and is a driver location. A live DST lookup for drop area `25` returned `DriverLocation: true` with all department/load flags false, so the prior department/load support check incorrectly rejected a valid driver location.
+- Impacted areas: `src/lib/components/workflow/staging-location-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that the shared modal can use department location filters for Loading location selection
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Filter Loading labels by legacy LocationID, not CategoryID
+
+- Tags: product, loading, legacy-dst, reliability
+- Decision: Keep the existing DST `load-labels-union-view` endpoint call unchanged, but render Loading labels by the legacy loading `LocationID` contract. The visible list keeps only rows whose returned `LocationID` matches the active drop and `scanned === false`; it does not use `CategoryID` as a department guard.
+- Rationale: A live DST check for load `04302026-1258` showed valid unscanned Roll and Parts rows returning with the correct `LocationID` and `CategoryID: 0`. Filtering by the prior category mapping hid those rows and incorrectly showed the completed message while `LabelCount`/`NeedPick` still showed pending work.
+- Impacted areas: `src/lib/workflow/loading-entry.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: `2026-04-29 - Guard loading labels by active department category`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-29 - Show selected Loading driver location in the header
 
 - Tags: product, loading, scanner-ux, confirmation
@@ -24,6 +44,7 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 
 ## 2026-04-29 - Guard loading labels by active department category
 
+- Status: Superseded by `2026-04-29 - Filter Loading labels by legacy LocationID, not CategoryID`.
 - Tags: product, loading, legacy-dst, reliability
 - Decision: Keep the existing DST union endpoint call unchanged, but filter the Loading page's visible unscanned label list by the active loading department category mapping before rendering labels.
 - Rationale: DAK-245 showed wrong-department rows appearing in Loading on shared iPads. The endpoint may return mixed union rows, and the operator surface should not rely solely on backend filtering when the active department is already known from the loader session.
