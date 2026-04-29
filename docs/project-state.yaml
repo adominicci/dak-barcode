@@ -146,6 +146,7 @@ workflows:
       - non-numeric scans go through pallet or single-label processing
       - Roll resets the current location after each successful scan
       - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to five raw scans, and drains them only after refreshed drop data has settled
+      - loading clears queued scan texts on drop navigation so they cannot submit against a newly selected drop
       - the Loading route title appends the active scanned driver location while selected so operators can confirm the location used by subsequent scans
       - leaving Loading should record loader end time
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors

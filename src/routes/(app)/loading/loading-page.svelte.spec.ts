@@ -1367,6 +1367,55 @@ describe('loading page', () => {
 		expect(unionRefresh).toHaveBeenCalledOnce();
 	});
 
+	it('clears queued scans when the operator changes drops while a scan is in flight', async () => {
+		let resolveScan: ((result: ScanResult) => void) | null = null;
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery(
+				[
+					createDropDetail({ loadNumber: 'L-042' }),
+					createDropDetail({ dropSequence: 2, sequence: 2, loadNumber: 'L-999' })
+				],
+				{
+					refresh: detailRefresh
+				}
+			)
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		processLoadingScan.mockImplementationOnce(
+			() =>
+				new Promise<ScanResult>((resolve) => {
+					resolveScan = resolve;
+				})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await submitMainScan('LP-200');
+		await page.getByRole('button', { name: /Next drop/i }).click();
+
+		const scanResolver = resolveScan as ((result: ScanResult) => void) | null;
+		if (!scanResolver) {
+			throw new Error('Expected scan resolver to be captured.');
+		}
+
+		scanResolver(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(detailRefresh).toHaveBeenCalledOnce();
+		});
+		expect(unionRefresh).toHaveBeenCalledOnce();
+		expect(processLoadingScan).toHaveBeenCalledTimes(1);
+	});
+
 	it('shows the real non-timeout error message when loading scan submission fails', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');

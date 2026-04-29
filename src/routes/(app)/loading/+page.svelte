@@ -721,9 +721,9 @@
 	function moveToDrop(direction: 'previous' | 'next') {
 		if (loadingScanController?.hasPendingScan() && loadingScanController.cancelPendingScan()) {
 			scanPrompt = null;
-			clearQueuedScans();
 		}
 
+		clearQueuedScans();
 		clearScanError();
 		isLocationModalOpen = false;
 		selectedDropIndex = moveLoadingDropSelection({
