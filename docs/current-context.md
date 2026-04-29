@@ -4,20 +4,23 @@
 
 - Current worktree: `features/dak-245`
 - Linked Linear issue: `DAK-245`
-- Scope handled here: DAK-245 concerns 1 and 2 plus a frontend-only loading scan-readiness mitigation for speed feedback. Backend SQL/API optimization and scanned-location confirmation remain deferred.
+- Scope handled here: DAK-245 concerns 1 and 2, a frontend-only loading scan-readiness mitigation for speed feedback, and the Loading scanned-location confirmation requested as point 4. Backend SQL/API optimization remains deferred.
 - Dropsheets no longer renders the fixed `min-w-[980px]` horizontally scrolling table shell that overflowed on shared iPad A16 Safari widths. The table keeps existing controls but uses a fluid table layout with lower-priority columns hidden at narrower widths.
 - Loading now filters the visible unscanned label list by the active loading department category mapping (`Roll=1`, `Wrap=2`, `Parts=3`) in addition to `scanned === false`, so mixed rows returned by the DST union endpoint do not show wrong-department labels.
 - Select Category now keeps support actions and Complete Load in one compact sticky action grid. Normal completed loads show three compact buttons; Will Call completed loads show Order Status, Dropsheet, Signature, and Complete Load as four compact buttons so the loader cards remain visible on iPad.
 - Select Category loader handoff now reads `getNumberOfDrops` through the shared `readRemoteQuery` helper, preventing the iPad runtime error `getNumberOfDrops(...).run is not a function` and allowing the loader session to navigate into Loading. The same helper now covers Will Call scan lookup and staging/location modal lookup reads.
 - Loading scan input now stays enabled while a scan is in flight. If operators scan during the post-scan mutation/refresh window, the page queues up to five raw scan texts, drains them sequentially after refreshed drop data settles, and builds each queued request from the latest active drop state.
+- Loading now appends the active scanned driver location to the route title while selected, for example `Loading Roll Dezzirae - Location 1`, so operators can confirm which location subsequent scans use.
 - AGENTS now records the two local FastAPI projects available for contract inspection: `/Users/andresdominicci/Projects/CustomerPortalAPI-PY` and `/Users/andresdominicci/Projects/dakview-web`. Modifying either backend still requires explicit approval because those endpoints may support production.
 - Focused regressions added or updated:
+  - `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`
   - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts`
   - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
   - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
   - `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`
   - `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`
 - Verification completed in this session:
+  - `bun run test:unit -- --run 'src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts'`
   - `bun run test:unit -- --run 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
   - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
   - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
@@ -28,7 +31,8 @@
   - `bun run test:unit -- --run --project server`
   - `bun run test:unit -- --run`
   - Svelte autofixer checked edited Dropsheets, Loading, Select Category, staging-location modal, and Will Call scan modal Svelte files
-- Freshness note: `bun run check` is clean and the combined unit suite passes as of this update; Loading scan-readiness queue tests are included in the Loading page spec.
+  - Svelte autofixer checked edited app layout file
+- Freshness note: `bun run check` is clean and the combined unit suite passes as of this update; Loading scan-readiness queue tests are included in the Loading page spec and scanned-location title confirmation is covered in the app layout spec.
 
 ## 2026-04-22 Staging Location Memory Refresh
 

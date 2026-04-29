@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-29 - Show selected Loading driver location in the header
+
+- Tags: product, loading, scanner-ux, confirmation
+- Decision: When a Loading numeric driver-location scan succeeds, append the selected location label to the Loading route title, for example `Loading Roll Dezzirae - Location 1`, while the location remains selected.
+- Rationale: Operators need confirmation that subsequent Loading label scans are being applied to the intended driver location. Reusing the existing `currentDropArea` workflow state keeps the display tied to the same source used for scan submissions and preserves existing Roll location-clearing behavior.
+- Impacted areas: `src/routes/(app)/+layout.svelte`, `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior Loading header title behavior that showed department and loader but not the active scanned driver location
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-29 - Keep loading scans sequential but queue input during refresh
 
 - Tags: product, loading, scanner-ux, reliability

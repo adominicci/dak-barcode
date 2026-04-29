@@ -194,6 +194,39 @@ describe('(app) layout workflow target sync', () => {
 			.toHaveTextContent('Taylor Driver-980.1 lbs');
 	});
 
+	it('adds the scanned driver location to the loading header title while it is selected', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Dezzirae' });
+		workflowStores.setSelectedDepartment('Roll');
+
+		render(AppLayout, {
+			params: {},
+			data: {
+				...baseData,
+				activeTarget: 'Canton' as const
+			},
+			children
+		});
+
+		await expect
+			.element(page.getByTestId('app-header-title'))
+			.toHaveTextContent('Loading Roll Dezzirae');
+
+		workflowStores.setCurrentDropArea({ dropAreaId: 1, dropAreaLabel: 'Location 1' });
+
+		await expect
+			.element(page.getByTestId('app-header-title'))
+			.toHaveTextContent('Loading Roll Dezzirae - Location 1');
+
+		workflowStores.clearCurrentDropArea();
+
+		await expect
+			.element(page.getByTestId('app-header-title'))
+			.toHaveTextContent('Loading Roll Dezzirae');
+	});
+
 	it('routes loading back to select-category when launched from that flow', async () => {
 		pageState.url = new URL(
 			'https://app.local/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042'

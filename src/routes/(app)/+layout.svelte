@@ -11,6 +11,7 @@
 	import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
 	import {
 		workflowStores,
+		type WorkflowDropAreaSelection,
 		type WorkflowDepartment,
 		type WorkflowLoadingHeaderContext,
 		type WorkflowLoaderSelection
@@ -22,6 +23,7 @@
 	const isLoadingRoute = $derived(page.url.pathname === '/loading');
 	let currentLoader = $state<WorkflowLoaderSelection>(get(workflowStores.currentLoader));
 	let selectedDepartment = $state<WorkflowDepartment>(get(workflowStores.selectedDepartment));
+	let currentDropArea = $state<WorkflowDropAreaSelection>(get(workflowStores.currentDropArea));
 	let currentLoadingHeaderContext = $state<WorkflowLoadingHeaderContext>(
 		get(workflowStores.currentLoadingHeaderContext)
 	);
@@ -99,7 +101,8 @@
 				titleParts.push(loaderName);
 			}
 
-			return titleParts.join(' ');
+			const locationLabel = currentDropArea?.dropAreaLabel?.trim();
+			return locationLabel ? `${titleParts.join(' ')} - ${locationLabel}` : titleParts.join(' ');
 		}
 
 		if (pathname === '/account') {
@@ -168,6 +171,9 @@
 		const unsubscribeDepartment = workflowStores.selectedDepartment.subscribe((department) => {
 			selectedDepartment = department;
 		});
+		const unsubscribeDropArea = workflowStores.currentDropArea.subscribe((dropArea) => {
+			currentDropArea = dropArea;
+		});
 		const unsubscribeLoadingHeader = workflowStores.currentLoadingHeaderContext.subscribe(
 			(context) => {
 				currentLoadingHeaderContext = context;
@@ -177,6 +183,7 @@
 		return () => {
 			unsubscribeLoader();
 			unsubscribeDepartment();
+			unsubscribeDropArea();
 			unsubscribeLoadingHeader();
 		};
 	});
