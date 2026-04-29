@@ -1246,9 +1246,9 @@ describe('loading page', () => {
 			expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
 				scannedText: '42',
 				department: 'Wrap',
-			dropAreaId: null,
-			loadNumber: 'L-042',
-			loaderName: 'Alex'
+				dropAreaId: null,
+				loadNumber: 'L-042',
+				loaderName: 'Alex'
 			});
 		});
 
