@@ -14,12 +14,14 @@
 
 	let {
 		department,
+		driverLocationOnly = false,
 		mode = 'staging',
 		target = null,
 		onClose,
 		onSelect
 	}: {
 		department: WorkflowDepartment;
+		driverLocationOnly?: boolean;
 		mode?: 'staging' | 'loading';
 		target?: Target | null;
 		onClose: () => void;
@@ -43,7 +45,9 @@
 	});
 
 	function getDropAreasQuery() {
-		return department ? getDropAreasByDepartment(department, target) : null;
+		return driverLocationOnly || department === null
+			? null
+			: getDropAreasByDepartment(department, target);
 	}
 
 	const dropAreasState = $derived.by(() => {
@@ -228,6 +232,10 @@
 	}
 
 	function isSelectableDropArea(dropArea: DropArea) {
+		if (driverLocationOnly) {
+			return dropArea.supportsDriverLocation;
+		}
+
 		if (department !== null && !dropArea[departmentSupportKey[department]]) {
 			return false;
 		}
@@ -446,19 +454,27 @@
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm sm:items-center"
+	class={`fixed inset-0 z-50 flex justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm ${
+		driverLocationOnly ? 'items-center' : 'items-end sm:items-center'
+	}`}
 >
 	<div
 		data-testid="staging-location-modal"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Staging location selector"
+		aria-label={driverLocationOnly ? 'Driver location selector' : 'Staging location selector'}
 		tabindex="-1"
 		bind:this={modalElement}
-		class="h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		class={`max-h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5 ${
+			driverLocationOnly ? 'max-w-5xl' : 'h-[calc(100dvh-2rem)] max-w-6xl'
+		}`}
 		onkeydown={handleModalKeydown}
 	>
-		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
+		<div
+			class={`flex min-h-0 flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6 ${
+				driverLocationOnly ? '' : 'h-full overflow-hidden'
+			}`}
+		>
 			<div class="flex justify-end gap-2">
 				{#if dropAreasState.active}
 					<button
@@ -482,7 +498,11 @@
 				</button>
 			</div>
 
-			<div class="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+			<div
+				class={`mt-4 flex min-h-0 flex-col gap-5 ${
+					driverLocationOnly ? '' : 'flex-1 overflow-hidden'
+				}`}
+			>
 				<form
 					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]"
 					onsubmit={handleLookupSubmit}
@@ -523,6 +543,7 @@
 					{/if}
 				</form>
 
+				{#if !driverLocationOnly}
 					<div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
 						<div
 							data-testid="staging-location-list-scroll-region"
@@ -645,6 +666,7 @@
 						{/if}
 					</div>
 				</div>
+				{/if}
 			</div>
 		</div>
 	</div>
