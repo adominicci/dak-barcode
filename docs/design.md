@@ -1,148 +1,102 @@
 # Design System Document
 
-## 1. Overview & Current Direction
+## 1. Current Direction
 
-The implemented app is still aligned with the **"Industrial Precisionist"** direction, but the live UI is more grounded and operational than the earlier write-up implied. The current product leans on bright surfaces, large radii, soft gradients, glass headers, and roomy spacing for shared iPad use.
+The authenticated operator app now follows a compact **iPad Operational** design system. The product still uses the existing workflow references for content and behavior, but the visual standard is the newer scanner-first iPad direction: fixed-height chrome, tighter radii, reduced padding, full-width work areas, and dense card grids that suit repeated barcode work.
 
-The strongest visual patterns in the shipped screens are:
+Precedence for UI decisions:
 
-- a light `#faf9fe` page canvas with subtle blue atmospheric blur
-- glass or translucent headers for app chrome
-- large white cards sitting inside tinted grouping panels
-- uppercase utility labels paired with bold operational headings
-- restrained status color used for progress, chips, and completion states
+1. Existing workflow references and implemented product rules decide what each screen shows.
+2. The iPad Operational system decides layout density, component anatomy, touch sizing, scan inputs, centered modals, counters, and card radius.
+3. Auth/account surfaces may keep their existing lower-density styling until intentionally redesigned.
 
-Intentional asymmetry still matters, especially on Home, Account, and Target selection, but the overall app shell is currently more consistent and structured than editorial.
+The operational aesthetic is utilitarian and bright: white cards on a neutral gray page, blue action surfaces, functional status color, visible text labels on statuses, and minimal decoration.
 
 ---
 
-## 2. Colors & Live Tokens
+## 2. Colors & Tokens
 
-The current implementation is driven by the token set in `src/app.css`.
+Operational tokens live in `src/app.css` with the `--ds-*` prefix.
 
-### Core surfaces
+- `--ds-blue-600`: `#1565C0`
+- `--ds-blue-500`: `#1976D2`
+- `--ds-blue-400`: `#2196F3`
+- `--ds-blue-50`: `#E3F2FD`
+- `--ds-teal-500`: `#3BBB8A`
+- `--ds-green-500`: `#2E7D32`
+- `--ds-red-500`: `#D32F2F`
+- `--ds-amber-500`: `#F9A825`
+- `--ds-gray-900`: `#1A1A1A`
+- `--ds-gray-600`: `#6B6B6B`
+- `--ds-gray-300`: `#D4D4D4`
+- `--ds-gray-100`: `#F5F5F5`
 
-- `--surface-page`: `#faf9fe`
-- `--surface-low`: `#f4f3f8`
-- `--surface-container`: `#eeedf3`
-- `--surface-container-high`: `#e9e7ed`
-- `--surface-high`: `#e3e2e7`
-- `--surface-card`: `#ffffff`
-
-### Core brand and text
-
-- `--primary`: `#0058bc`
-- gradient accent end: `#0070eb`
-- `--text-strong`: `#1a1b1f`
-- `--text-muted`: `#414755`
-- `--text-subtle`: `#717786`
-
-### Border guidance: use the soft-line rule
-
-The app does **not** use hard borders as its primary layout system, but the live implementation does allow subtle hairlines when they improve clarity.
-
-Use soft borders or rings for:
-
-- glass headers with a faint bottom edge
-- compact progress strips
-- auth and recovery inputs that need explicit affordance
-- dashed utility treatments such as the Home page utility card
-
-Do not fall back to visible borders for every card, table, or panel. Tonal separation should still do most of the work.
-
-### Glass & gradient
-
-These patterns are live and should remain consistent:
-
-- glass headers use a white translucent surface with `backdrop-blur: 20px`
-- primary actions use a `135deg` blue gradient from `#0058bc` to `#0070eb`
-- blue glow should stay soft and diffused rather than neon
+Use blue for primary workflow actions, scan focus, counters, and active state. Use teal for `NA`/`DONE`, amber for due/pending states, green for weight/success accents, and red only for destructive/error states.
 
 ---
 
-## 3. Typography
+## 3. Type, Spacing, Radius
 
-The current font system is split into a practical operational stack and a restrained editorial accent:
+- Keep `Inter` as the app font for now.
+- Page titles: compact, bold, operational.
+- Labels: `11-12px`, uppercase, tracked, gray.
+- Barcode/ID text: monospace, `17px`, semibold.
+- Page gutters: `24px` on iPad.
+- Top bar: fixed `56px`.
+- Standard controls: minimum `48px` high.
+- Navigation arrows: `64px` square.
+- Controls/cards: `10-12px` radius.
+- Centered modals: `16px` radius.
 
-- `Inter` is the default sans for app UI, labels, tables, buttons, and operational headings
-- `Newsreader Variable` is the serif accent used selectively for auth and account hero headings
-- `font-display` currently resolves to `Inter`, not serif
-
-### Type behavior in the shipped UI
-
-- page and module headings are compact, bold, and sans-first
-- utility labels are small, uppercase, and wide-tracked
-- supporting copy uses softened gray instead of high-contrast black
-- serif display should stay reserved for lower-density moments such as auth and account surfaces
-
-Do not introduce serif styling into dense operational tables, scan tools, or list-heavy workflows.
+Avoid the previous operational habit of `rounded-[2rem]`, `p-8`, centered narrow columns, and nested cards inside cards.
 
 ---
 
-## 4. Elevation, Radius & Structure
+## 4. Component Patterns
 
-The current hierarchy comes from tonal layering first, then shadow, then occasional soft edge definition.
+### App Chrome
 
-### Radius system in use
+Top bars are white, `56px` tall, full-width, and separated by a subtle gray bottom border. Use 48px back/account/refresh controls and keep route content full-width below the header.
 
-- auth cards and auth controls: `8px`
-- standard controls: `8px`
-- primary cards: `24px`
-- major panels and grouped work surfaces: `32px`
-- pills, avatars, and utility chips: full radius
+### Action Cards
 
-### Depth rules
+Home and general selection cards use a 2-column grid where available, blue fill, white text, 12px radius, left icon tile, title/detail text, and a trailing icon. Loading category department handoff cards use a 3-column grid on iPad so Wrap, Roll, and Parts stay in one row. Cards are `80px` minimum height with `scale(0.97)` active feedback.
 
-- white cards sit on top of lavender-gray grouping surfaces
-- shadows are broad and low-contrast
-- glass treatments are used in headers and select high-emphasis account or blocked-state surfaces
-- inset emphasis is acceptable on form controls, especially in auth flows
+### Scan Inputs
 
----
+Workflow scan fields stay visible near the top of the page. They are full-width, blue-tinted, bordered with `--ds-blue-400`, include a scan icon, clear/refocus after attempts, and keep scanner-friendly autocomplete/spellcheck disabled.
 
-## 5. Component Patterns
+### Department Status Pills
 
-### Buttons
+Render six labeled pills: Slit, Trim, Wrap, Roll, Parts, Soffit. Labels are always visible above pill values. Status values must include text (`NA`, `DONE`, `DUE`, etc.); never rely on color alone.
 
-- **Primary:** blue gradient, white text, soft blue shadow
-- **Secondary:** filled surface treatment, often pill-shaped, with muted or primary text
-- **Utility or destructive:** tinted surface background, sometimes with a dashed or rose treatment instead of a formal outline
+### Loading Drop Counter
 
-Rounded-full CTAs are common in the authenticated shell. Rounded-lg buttons are also used in auth and recovery forms.
+Use 64px previous/next arrow buttons flanking three counter cards: Labels, Scanned, Need Pick. Counters use blue-600/500/400 fills and centered white numbers.
 
-### Inputs
+### Scanned Item Cards
 
-The implementation currently uses two valid input treatments:
+Use a 3-column grid. Each card shows only the barcode or ID in monospace; no extra metadata.
 
-- operational pages: filled tonal fields with no visible border
-- auth and recovery flows: softer bordered inputs with light backgrounds and blue focus emphasis
+### Centered Modals
 
-Both are acceptable when chosen intentionally for context.
-
-### Cards & lists
-
-- list rows should read as cards or grouped blocks, not spreadsheet rows
-- spacing and chips should separate records before dividers do
-- utility cards may use a dashed border when the affordance is intentionally different from the main flow
-
-### App chrome
-
-The current app standard is a fixed glass top header for authenticated routes. A persistent bottom action bar is **not** part of the live implementation yet and should be treated as a future workflow pattern, not a present default.
+Touch modals use centered dialogs with a dimmed backdrop, compact 16px radius, and max height constrained to the viewport. Do not use bottom-aligned sheets or drag handles for operational selection flows.
 
 ---
 
-## 6. Do's and Don'ts
+## 5. Do's and Don'ts
 
-### Do
+Do:
 
-- use white space and tinted grouping panels as primary structure
-- keep touch targets generous for shared iPad use
-- use uppercase micro-labels to clarify context without heavy bars
-- keep gradients, shadows, and glass effects soft and controlled
+- keep workflow content full-width with 24px gutters
+- prefer shared DS primitives over one-off Tailwind card styling
+- keep scan inputs and primary navigation easy to hit on iPad
+- use visible status labels and text values
 
-### Don't
+Don't:
 
-- do not recreate legacy full-width saturated blue headers
-- do not use hard borders as default scaffolding for every surface
-- do not use pure black text
-- do not overuse serif display outside hero or account-style moments
+- center a narrow operational card grid in empty space
+- use 24-32px radii for routine workflow cards
+- hide critical controls behind hover-only states
+- add metadata to scanned-item cards
+- reintroduce decorative blur/orb backgrounds in scanner workflows

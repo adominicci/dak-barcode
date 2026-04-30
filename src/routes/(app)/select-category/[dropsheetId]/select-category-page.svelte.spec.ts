@@ -506,22 +506,28 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-summary-grid')).not.toHaveTextContent(
 			'lbs lbs'
 		);
-		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-1\.5/);
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/md:grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-summary-grid-driver-card')).toHaveClass(/rounded-\[var\(--ds-radius-card\)\]/);
+		await expect.element(page.getByTestId('select-category-summary-grid-weight-card')).toHaveClass(/bg-ds-green-500/);
 		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
-			/text-lg/
+			/text-\[18px\]/
 		);
 		await expect.element(page.getByText('David Schmidt', { exact: true })).toHaveClass(
 			/font-semibold/
 		);
-		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/text-lg/);
+		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/text-\[18px\]/);
 		await expect.element(page.getByText('L-042', { exact: true })).toHaveClass(/font-semibold/);
-		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/text-xl/);
-		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/font-semibold/);
-		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/text-\[10px\]/);
-		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/font-medium/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/text-2xl/);
+		await expect.element(page.getByText('2,152.4', { exact: true })).toHaveClass(/font-bold/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/text-xs/);
+		await expect.element(page.getByText('lbs', { exact: true })).toHaveClass(/font-semibold/);
+		await expect.element(page.getByTestId('select-category-status-strip')).toHaveClass(/rounded-\[var\(--ds-radius-card\)\]/);
+		await expect.element(page.getByTestId('select-category-status-strip')).toHaveClass(/p-3/);
+		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/ds-department-status/);
 		await expect
-			.element(page.getByTestId('select-category-status-grid').getByText('DUE', { exact: true }))
-			.toHaveClass(/bg-rose-500/);
+			.element(page.getByTestId('select-category-status-parts-pill'))
+			.toHaveClass(/ds-status-due/);
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Roll/i })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /Parts/i })).toBeInTheDocument();
@@ -537,15 +543,27 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('25%')).toBeInTheDocument();
 		await expect.element(page.getByText('75%')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-departments-card')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(/p-4/);
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(/space-y-3/);
+		await expect.element(page.getByTestId('select-category-departments-card')).not.toHaveClass(/p-5/);
 		await expect.element(page.getByTestId('select-category-departments-card')).toHaveTextContent(
 			'Departments'
 		);
+		await expect.element(page.getByText('Departments', { exact: true })).toHaveClass(/text-base/);
 		await expect.element(page.getByTestId('select-category-department-header-Wrap')).toHaveTextContent(
 			/Wrap\s+50%\s+WAIT/
 		);
-		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
-			/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/
-		);
+		await expect.element(
+			page.getByTestId('select-category-department-header-Wrap').getByText('Wrap', {
+				exact: true
+			})
+		).toHaveClass(/text-lg/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/ds-operational-card/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[72px\]/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/p-3/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(/bg-ds-blue-500/);
+		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(/text-\[13px\]/);
 		await expect.element(page.getByTestId('select-category-department-Wrap').getByText('50%')).toHaveClass(
 			/text-white/
 		);
@@ -559,14 +577,27 @@ describe('select-category page', () => {
 			page.getByTestId('select-category-department-Wrap').getByText('Select loader', {
 				exact: true
 			})
-		).toHaveClass(/text-white/);
+		).toHaveClass(/text-ds-blue-600/);
+		await expect.element(
+			page.getByTestId('select-category-department-Wrap').getByText('Select loader', {
+				exact: true
+			})
+		).toHaveClass(/text-\[13px\]/);
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveClass(/p-4/);
+		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveClass(/space-y-3/);
+		await expect.element(page.getByTestId('select-category-loader-roster')).not.toHaveClass(/p-5/);
 		await expect.element(page.getByTestId('select-category-loader-roster')).toHaveTextContent(
 			'Loaders'
 		);
+		await expect.element(page.getByText('Loaders', { exact: true })).toHaveClass(/text-base/);
 		await expect.element(page.getByTestId('select-category-loader-roster')).not.toHaveTextContent(
 			'Current roster'
 		);
+		await expect.element(
+			page.getByTestId('select-category-loader-column-Wrap').getByText('Wrap', { exact: true })
+		).toHaveClass(/text-sm/);
+		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveClass(/p-3/);
 		await expect.element(page.getByTestId('select-category-loader-column-Wrap')).toHaveTextContent(
 			'Kaleb'
 		);
@@ -575,10 +606,13 @@ describe('select-category page', () => {
 		);
 		await expect.element(
 			page.getByTestId('select-category-loader-column-Wrap').getByText('2', { exact: true })
-		).toHaveClass(/bg-\[linear-gradient\(135deg,rgba\(0,88,188,0\.98\),rgba\(0,112,235,0\.98\)\)\]/);
+		).toHaveClass(/bg-ds-blue-500/);
 		await expect.element(
 			page.getByTestId('select-category-loader-column-Wrap').getByText('Kaleb', { exact: true })
 		).toHaveClass(/text-white/);
+		await expect.element(
+			page.getByTestId('select-category-loader-column-Wrap').getByText('Kaleb', { exact: true })
+		).toHaveClass(/text-\[13px\]/);
 		await expect.element(page.getByTestId('select-category-loader-column-Roll')).toHaveTextContent(
 			'Kaleb'
 		);
@@ -587,18 +621,23 @@ describe('select-category page', () => {
 		);
 		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid/);
 		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/grid-cols-3/);
-		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/grid-cols-3/);
-		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(
-			/bg-white\/92/
-		);
+		await expect.element(page.getByTestId('select-category-loader-grid')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/grid-cols-1/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/md:grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-departments-card')).toHaveClass(/ds-operational-panel/);
+		await expect.element(page.getByTestId('select-category-departments-card')).not.toHaveClass(/rounded-\[2\.5rem\]/);
 		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
 			/cursor-pointer/
 		);
 		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(
-			/ring-1/
+			/ds-operational-card/
 		);
 		await expect.element(page.getByText('Order Status')).toBeInTheDocument();
 		await expect.element(page.getByText('Dropsheet')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-action-footer')).not.toHaveClass(/sticky/);
+		await expect.element(page.getByTestId('select-category-action-footer')).toHaveClass(/p-2/);
+		await expect.element(page.getByTestId('select-category-action-footer')).toHaveClass(/ds-operational-panel/);
 		await expect.element(page.getByRole('button', { name: 'Complete Load' })).not.toBeInTheDocument();
 		await expect.element(page.getByText('Navigate')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Signature', { exact: true })).not.toBeInTheDocument();
@@ -777,9 +816,10 @@ describe('select-category page', () => {
 		});
 
 		await expect.element(page.getByTestId('select-category-summary-grid')).toHaveClass(/grid/);
-		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/grid-cols-6/);
-		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-3/);
-		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[7rem\]/);
+		await expect.element(page.getByTestId('select-category-status-grid')).toHaveClass(/ds-department-status/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('select-category-actions')).toHaveClass(/md:grid-cols-3/);
+		await expect.element(page.getByTestId('select-category-department-Wrap')).toHaveClass(/min-h-\[72px\]/);
 	});
 
 	it('shows shared loading spinners for the remote status and department sections before data is ready', async () => {
@@ -838,6 +878,7 @@ describe('select-category page', () => {
 		});
 
 		await expect.element(page.getByTestId('select-category-action-footer')).toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-action-footer')).not.toHaveClass(/sticky/);
 		await expect.element(page.getByTestId('select-category-utility-actions')).toBeInTheDocument();
 		await expect.element(page.getByTestId('select-category-utility-actions')).toHaveClass(/sm:grid-cols-3/);
 		await expect.element(page.getByTestId('select-category-complete-action-row')).not.toBeInTheDocument();
@@ -873,6 +914,7 @@ describe('select-category page', () => {
 		});
 
 		await expect.element(page.getByTestId('select-category-utility-actions')).toHaveClass(/sm:grid-cols-4/);
+		await expect.element(page.getByTestId('select-category-action-footer')).not.toHaveClass(/sticky/);
 		await expect.element(page.getByTestId('select-category-complete-action-row')).not.toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-2\.5/);
 		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-2\.5/);

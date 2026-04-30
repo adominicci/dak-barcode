@@ -277,7 +277,10 @@
 	}
 </script>
 
-<div class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm sm:items-center">
+<div
+	data-testid="will-call-signature-modal-backdrop"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm"
+>
 	<div
 		data-testid="will-call-signature-modal"
 		role="dialog"

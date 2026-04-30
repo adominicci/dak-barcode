@@ -487,8 +487,8 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByTestId('loading-legacy-actions')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-3/);
-		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-3/);
+		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-2/);
+		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-2/);
 
 		await page.getByRole('button', { name: 'Order Status' }).click();
 		expect(goto).toHaveBeenCalledWith(
@@ -503,6 +503,25 @@ describe('loading page', () => {
 		);
 	});
 
+	it('uses the compact iPad operational loading layout without nested white shells', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/ds-operational-panel/);
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/space-y-3/);
+		await expect.element(page.getByTestId('loading-context-grid')).toHaveClass(/lg:grid-cols/);
+		await expect.element(page.getByTestId('loading-summary-strip')).toHaveClass(/gap-2/);
+		await expect.element(page.getByTestId('loading-summary-strip')).not.toHaveClass(/shadow/);
+		await expect.element(page.getByTestId('loading-department-status-strip')).toHaveClass(/p-0/);
+		await expect.element(page.getByTestId('loading-department-status-strip')).not.toHaveClass(/bg-white/);
+		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-\[31rem\]/);
+		await expect.element(page.getByTestId('loading-scan-section')).not.toHaveClass(/bg-white/);
+		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/ds-nav-arrow/);
+		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/ds-nav-arrow/);
+	});
+
 	it('renders the active drop summary with compact footer controls', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
@@ -510,16 +529,13 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByText('Drop 2 of 2')).toHaveClass(/text-base/);
-		await expect.element(page.getByTestId('loading-scan-input')).toHaveClass(/h-14/);
-		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/p-2\.5/);
-		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/rounded-\[1\.75rem\]/);
-		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/h-16/);
-		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/w-16/);
-		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/h-16/);
-		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/w-16/);
-		await expect.element(page.getByTestId('loading-drop-stat-labels')).toHaveClass(/py-2/);
-		await expect.element(page.getByTestId('loading-drop-stat-scanned')).toHaveClass(/py-2/);
-		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(/py-2/);
+		await expect.element(page.getByTestId('loading-scan-input')).toHaveClass(/ds-scan-input/);
+		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/ds-drop-counter/);
+		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/ds-nav-arrow/);
+		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/ds-nav-arrow/);
+		await expect.element(page.getByTestId('loading-drop-stat-labels')).toHaveClass(/ds-counter-card/);
+		await expect.element(page.getByTestId('loading-drop-stat-scanned')).toHaveClass(/ds-counter-card/);
+		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(/ds-counter-card/);
 	});
 
 	it('renders the active drop summary and only unscanned part-list entries under the scan input', async () => {
@@ -535,24 +551,24 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('loading-part-list-grid')).toHaveClass(/md:grid-cols-3/);
 		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/overflow-y-auto/);
 		await expect.element(page.getByTestId('loading-part-list-scroll')).toHaveClass(/flex-1/);
-		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/shrink-0/);
+		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/ds-drop-counter/);
 		await expect.element(page.getByTestId('loading-drop-stat-labels')).toHaveClass(
-			/ui-primary-gradient/
+			/ds-counter-card/
 		);
 		await expect.element(page.getByTestId('loading-drop-stat-scanned')).toHaveClass(
-			/ui-primary-gradient/
+			/ds-counter-card/
 		);
 		await expect.element(page.getByTestId('loading-drop-stat-need-pick')).toHaveClass(
-			/ui-primary-gradient/
+			/ds-counter-card/
 		);
 		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
-		await expect.element(page.getByText('PL-200')).toHaveClass(/text-base/);
+		await expect.element(page.getByText('PL-200')).toHaveClass(/text-\[17px\]/);
 		const firstChip = page.getByTestId('loading-part-list-grid').element().firstElementChild;
 		if (!(firstChip instanceof HTMLElement)) {
 			throw new Error('Expected the first loading part-list chip to be rendered.');
 		}
-		expect(firstChip.className).toMatch(/px-5/);
-		expect(firstChip.className).toMatch(/py-5/);
+		expect(firstChip.className).toMatch(/font-mono/);
+		expect(firstChip.textContent?.trim()).toBe('PL-200');
 		await expect.element(page.getByText('PL-101')).not.toBeInTheDocument();
 		await expect.element(page.getByText('PL-100')).not.toBeInTheDocument();
 		await expect.element(page.getByText('SO-100')).not.toBeInTheDocument();
@@ -835,11 +851,49 @@ describe('loading page', () => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
 			expect(unionRefresh).toHaveBeenCalledOnce();
 		});
-		await vi.waitFor(() => {
-			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
-		});
+		expect(toastSuccess).not.toHaveBeenCalled();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('shows queue status, accepts 50 queued scans, and records the 51st queued scan as an issue', async () => {
+		const scanDeferred = createDeferred<ScanResult>();
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockImplementationOnce(() => scanDeferred.promise)
+			.mockResolvedValue(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		for (let index = 0; index < 50; index += 1) {
+			await submitMainScan(`LP-${200 + index}`);
+		}
+
+		await expect.element(page.getByTestId('loading-scan-input')).toBeEnabled();
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Processing');
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Queued 50/50');
+
+		await submitMainScan('LP-250');
+
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Issues 1');
+		await expect.element(page.getByTestId('loading-scan-issues-drawer')).toBeInTheDocument();
+		expect(getElementByTestId('loading-scan-issues-drawer').className).toContain('top-14');
+		expect(getElementByTestId('loading-scan-issues-drawer').className).toContain(
+			'h-[calc(100dvh-3.5rem)]'
+		);
+		await expect.element(page.getByText('LP-250')).toBeInTheDocument();
+		await expect.element(page.getByText('Queue is full. Wait briefly and rescan this barcode.')).toBeInTheDocument();
+
+		scanDeferred.resolve(createScanResult());
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(51);
+		});
 	});
 
 	it('queues a scan while refresh is pending and submits it with refreshed active drop context', async () => {
@@ -981,7 +1035,7 @@ describe('loading page', () => {
 		expect(toastSuccess).not.toHaveBeenCalled();
 	});
 
-	it('shows an inline scanner-safe error when the backend blocks the current drop', async () => {
+	it('records blocked-drop scan errors in the issues drawer', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		processLoadingScan.mockResolvedValueOnce(
@@ -996,13 +1050,15 @@ describe('loading page', () => {
 
 		const inputElement = await submitMainScan('LP-100');
 
-		await expect.element(page.getByText(/^Not Completed$/)).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-scan-issues-drawer')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-100')).toBeInTheDocument();
 		await expect.element(page.getByText('This drop is not completed!')).toBeInTheDocument();
+		await expect.element(page.getByText(/^Not Completed$/)).not.toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
 	});
 
-	it('renders the mapped loading error title for does-not-belong results', async () => {
+	it('records does-not-belong results in the issues drawer instead of the inline panel', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		processLoadingScan.mockResolvedValueOnce(
@@ -1017,29 +1073,72 @@ describe('loading page', () => {
 
 		await submitMainScan('LP-404');
 
-		await expect.element(page.getByText('Not Found')).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-scan-issues-drawer')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-404')).toBeInTheDocument();
 		await expect
 			.element(page.getByText("Label doesn't belong to this drop!"))
 			.toBeInTheDocument();
+		await expect.element(page.getByText('Not Found')).not.toBeInTheDocument();
 	});
 
-	it('renders the mapped loading error title for no-match results', async () => {
+	it('allows operators to clear one scan issue without clearing the rest', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
-		processLoadingScan.mockResolvedValueOnce(
-			createScanResult({
-				scanType: null,
-				status: 'no-match',
-				message: 'Label is not valid!'
-			})
-		);
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'no-match',
+					message: 'First label is not valid!'
+				})
+			)
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'does-not-belong',
+					message: "Second label doesn't belong to this drop!"
+				})
+			);
 
 		render(LoadingPage);
 
-		await submitMainScan('LP-999');
+		await submitMainScan('LP-101');
+		await submitMainScan('LP-202');
 
-		await expect.element(page.getByText('No Match')).toBeInTheDocument();
-		await expect.element(page.getByText('Label is not valid!')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-101')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-202')).toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Clear issue for LP-101' }).click();
+
+		await expect.element(page.getByText('LP-101')).not.toBeInTheDocument();
+		await expect.element(page.getByText('LP-202')).toBeInTheDocument();
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Issues 1');
+	});
+
+	it('removes a persisted scan issue when the same barcode succeeds later', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'does-not-belong',
+					message: "Label doesn't belong to this drop!"
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-404');
+
+		await expect.element(page.getByTestId('loading-scan-issues-drawer')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-404')).toBeInTheDocument();
+
+		await submitMainScan('LP-404');
+
+		await expect.element(page.getByText('LP-404')).not.toBeInTheDocument();
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Issues 0');
 	});
 
 	it('opens the Scan New Location modal when the backend requests a location, then retries after a modal selection', async () => {
@@ -1095,7 +1194,7 @@ describe('loading page', () => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
 			expect(unionRefresh).toHaveBeenCalledOnce();
 		});
-		expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+		expect(toastSuccess).not.toHaveBeenCalled();
 		await expect.element(page.getByTestId('staging-location-modal')).not.toBeInTheDocument();
 		expect(get(workflowStores.currentDropArea)).toEqual({
 			dropAreaId: 42,
@@ -1198,8 +1297,9 @@ describe('loading page', () => {
 		retryResolver(createScanResult());
 
 		await vi.waitFor(() => {
-			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
+		expect(toastSuccess).not.toHaveBeenCalled();
 	});
 
 	it('rejects non-driver loading location lookup', async () => {
@@ -1444,10 +1544,10 @@ describe('loading page', () => {
 		scanResolver(createScanResult());
 
 		await vi.waitFor(() => {
-			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
+			expect(detailRefresh).toHaveBeenCalledOnce();
 		});
-		expect(detailRefresh).toHaveBeenCalledOnce();
 		expect(unionRefresh).toHaveBeenCalledOnce();
+		expect(toastSuccess).not.toHaveBeenCalled();
 	});
 
 	it('clears queued scans when the operator changes drops while a scan is in flight', async () => {
@@ -1508,7 +1608,11 @@ describe('loading page', () => {
 
 		const inputElement = await submitMainScan('LP-100');
 
-		await expect.element(page.getByText('Failed to execute remote function')).toBeInTheDocument();
+		await expect.element(page.getByTestId('loading-scan-issues-drawer')).toBeInTheDocument();
+		await expect.element(page.getByText('LP-100')).toBeInTheDocument();
+		expect(getElementByTestId('loading-scan-issues-drawer').textContent).toContain(
+			'Failed to execute remote function'
+		);
 		await expect
 			.element(page.getByText('We could not process that scan right now.'))
 			.not.toBeInTheDocument();
@@ -1583,9 +1687,8 @@ describe('loading page', () => {
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
 		});
-		await vi.waitFor(() => {
-			expect(toastSuccess).toHaveBeenCalledWith('Label loaded.');
-		});
+		expect(toastSuccess).not.toHaveBeenCalled();
+		await expect.element(page.getByText('LP-100')).not.toBeInTheDocument();
 		expect(document.activeElement).toBe(inputElement);
 	});
 
@@ -1678,6 +1781,49 @@ describe('loading page', () => {
 
 		await expect.element(page.getByText('API Error')).toBeInTheDocument();
 		await expect.element(page.getByText('500: dak-web unavailable')).toBeInTheDocument();
+	});
+
+	it('clears persisted scan issues when navigating away from Loading', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		endLoaderSession.mockResolvedValue(
+			createLoaderInfo({
+				endedAt: '2026-03-26T12:05:00.000Z'
+			})
+		);
+		processLoadingScan.mockResolvedValueOnce(
+			createScanResult({
+				scanType: null,
+				status: 'does-not-belong',
+				message: "Label doesn't belong to this drop!"
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-404');
+
+		await vi.waitFor(() => {
+			expect(getElementByTestId('loading-queue-status').textContent).toContain('Issues 1');
+		});
+		await expect.element(page.getByText('LP-404')).toBeInTheDocument();
+
+		const cancel = vi.fn();
+		navigationSpy.callback?.({
+			type: 'link',
+			willUnload: false,
+			to: {
+				url: new URL('https://app.local/select-category/42'),
+				route: { id: '/select-category/[dropsheetId]' }
+			},
+			cancel
+		});
+
+		await vi.waitFor(() => {
+			expect(endLoaderSession).toHaveBeenCalledOnce();
+		});
+		expect(getElementByTestId('loading-queue-status').textContent).toContain('Issues 0');
+		await expect.element(page.getByText('LP-404')).not.toBeInTheDocument();
 	});
 
 	it('redirects to home when the loading entry params are invalid', async () => {
