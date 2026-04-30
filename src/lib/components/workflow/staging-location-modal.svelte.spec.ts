@@ -350,6 +350,9 @@ describe('staging location modal', () => {
 			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'A' }))
 			.toHaveAttribute('aria-selected', 'true');
 		await expect
+			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'A' }))
+			.toHaveAttribute('aria-controls', 'staging-location-second-tabpanel');
+		await expect
 			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'B' }))
 			.toBeInTheDocument();
 		await expect.element(page.getByTestId('staging-location-second-letter-tabs')).toBeInTheDocument();
@@ -371,6 +374,10 @@ describe('staging location modal', () => {
 		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'B-R-1' })).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveAttribute(
+			'id',
+			'staging-location-second-tabpanel'
+		);
 
 		await page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }).click();
 

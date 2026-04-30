@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { ChevronRight, Grid2x2 } from '@lucide/svelte';
+import { createRawSnippet } from 'svelte';
 
 import DepartmentStatusPills from './department-status-pills.svelte';
 import DropCounterBar from './drop-counter-bar.svelte';
@@ -124,5 +125,47 @@ describe('operational design system primitives', () => {
 		await expect.element(page.getByTestId('modal-shell-backdrop')).toHaveClass(/items-center/);
 		await expect.element(page.getByTestId('modal-shell')).toHaveClass(/ds-modal/);
 		await expect.element(page.getByTestId('modal-shell-handle')).not.toBeInTheDocument();
+	});
+
+	it('closes modal shells on Escape and traps Tab focus inside the dialog', async () => {
+		const onClose = vi.fn();
+		const children = createRawSnippet(() => ({
+			render: () =>
+				'<div><button type="button" data-testid="first-modal-action">First</button><button type="button" data-testid="last-modal-action">Last</button></div>'
+		}));
+
+		render(WorkflowModalShell, {
+			title: 'Select department',
+			testId: 'modal-shell',
+			onClose,
+			children
+		});
+
+		const dialog = document.querySelector('[data-testid="modal-shell"]');
+		const closeButton = page.getByRole('button', { name: 'Close' }).element();
+		const firstAction = document.querySelector('[data-testid="first-modal-action"]');
+		const lastAction = document.querySelector('[data-testid="last-modal-action"]');
+
+		if (
+			!(dialog instanceof HTMLElement) ||
+			!(closeButton instanceof HTMLElement) ||
+			!(firstAction instanceof HTMLElement) ||
+			!(lastAction instanceof HTMLElement)
+		) {
+			throw new Error('Expected modal focus targets.');
+		}
+
+		dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(onClose).toHaveBeenCalledOnce();
+
+		lastAction.focus();
+		lastAction.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+		expect(document.activeElement).toBe(closeButton);
+
+		closeButton.focus();
+		closeButton.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })
+		);
+		expect(document.activeElement).toBe(lastAction);
 	});
 });

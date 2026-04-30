@@ -160,6 +160,9 @@
 
 		return ALL_SECOND_LETTER_GROUP_KEY;
 	});
+	const activeTabPanelId = $derived(
+		shouldUseSecondLetterGrouping ? secondTabPanelId : tabPanelId
+	);
 	const activeDropAreaOptions = $derived.by(() => {
 		const baseDropAreas = activeLetterGroup?.dropAreas ?? [];
 
@@ -586,7 +589,7 @@
 										type="button"
 										role="tab"
 										aria-selected={group.key === activeLetterTab}
-										aria-controls={tabPanelId}
+										aria-controls={activeTabPanelId}
 										data-letter-tab={group.key}
 										tabindex={group.key === activeLetterTab ? 0 : -1}
 										class={`flex h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] px-3 text-sm font-semibold transition ${
@@ -637,7 +640,7 @@
 							{/if}
 
 							<div
-								id={shouldUseSecondLetterGrouping ? secondTabPanelId : tabPanelId}
+								id={activeTabPanelId}
 								data-testid="staging-location-modal-grid"
 								role="tabpanel"
 								aria-label={
