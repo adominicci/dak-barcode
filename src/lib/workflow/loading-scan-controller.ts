@@ -35,7 +35,7 @@ export type LoadingScanAction =
 
 type CreateLoadingScanControllerOptions = {
 	processScan: (input: LoadingScanRequest) => Promise<ScanResult>;
-	refreshActiveDropData: () => Promise<unknown>;
+	refreshActiveDropData: (result: ScanResult) => Promise<unknown>;
 };
 
 type ResolveScanOptions = {
@@ -160,7 +160,7 @@ export function createLoadingScanController({
 			}
 
 			try {
-				await refreshActiveDropData();
+				await refreshActiveDropData(result);
 			} catch {
 				// Successful scans must stay successful even if the follow-up refresh fails.
 			}

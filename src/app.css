@@ -42,9 +42,30 @@
 	--auth-control-radius: 8px;
 	--auth-card-shadow: 0 24px 48px -28px rgba(22, 34, 66, 0.12);
 	--auth-card-ring: rgba(38, 70, 125, 0.08);
+	--ds-blue-600: #1565C0;
+	--ds-blue-500: #1976D2;
+	--ds-blue-400: #2196F3;
+	--ds-blue-50: #E3F2FD;
+	--ds-teal-500: #3BBB8A;
+	--ds-green-500: #2E7D32;
+	--ds-green-400: #43A047;
+	--ds-red-500: #D32F2F;
+	--ds-amber-500: #F9A825;
+	--ds-gray-900: #1A1A1A;
+	--ds-gray-600: #6B6B6B;
+	--ds-gray-300: #D4D4D4;
+	--ds-gray-100: #F5F5F5;
+	--ds-white: #FFFFFF;
+	--ds-page-gutter: 24px;
+	--ds-topbar-height: 56px;
+	--ds-radius-control: 10px;
+	--ds-radius-card: 12px;
+	--ds-radius-sheet: 16px;
+	--ds-touch-target: 48px;
+	--ds-nav-target: 64px;
 	--radius-control: 8px;
-	--radius-card: 24px;
-	--radius-panel: 32px;
+	--radius-card: var(--ds-radius-card);
+	--radius-panel: 16px;
 	--surface-page: #faf9fe;
 	--surface-low: #f4f3f8;
 	--surface-container: #eeedf3;
@@ -133,6 +154,20 @@
 	--color-surface-container: var(--surface-container);
 	--color-surface-container-high: var(--surface-container-high);
 	--color-surface-container-highest: var(--surface-high);
+	--color-ds-blue-600: var(--ds-blue-600);
+	--color-ds-blue-500: var(--ds-blue-500);
+	--color-ds-blue-400: var(--ds-blue-400);
+	--color-ds-blue-50: var(--ds-blue-50);
+	--color-ds-teal-500: var(--ds-teal-500);
+	--color-ds-green-500: var(--ds-green-500);
+	--color-ds-green-400: var(--ds-green-400);
+	--color-ds-red-500: var(--ds-red-500);
+	--color-ds-amber-500: var(--ds-amber-500);
+	--color-ds-gray-900: var(--ds-gray-900);
+	--color-ds-gray-600: var(--ds-gray-600);
+	--color-ds-gray-300: var(--ds-gray-300);
+	--color-ds-gray-100: var(--ds-gray-100);
+	--color-ds-white: var(--ds-white);
 	--color-on-surface: var(--text-strong);
 	--color-on-surface-variant: var(--text-muted);
 	--color-outline: var(--text-subtle);
@@ -216,9 +251,9 @@
 
 	.ui-label {
 		color: var(--text-muted);
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 700;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
 
@@ -231,6 +266,174 @@
 	.industrial-gradient {
 		background: linear-gradient(135deg, rgba(0, 88, 188, 0.98) 0%, rgba(0, 112, 235, 0.98) 100%);
 		box-shadow: var(--shadow-primary);
+	}
+
+	.ds-topbar {
+		height: var(--ds-topbar-height);
+		background: var(--ds-white);
+		border-bottom: 1px solid var(--ds-gray-300);
+	}
+
+	.ds-page-shell {
+		background: var(--ds-gray-100);
+	}
+
+	.ds-page-content {
+		padding: var(--ds-page-gutter);
+	}
+
+	.ds-action-card {
+		min-height: 80px;
+		border-radius: var(--ds-radius-card);
+		background: var(--ds-blue-500);
+		color: var(--ds-white);
+		transition: transform 100ms ease, filter 200ms ease-out;
+	}
+
+	.ds-action-card:hover {
+		filter: brightness(1.03);
+	}
+
+	.ds-action-card:active {
+		transform: scale(0.97);
+	}
+
+	.ds-action-card-icon {
+		height: 48px;
+		width: 48px;
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.16);
+		color: var(--ds-white);
+	}
+
+	.ds-section-heading {
+		font-size: 16px;
+		line-height: 24px;
+		font-weight: 600;
+		color: var(--ds-gray-900);
+	}
+
+	.ds-operational-card-title {
+		font-size: 18px;
+		line-height: 24px;
+		font-weight: 600;
+		color: var(--ds-gray-900);
+	}
+
+	.ds-operational-subtitle {
+		font-size: 14px;
+		line-height: 20px;
+		font-weight: 600;
+		color: var(--ds-gray-900);
+	}
+
+	.ds-operational-panel {
+		border-radius: var(--ds-radius-card);
+		border: 1px solid var(--ds-gray-300);
+		background: var(--ds-white);
+		padding: 16px;
+		box-shadow: var(--shadow-soft);
+	}
+
+	.ds-operational-card {
+		border-radius: var(--ds-radius-card);
+		border: 1px solid var(--ds-gray-300);
+		background: var(--ds-white);
+		padding: 12px;
+	}
+
+	.ds-control,
+	.ds-scan-input {
+		min-height: var(--ds-touch-target);
+		border-radius: var(--ds-radius-control);
+		border: 1.5px solid var(--ds-gray-300);
+		background: var(--ds-white);
+		color: var(--ds-gray-900);
+	}
+
+	.ds-scan-input {
+		background: var(--ds-blue-50);
+		border-color: var(--ds-blue-400);
+	}
+
+	.ds-control:focus-visible,
+	.ds-scan-input:focus-visible {
+		outline: 2px solid var(--ds-blue-400);
+		outline-offset: 0;
+	}
+
+	.ds-modal-backdrop {
+		background: rgba(0, 0, 0, 0.3);
+	}
+
+	.ds-modal {
+		max-height: calc(100dvh - 3rem);
+		border-radius: var(--ds-radius-sheet);
+		background: var(--ds-white);
+		box-shadow: 0 24px 80px -44px rgba(15, 23, 42, 0.72);
+	}
+
+	.ds-modal-handle {
+		display: none;
+	}
+
+	.ds-department-status {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 6px;
+	}
+
+	.ds-status-pill {
+		display: flex;
+		height: 36px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 18px;
+		color: var(--ds-white);
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.ds-status-done {
+		background: var(--ds-teal-500);
+	}
+
+	.ds-status-due,
+	.ds-status-pending {
+		background: var(--ds-amber-500);
+		color: var(--ds-gray-900);
+	}
+
+	.ds-status-neutral {
+		background: var(--ds-gray-300);
+		color: var(--ds-gray-900);
+	}
+
+	.ds-drop-counter {
+		width: 100%;
+	}
+
+	.ds-nav-arrow {
+		min-height: var(--ds-nav-target);
+		min-width: var(--ds-nav-target);
+		height: var(--ds-nav-target);
+		width: var(--ds-nav-target);
+		border-radius: var(--ds-radius-card);
+		border: 1px solid var(--ds-gray-300);
+		background: var(--ds-white);
+		color: var(--ds-gray-900);
+	}
+
+	.ds-counter-card {
+		border-radius: 10px;
+		color: var(--ds-white);
+		text-align: center;
+	}
+
+	.ds-scanned-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
 	}
 }
 

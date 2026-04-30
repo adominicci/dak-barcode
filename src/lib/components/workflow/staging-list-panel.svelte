@@ -24,17 +24,17 @@
 	);
 </script>
 
-<div class="bg-surface-container-low rounded-[2rem] p-8 min-h-[400px] flex flex-col">
-	<div class="flex items-center gap-3 mb-8 text-on-surface-variant/60">
+<div class="flex min-h-[400px] flex-col rounded-[var(--ds-radius-card)] bg-white p-4">
+	<div class="mb-4 flex items-center gap-3 text-ds-gray-600">
 		<div class="size-2.5 rounded-full bg-primary/60"></div>
-		<span class="text-lg font-medium">
+		<span class="text-base font-medium">
 			{department ? `${department} staging view` : 'No department selected'}
 		</span>
 	</div>
 
 	<div class="flex-grow overflow-hidden">
 		{#if error}
-			<div class="flex items-start gap-4 rounded-[1.75rem] bg-rose-50 px-6 py-6 text-rose-700">
+			<div class="flex items-start gap-4 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-rose-700">
 				<TriangleAlert class="mt-0.5 size-5 shrink-0" />
 				<div class="space-y-1">
 					<p class="text-lg font-semibold text-rose-900">Unable to load staging items.</p>
@@ -61,7 +61,7 @@
 		{:else}
 			<div class="space-y-4">
 				<div
-					class={`grid ${columnClass} gap-4 px-6 py-4 text-[13px] font-bold tracking-widest uppercase text-on-surface-variant/70`}
+				class={`grid ${columnClass} gap-4 px-4 py-3 text-[12px] font-bold tracking-[0.08em] uppercase text-ds-gray-600`}
 				>
 					{#if !isRollDepartment}
 						<div>Part Number</div>
@@ -77,10 +77,10 @@
 						{@const isAssigned = item.dropAreaName.trim().length > 0}
 						<div
 							data-testid={`staging-list-row-${item.lpid}`}
-							class={`grid ${columnClass} items-center gap-4 rounded-[1.5rem] px-6 py-5 shadow-sm transition-colors ${
+							class={`grid ${columnClass} min-h-14 items-center gap-4 rounded-[var(--ds-radius-card)] px-4 py-3 transition-colors ${
 								isAssigned
-									? 'bg-emerald-50/80 text-slate-900 shadow-emerald-100'
-									: 'bg-surface-container-lowest text-slate-900'
+									? 'bg-emerald-50/80 text-slate-900'
+									: 'border border-ds-gray-300 bg-white text-slate-900'
 							}`}
 						>
 							{#if !isRollDepartment}

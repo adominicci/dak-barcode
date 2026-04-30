@@ -35,6 +35,7 @@ describe('home module selector', () => {
 		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByTestId('home-topbar')).toBeInTheDocument();
+		await expect.element(page.getByTestId('home-topbar')).toHaveClass(/ds-topbar/);
 		await expect.element(page.getByTestId('home-title')).toHaveTextContent('Stage & Load Module');
 		await expect.element(page.getByTestId('home-card-grid')).toHaveClass(/md:grid-cols-2/);
 		await expect.element(page.getByTestId('home-card-staging')).toBeInTheDocument();
@@ -47,16 +48,16 @@ describe('home module selector', () => {
 		render(HomePage, { data: baseData, params: {} });
 
 		await expect.element(page.getByTestId('home-card-add-loader')).toHaveClass(
-			/ui-primary-gradient/
+			/ds-action-card/
 		);
 		await expect.element(page.getByTestId('home-card-add-loader-icon')).toHaveClass(
-			/bg-white\/18/
+			/ds-action-card-icon/
 		);
-		await expect.element(page.getByTestId('home-card-staging')).toHaveClass(/ui-primary-gradient/);
-		await expect.element(page.getByTestId('home-card-loading')).toHaveClass(/ui-primary-gradient/);
-		await expect.element(page.getByTestId('home-card-will-call')).toHaveClass(/ui-primary-gradient/);
+		await expect.element(page.getByTestId('home-card-staging')).toHaveClass(/ds-action-card/);
+		await expect.element(page.getByTestId('home-card-loading')).toHaveClass(/ds-action-card/);
+		await expect.element(page.getByTestId('home-card-will-call')).toHaveClass(/ds-action-card/);
 		await expect.element(page.getByTestId('home-card-will-call-icon')).toHaveClass(
-			/bg-white\/18/
+			/ds-action-card-icon/
 		);
 
 		await page.getByTestId('home-card-will-call').click();

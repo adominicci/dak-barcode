@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { LoaderCircle, MapPin, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
 	import { getOperatorErrorMessage } from '$lib/operator-error';
+	import { readRemoteQuery } from '$lib/remote-query-read';
 	import { getDropArea } from '$lib/drop-areas.remote';
 	import { getDropAreasByDepartment } from '$lib/drop-areas.cached';
 	import type { Target } from '$lib/auth/types';
@@ -13,12 +14,14 @@
 
 	let {
 		department,
+		driverLocationOnly = false,
 		mode = 'staging',
 		target = null,
 		onClose,
 		onSelect
 	}: {
 		department: WorkflowDepartment;
+		driverLocationOnly?: boolean;
 		mode?: 'staging' | 'loading';
 		target?: Target | null;
 		onClose: () => void;
@@ -42,7 +45,9 @@
 	});
 
 	function getDropAreasQuery() {
-		return department ? getDropAreasByDepartment(department, target) : null;
+		return driverLocationOnly || department === null
+			? null
+			: getDropAreasByDepartment(department, target);
 	}
 
 	const dropAreasState = $derived.by(() => {
@@ -155,6 +160,9 @@
 
 		return ALL_SECOND_LETTER_GROUP_KEY;
 	});
+	const activeTabPanelId = $derived(
+		shouldUseSecondLetterGrouping ? secondTabPanelId : tabPanelId
+	);
 	const activeDropAreaOptions = $derived.by(() => {
 		const baseDropAreas = activeLetterGroup?.dropAreas ?? [];
 
@@ -227,6 +235,10 @@
 	}
 
 	function isSelectableDropArea(dropArea: DropArea) {
+		if (driverLocationOnly) {
+			return dropArea.supportsDriverLocation;
+		}
+
 		if (department !== null && !dropArea[departmentSupportKey[department]]) {
 			return false;
 		}
@@ -410,7 +422,7 @@
 		activeLookupRequestToken = lookupRequestToken;
 
 		try {
-			const dropArea = await getDropArea(parsedDropAreaId).run();
+			const dropArea = await readRemoteQuery(getDropArea(parsedDropAreaId));
 			if (activeLookupRequestToken !== lookupRequestToken) {
 				return;
 			}
@@ -445,24 +457,30 @@
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm sm:items-center"
+	class="ds-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
 >
 	<div
 		data-testid="staging-location-modal"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Staging location selector"
+		aria-label={driverLocationOnly ? 'Driver location selector' : 'Staging location selector'}
 		tabindex="-1"
 		bind:this={modalElement}
-		class="h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		class={`ds-modal w-full overflow-hidden p-4 ${
+			driverLocationOnly ? 'max-w-5xl' : 'h-[calc(100dvh-3rem)] max-w-7xl'
+		}`}
 		onkeydown={handleModalKeydown}
 	>
-		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
+		<div
+			class={`flex min-h-0 flex-col ${
+				driverLocationOnly ? '' : 'h-full overflow-hidden'
+			}`}
+		>
 			<div class="flex justify-end gap-2">
 				{#if dropAreasState.active}
 					<button
 						type="button"
-						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+						class="flex size-12 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
 						onclick={() => void dropAreasState.refresh?.()}
 						aria-label="Refresh list"
 						disabled={isDropAreasLoading}
@@ -473,7 +491,7 @@
 
 				<button
 					type="button"
-					class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900"
+					class="flex size-12 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-slate-500 transition hover:text-slate-900"
 					onclick={handleClose}
 					aria-label="Close location selector"
 				>
@@ -481,13 +499,17 @@
 				</button>
 			</div>
 
-			<div class="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+			<div
+				class={`mt-3 flex min-h-0 flex-col gap-3 ${
+					driverLocationOnly ? '' : 'flex-1 overflow-hidden'
+				}`}
+			>
 				<form
-					class="rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]"
+					class="rounded-[var(--ds-radius-card)] bg-white p-3"
 					onsubmit={handleLookupSubmit}
 				>
-					<div class="flex flex-col gap-4 lg:flex-row lg:items-end">
-						<div class="flex-1 space-y-2.5">
+					<div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+						<div class="flex-1 space-y-2">
 							<label class="ui-label px-1 text-xs" for="staging-location-lookup">Scan new location</label>
 							<input
 								id="staging-location-lookup"
@@ -495,14 +517,14 @@
 								bind:this={lookupInput}
 								inputmode="numeric"
 								placeholder="Enter location ID"
-								class="h-16 w-full rounded-2xl border-none bg-surface-container-highest px-5 text-lg text-slate-950 outline-none ring-0 transition placeholder:text-on-surface-variant/55 focus:bg-white focus:ring-2 focus:ring-primary"
+								class="ds-scan-input h-14 w-full px-4 text-base font-medium transition placeholder:text-on-surface-variant/55"
 							/>
 						</div>
 
 						<button
 							type="submit"
 							disabled={isResolvingLookup}
-							class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border-0 bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-6 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto lg:min-w-44"
+							class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--ds-radius-control)] border-0 bg-ds-blue-500 px-6 text-sm font-semibold text-white transition hover:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto lg:min-w-44"
 						>
 							{#if isResolvingLookup}
 								<LoaderCircle class="size-4 animate-spin" />
@@ -515,17 +537,18 @@
 					</div>
 
 					{#if lookupError}
-						<div class="mt-4 flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+						<div class="mt-4 flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 							<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 							<p>{lookupError}</p>
 						</div>
 					{/if}
 				</form>
 
-					<div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white p-5 shadow-[var(--shadow-soft)]">
+				{#if !driverLocationOnly}
+					<div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ds-radius-card)] bg-white p-3">
 						<div
 							data-testid="staging-location-list-scroll-region"
-							class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+							class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
 						>
 						{#if department === null}
 							<div class="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-on-surface-variant/70">
@@ -533,7 +556,7 @@
 								<p class="text-sm font-medium">Scan a driver location to continue.</p>
 							</div>
 						{:else if dropAreasError}
-							<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+							<div class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 								<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 								<p>
 									{getOperatorErrorMessage(
@@ -566,10 +589,10 @@
 										type="button"
 										role="tab"
 										aria-selected={group.key === activeLetterTab}
-										aria-controls={tabPanelId}
+										aria-controls={activeTabPanelId}
 										data-letter-tab={group.key}
 										tabindex={group.key === activeLetterTab ? 0 : -1}
-										class={`flex h-11 min-w-11 shrink-0 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+										class={`flex h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] px-3 text-sm font-semibold transition ${
 											group.key === activeLetterTab
 												? 'ui-primary-gradient text-white shadow-[var(--shadow-primary)]'
 												: 'bg-surface-container-low text-slate-700 hover:bg-surface-container-high'
@@ -601,7 +624,7 @@
 											aria-controls={secondTabPanelId}
 											data-second-letter-tab={groupKey}
 											tabindex={groupKey === activeSecondLetterTab ? 0 : -1}
-											class={`flex h-10 min-w-11 shrink-0 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+										class={`flex h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] px-3 text-sm font-semibold transition ${
 												groupKey === activeSecondLetterTab
 													? 'ui-primary-gradient text-white shadow-[var(--shadow-primary)]'
 													: 'bg-surface-container-low text-slate-700 hover:bg-surface-container-high'
@@ -617,7 +640,7 @@
 							{/if}
 
 							<div
-								id={shouldUseSecondLetterGrouping ? secondTabPanelId : tabPanelId}
+								id={activeTabPanelId}
 								data-testid="staging-location-modal-grid"
 								role="tabpanel"
 								aria-label={
@@ -627,15 +650,15 @@
 											: `${activeLetterTab} locations`
 										: 'Locations'
 								}
-								class="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+								class="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 							>
 								{#each activeDropAreaOptions as dropArea (dropArea.id)}
 									<button
 										type="button"
-										class="ui-card ui-primary-gradient group flex min-h-[7.5rem] flex-col justify-center px-6 py-6 text-left text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0"
+										class="ds-action-card group flex min-h-16 flex-col justify-center px-4 py-3 text-left text-white"
 										onclick={() => commitSelection(dropArea)}
 									>
-										<p class="text-[1.7rem] font-semibold tracking-[-0.03em] text-white">
+										<p class="text-2xl font-semibold text-white">
 											{dropArea.name}
 										</p>
 									</button>
@@ -644,6 +667,7 @@
 						{/if}
 					</div>
 				</div>
+				{/if}
 			</div>
 		</div>
 	</div>

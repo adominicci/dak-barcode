@@ -1,7 +1,7 @@
 import { command } from '$app/server';
 import {
 	loadingScanInputSchema,
-	processDakLoadingScan,
+	processDstLoadingScan,
 	processDakStagingScan,
 	stagingScanInputSchema
 } from '$lib/server/dak-scan';
@@ -11,5 +11,5 @@ export const processStagingScan = command(stagingScanInputSchema, async (input) 
 );
 
 export const processLoadingScan = command(loadingScanInputSchema, async (input) =>
-	processDakLoadingScan(input)
+	processDstLoadingScan(input)
 );

@@ -95,7 +95,8 @@
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm sm:items-center"
+	data-testid="selection-modal-backdrop"
+	class="ds-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
 >
 	<div
 		data-testid="selection-modal"
@@ -104,10 +105,10 @@
 		aria-labelledby="selection-modal-title"
 		tabindex="-1"
 		bind:this={modalElement}
-		class="h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white/96 p-4 shadow-[0_40px_120px_-52px_rgba(15,23,42,0.48)] ring-1 ring-white/80 sm:p-5"
+		class="ds-modal flex h-[min(70vh,calc(100dvh-3rem))] w-full max-w-6xl flex-col overflow-hidden p-4"
 		onkeydown={handleModalKeydown}
 	>
-		<div class="flex h-full min-h-0 flex-col rounded-[1.75rem] bg-surface-container-low p-5 sm:p-6">
+		<div class="flex h-full min-h-0 flex-col">
 			<div class="flex items-start justify-between gap-4">
 				<div class="space-y-1">
 					<p class="ui-label text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
@@ -125,7 +126,7 @@
 					{#if onRefresh}
 						<button
 							type="button"
-							class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+							class="flex size-12 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
 							aria-label="Refresh list"
 							onclick={() => void onRefresh?.()}
 							disabled={saving || refreshing}
@@ -137,7 +138,7 @@
 					<button
 						bind:this={closeButton}
 						type="button"
-						class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-[var(--shadow-soft)] transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+						class="flex size-12 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
 						aria-label="Close selection modal"
 						onclick={handleClose}
 						disabled={saving}
@@ -148,14 +149,14 @@
 			</div>
 
 			{#if saving}
-				<div class="mt-4 flex items-center gap-3 rounded-2xl bg-sky-50 px-4 py-4 text-sm text-sky-800">
+				<div class="mt-4 flex items-center gap-3 rounded-[var(--ds-radius-card)] bg-sky-50 px-4 py-4 text-sm text-sky-800">
 					<LoaderCircle class="size-4 animate-spin" />
 					<p>Updating selection...</p>
 				</div>
 			{/if}
 
 			{#if error}
-				<div class="mt-4 flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+				<div class="mt-4 flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 					<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 					<p>{error}</p>
 				</div>
@@ -166,11 +167,11 @@
 				class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
 			>
 				{#if loading}
-					<div class="flex min-h-[12rem] items-center justify-center rounded-[1.5rem] bg-white">
+					<div class="flex min-h-[12rem] items-center justify-center rounded-[var(--ds-radius-card)] bg-white">
 						<LoaderCircle class="size-7 animate-spin text-primary" />
 					</div>
 				{:else if options.length === 0}
-					<div class="rounded-[1.5rem] bg-white px-5 py-8 text-center shadow-[var(--shadow-soft)]">
+					<div class="rounded-[var(--ds-radius-card)] bg-white px-5 py-8 text-center">
 						<p class="text-lg font-semibold tracking-tight text-slate-950">{emptyMessage}</p>
 					</div>
 				{:else}
@@ -179,7 +180,7 @@
 							<button
 								type="button"
 								disabled={saving}
-								class={`group flex min-h-20 items-center justify-center rounded-[1.5rem] px-4 py-4 text-center text-lg font-semibold tracking-tight shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 ${BLUE_CARD_CLASSES}`}
+								class={`group flex min-h-20 items-center justify-center rounded-[var(--ds-radius-card)] px-4 py-4 text-center text-lg font-semibold tracking-tight transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${BLUE_CARD_CLASSES}`}
 								onclick={() => onPick(option)}
 							>
 								<span class="text-balance">{option.label}</span>

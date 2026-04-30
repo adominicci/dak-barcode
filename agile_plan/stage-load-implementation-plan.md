@@ -163,7 +163,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 ### External dependency items
 
 - `POST /v1/scan/process-staging`
-- `POST /v1/scan/process-loading`
+- `POST /api/barcode-update/process-loading-scan-v2`
 - `GET /v1/scan/department-status`
 
 ### Frontend tasks in this repository

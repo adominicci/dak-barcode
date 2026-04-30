@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { get } from 'svelte/store';
+import type { Target } from '$lib/auth/types';
 import type { DropArea, ScanResult } from '$lib/types';
 import { workflowStores } from '$lib/workflow/stores';
 
@@ -58,7 +59,7 @@ const { withTimeout } = vi.hoisted(() => ({
 const { pageState } = vi.hoisted(() => ({
 	pageState: {
 		data: {
-			activeTarget: 'Canton' as const
+			activeTarget: 'Canton' as Target
 		}
 	}
 }));
@@ -334,15 +335,15 @@ describe('staging page department gate', () => {
 		await expect.element(page.getByTestId('staging-location-trigger')).toBeDisabled();
 		await expect.element(page.getByRole('button', { name: 'Wrap' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Wrap' })).toHaveClass(
-			/ui-primary-gradient/
+			/ds-action-card/
 		);
 		await expect.element(page.getByRole('button', { name: 'Parts' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Parts' })).toHaveClass(
-			/ui-primary-gradient/
+			/ds-action-card/
 		);
 		await expect.element(page.getByRole('button', { name: 'Roll' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'Roll' })).toHaveClass(
-			/ui-primary-gradient/
+			/ds-action-card/
 		);
 	});
 
@@ -682,7 +683,11 @@ describe('staging page department gate', () => {
 		await page.getByRole('button', { name: 'Wrap' }).click();
 		await page.getByTestId('staging-location-trigger').click();
 
-		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-h-\[calc\(100dvh-2rem\)\]/);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/ds-modal/);
+		await expect
+			.element(page.getByTestId('staging-location-modal'))
+			.toHaveClass(/h-\[calc\(100dvh-3rem\)\]/);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-7xl/);
 		await expect
 			.element(page.getByTestId('staging-location-modal-grid'))
 			.toHaveClass(/xl:grid-cols-5/);

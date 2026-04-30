@@ -5,7 +5,7 @@
 		loadNumber: string;
 		dropWeight: number | null;
 		customerName?: string | null;
-		variant?: 'default' | 'loading';
+		variant?: 'default' | 'loading' | 'operational';
 	};
 
 	const WEIGHT_FORMATTER = new Intl.NumberFormat('en-US', {
@@ -31,22 +31,57 @@
 	});
 </script>
 
-{#if variant === 'loading'}
-	<div class="grid gap-1.5 md:grid-cols-2" data-testid={testId}>
-		<div class="rounded-[1.25rem] bg-surface-container-low px-3 py-1.5 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
+{#if variant === 'operational'}
+	<div class="grid gap-2 md:grid-cols-3" data-testid={testId}>
+		<div
+			data-testid={`${testId}-driver-card`}
+			class="rounded-[var(--ds-radius-card)] bg-ds-gray-100 px-3 py-2"
+		>
+			<p class="text-xs font-semibold uppercase tracking-[0.08em] text-ds-gray-600">Driver</p>
+			<p class="mt-1 text-[18px] font-semibold leading-tight text-ds-gray-900">
+				{driverName ?? '--'}
+			</p>
+		</div>
+
+		<div
+			data-testid={`${testId}-delivery-card`}
+			class="rounded-[var(--ds-radius-card)] bg-ds-gray-100 px-3 py-2"
+		>
+			<p class="text-xs font-semibold uppercase tracking-[0.08em] text-ds-gray-600">
 				Delivery Number
 			</p>
-			<p class="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-slate-950">
+			<p class="mt-1 text-[18px] font-semibold leading-tight text-ds-gray-900">
 				{loadNumber}
 			</p>
 		</div>
 
-		<div class="rounded-[1.25rem] bg-surface-container-low px-3 py-1.5 shadow-[var(--shadow-soft)]">
-			<p class="ui-label text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
+		<div
+			data-testid={`${testId}-weight-card`}
+			class="rounded-[var(--ds-radius-card)] bg-ds-green-500 px-3 py-2 text-white"
+		>
+			<p class="text-xs font-semibold uppercase tracking-[0.08em] text-white/80">Weight</p>
+			<div class="mt-1 flex items-baseline gap-2">
+				<p class="text-2xl font-bold leading-tight">{formattedWeight}</p>
+				<p class="text-xs font-semibold uppercase tracking-[0.08em] text-white/80">lbs</p>
+			</div>
+		</div>
+	</div>
+{:else if variant === 'loading'}
+	<div class="grid gap-2 md:grid-cols-2" data-testid={testId}>
+		<div class="rounded-[var(--ds-radius-card)] bg-ds-gray-100 px-3 py-2">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-gray-600">
+				Delivery Number
+			</p>
+			<p class="mt-1 text-[18px] font-semibold leading-tight text-ds-gray-900">
+				{loadNumber}
+			</p>
+		</div>
+
+		<div class="rounded-[var(--ds-radius-card)] bg-ds-gray-100 px-3 py-2">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-gray-600">
 				Customer
 			</p>
-			<p class="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-slate-950">
+			<p class="mt-1 text-[18px] font-semibold leading-tight text-ds-gray-900">
 				{customerName ?? '--'}
 			</p>
 		</div>

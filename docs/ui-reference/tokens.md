@@ -1,125 +1,86 @@
 # UI Tokens And Patterns
 
-This document extracts the practical design system implied by the provided sample screens:
+This document extracts the operational system used by the iPad-first scanning app. The raw screen references remain useful for workflow content and placement inspiration, but these tokens control density and component anatomy for operator-facing screens.
 
-- `module-selector-two-column.html`
-- `category-selection-strict-v4.html`
-- `staging-strict-v4.html`
+## Precedence
+
+- Current product screens decide what data/actions appear.
+- This token guide decides spacing, radius, touch sizing, scan-field treatment, counters, centered modals, and card density.
+- Auth/account pages are lower-priority and may keep older styling until explicitly redesigned.
 
 ## Typography
 
-### Primary font
+- Primary font: `Inter`.
+- Page title: compact, bold, operational.
+- Section/card header: `18-20px`, semibold.
+- Body/table text: `16px`.
+- Barcode/ID text: monospace, `17px`, semibold.
+- Labels: `11-12px`, uppercase, `0.06-0.08em` tracking.
 
-- Use `Inter` or the repo's closest equivalent sans font for almost all operational UI.
-- Favor one consistent sans family across headings, body, labels, buttons, tables, and chips.
-- Avoid serif display type in the main app shell unless a page has a specific branding need.
+## Color System
 
-### Type behavior
+Operational tokens in `src/app.css`:
 
-- Page titles: bold, compact, operational, usually around `text-xl` to `text-2xl`.
-- Section labels: uppercase, tight, small, gray-blue, often with wider tracking.
-- Card headings: bold and direct, usually `text-2xl` or larger.
-- Supporting copy: smaller, muted, but still readable on shared iPads.
-- Table headers: uppercase, spaced out, subtle gray.
+- `--ds-blue-600`: `#1565C0`
+- `--ds-blue-500`: `#1976D2`
+- `--ds-blue-400`: `#2196F3`
+- `--ds-blue-50`: `#E3F2FD`
+- `--ds-teal-500`: `#3BBB8A`
+- `--ds-green-500`: `#2E7D32`
+- `--ds-green-400`: `#43A047`
+- `--ds-red-500`: `#D32F2F`
+- `--ds-amber-500`: `#F9A825`
+- `--ds-gray-900`: `#1A1A1A`
+- `--ds-gray-600`: `#6B6B6B`
+- `--ds-gray-300`: `#D4D4D4`
+- `--ds-gray-100`: `#F5F5F5`
+- `--ds-white`: `#FFFFFF`
 
-## Color system
+## Spacing And Radius
 
-These values repeat across the provided HTML files and should guide the app token system:
+- Use an 8px rhythm.
+- iPad page padding: `24px`.
+- Top bar height: `56px`.
+- Element/card gaps: `12-20px`.
+- Controls: `10px` radius, `48px` minimum height.
+- Cards: `12px` radius.
+- Centered modals: `16px` radius with viewport-constrained height.
+- Navigation arrows: `64px` square.
 
-- Primary blue: `#0058bc`
-- Bright primary gradient end: `#0070eb`
-- Base background: `#faf9fe`
-- Surface low: `#f4f3f8`
-- Surface container: `#eeedf3`
-- Surface highest: `#e3e2e7`
-- White card surface: `#ffffff`
-- Main text: `#1a1b1f`
-- Muted text: `#414755` to `#717786`
-- Success green seen in category cards: near `emerald-500`
+## Core Components
 
-### Color usage rules
+### Top Bar
 
-- White is the primary card color.
-- Light lavender-gray containers group tools, forms, and data zones.
-- Blue should be reserved for primary actions, active states, and key links.
-- Green should be functional and status-driven, not decorative.
+White background, subtle bottom border, fixed `56px` height. Left area contains back affordance and page title. Right area contains status/target, account avatar, refresh/sign-out actions.
 
-## Radius
+### Action Cards
 
-The raw screens mostly use a softer app language than the current auth page:
+Blue filled cards with white text, icon tile, title, detail, and trailing chevron/add icon. Use a 2-column grid on Home and selection surfaces.
 
-- Small controls: `8px` to `12px`
-- Medium surfaces: `12px` to `16px`
-- Large cards and modules: `24px` to `32px`
-- Circular avatars and icon containers: full radius
+### Scan Field
 
-Recommended app token direction:
+Full-width, always visible on workflow pages. Use blue-tinted background, blue border, left scan icon, and scanner-safe input attributes.
 
-- `--radius-control`: `8px`
-- `--radius-card`: `24px`
-- `--radius-panel`: `32px`
+### Status Pills
 
-## Shadows And Depth
+Six-up department status row with labels above values. `NA` and `DONE` are teal; due/pending states are amber; unknown is gray.
 
-- Use very soft shadows with broad blur.
-- Avoid hard outlines where possible.
-- Pair white cards with subtle blue-gray shadowing.
-- Keep the app bright and airy rather than glassy or overly dramatic.
+### Drop Counter
 
-## Spacing
+Previous arrow, three counter cards, next arrow. Counter labels are uppercase and numbers are large, centered, white.
 
-- Generous horizontal padding is common throughout all samples.
-- Major sections breathe with large gaps between rows and cards.
-- Touch targets should feel oversized rather than merely adequate.
-- Repeated layout rhythm:
-  - top app bar
-  - content container
-  - grouped cards/modules
-  - bottom action/navigation zone when needed
+### Scanned Item Grid
 
-## Core component patterns
+Three columns, 12px gap, white cards with gray border. Show only the barcode/ID.
 
-### Top app bar
+### Centered Modals
 
-- White or white-translucent bar
-- left-aligned back action + page title
-- right-aligned utility icons, date, and user avatar
+Selection modals use centered dialogs, not bottom sheets. Use a dimmed backdrop, compact radius, no drag handle, and a max height that fits inside the iPad viewport.
 
-### Primary action button
+## Anti-Patterns
 
-- saturated blue fill or blue gradient
-- white text
-- bold uppercase or semibold operational label
-- strong but soft shadow
-
-### Module cards
-
-- white background
-- large radius
-- icon tile at left
-- title + short description
-- light hover elevation
-
-### Form controls
-
-- thick, soft, filled inputs
-- muted background instead of strong border
-- large height for touch
-- focus state driven by blue emphasis
-
-### Data panels and tables
-
-- grouped inside a large tinted container
-- rows displayed as nested white cards or softer blocks
-- table labels are uppercase and muted
-- status pills use tinted fills
-
-### Category blocks
-
-- large, full-width action surfaces
-- centered type
-- strong green status fill for completed categories
-
-## Practical implementation note
-
-When app visuals conflict with the current auth styling experiments, prefer this document for the main authenticated product UI. Treat these sample screens as the stronger reference for the operational app shell.
+- `rounded-[2rem]` and `p-8` on routine operational cards.
+- Centered narrow app surfaces on iPad.
+- Long desktop tables with many tiny columns.
+- Status colors without text labels.
+- Extra metadata in scanned item cards.

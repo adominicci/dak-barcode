@@ -30,6 +30,8 @@ describe('selection modal', () => {
 		});
 
 		await expect.element(page.getByRole('dialog', { name: 'Select loader for Wrap' })).toBeInTheDocument();
+		await expect.element(page.getByTestId('selection-modal-backdrop')).toHaveClass(/items-center/);
+		await expect.element(page.getByTestId('selection-modal')).toHaveClass(/ds-modal/);
 		await expect.element(page.getByText('Alick')).toBeInTheDocument();
 		await expect.element(page.getByTestId('selection-modal')).toHaveTextContent('Alick');
 		await expect.element(page.getByTestId('selection-modal')).toHaveTextContent('Brandon');

@@ -2,6 +2,77 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-30 - Use centered modals for operational selection flows
+
+- Tags: design-system, modal, iPad, workflow-ui
+- Decision: Operator-facing modal flows use centered dialogs with viewport-constrained height and no drag handle. This supersedes the earlier bottom-sheet modal guidance from the compact iPad Operational UI rollout.
+- Rationale: The current iPad workflow screenshots and operator feedback show bottom sheets occupying too much vertical context and making selections feel less like the previous app. Centered dialogs restore the expected interaction model while keeping compact DS radii, touch targets, and card density.
+- Impacted areas: `docs/design.md`, `docs/ui-reference/*`, `src/app.css`, shared workflow modal components and specs
+- Supersedes: the bottom-sheet selection-flow portion of `2026-04-30 - Adopt compact iPad Operational UI system`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
+## 2026-04-30 - Adopt compact iPad Operational UI system
+
+- Tags: design-system, scanner-ux, iPad, workflow-ui
+- Decision: Operator-facing workflow screens use the compact iPad Operational design system for layout density, DS color tokens, 56px top bars, 10-12px radii, always-visible scan inputs, bottom-sheet selections, department status pills, loading drop counters, and barcode-only scanned item cards. Existing workflow references still decide what content and actions appear on each screen.
+- Rationale: The prior operational UI overused wide radii, nested cards, decorative glass/blur, and excessive padding. The shared iPad scanning device benefits from denser, clearer, top-to-bottom workflow surfaces with large touch targets and fewer decorative layers.
+- Impacted areas: `docs/design.md`, `docs/ui-reference/*`, `src/app.css`, `src/routes/(app)/+layout.svelte`, `src/routes/(app)/home/+page.svelte`, `src/routes/(app)/staging/+page.svelte`, `src/routes/(app)/loading/+page.svelte`, shared workflow components and specs
+- Supersedes: the older “Industrial Precisionist” operational guidance that treated 24-32px cards, glass headers, and lavender grouping panels as the default for scanner workflows
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; design docs and retrieval memory updated in this turn
+
+## 2026-04-29 - Loading location modal accepts any driver location
+
+- Tags: product, loading, legacy-dst, location-selection
+- Decision: The Loading page opens the shared location modal with `driverLocationOnly`, making it scan-only and accepting numeric drop areas when the legacy lookup returns `DriverLocation: true`. This explicit mode does not use the department-filtered location list and does not require `WrapLocation`, `PartLocation`, `RollLocation`, or `LoadLocation`.
+- Rationale: Legacy Loading only validates that a numeric location exists and is a driver location. A live DST lookup for drop area `25` returned `DriverLocation: true` with all department/load flags false, so the prior department/load support check incorrectly rejected a valid driver location.
+- Impacted areas: `src/lib/components/workflow/staging-location-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that the shared modal can use department location filters for Loading location selection
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Filter Loading labels by legacy LocationID, not CategoryID
+
+- Tags: product, loading, legacy-dst, reliability
+- Decision: Keep the existing DST `load-labels-union-view` endpoint call unchanged, but render Loading labels by the legacy loading `LocationID` contract. The visible list keeps only rows whose returned `LocationID` matches the active drop and `scanned === false`; it does not use `CategoryID` as a department guard.
+- Rationale: A live DST check for load `04302026-1258` showed valid unscanned Roll and Parts rows returning with the correct `LocationID` and `CategoryID: 0`. Filtering by the prior category mapping hid those rows and incorrectly showed the completed message while `LabelCount`/`NeedPick` still showed pending work.
+- Impacted areas: `src/lib/workflow/loading-entry.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: `2026-04-29 - Guard loading labels by active department category`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Show selected Loading driver location in the header
+
+- Tags: product, loading, scanner-ux, confirmation
+- Decision: When a Loading numeric driver-location scan succeeds, append the selected location label to the Loading route title, for example `Loading Roll Dezzirae - Location 1`, while the location remains selected.
+- Rationale: Operators need confirmation that subsequent Loading label scans are being applied to the intended driver location. Reusing the existing `currentDropArea` workflow state keeps the display tied to the same source used for scan submissions and preserves existing Roll location-clearing behavior.
+- Impacted areas: `src/routes/(app)/+layout.svelte`, `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the prior Loading header title behavior that showed department and loader but not the active scanned driver location
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Keep loading scans sequential but queue input during refresh
+
+- Tags: product, loading, scanner-ux, reliability
+- Decision: Keep Loading scan mutations and post-scan refreshes strictly sequential, but do not disable the main scanner input while `isScanning`; instead queue up to five raw scan texts and drain them after the current scan plus detail/union refresh has settled.
+- Rationale: DAK-245 scan-speed feedback points to a perceived 2-3 second dead window while the frontend waits on the mutation and refreshes. The safer production change is to preserve the existing backend contract and refresh-driven drop movement while preventing hardware scanner input from being dropped during that window.
+- Impacted areas: `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that `isScanning` should disable the main Loading scan input until all follow-up refresh work completes
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-04-29 - Guard loading labels by active department category
+
+- Status: Superseded by `2026-04-29 - Filter Loading labels by legacy LocationID, not CategoryID`.
+- Tags: product, loading, legacy-dst, reliability
+- Decision: Keep the existing DST union endpoint call unchanged, but filter the Loading page's visible unscanned label list by the active loading department category mapping before rendering labels.
+- Rationale: DAK-245 showed wrong-department rows appearing in Loading on shared iPads. The endpoint may return mixed union rows, and the operator surface should not rely solely on backend filtering when the active department is already known from the loader session.
+- Impacted areas: `src/lib/workflow/loading-entry.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the implicit assumption that `load-labels-union-view` always returns only rows for the selected loading department
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-16 - Fetch target-sensitive lookup lists fresh in the browser
 
 - Tags: runtime, sveltekit, caching, reliability
@@ -22,6 +93,16 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 - `project-state.yaml` updated: yes
 - Folded into long-lived docs: yes; the lookup-key rule now lives in the memory bundle and this decision log
 
+## 2026-04-29 - Use `readRemoteQuery` for imperative remote query reads
+
+- Tags: runtime, sveltekit, remote-functions
+- Decision: Imperative browser reads from SvelteKit remote `query(...)` helpers must go through `src/lib/remote-query-read.ts` instead of calling `.run()` directly or hand-awaiting a fresh query object inline.
+- Rationale: The installed `@sveltejs/kit@2.55.0` runtime/types in this repo expose remote queries as promise-like resources with `refresh`, `set`, and `withOverride`, but no public `.run()`. On Select Category, that mismatch surfaced as `getNumberOfDrops(...).run is not a function` and blocked the loader handoff into Loading. The shared helper preserves compatibility if a future dependency exposes `.run()` while keeping the current installed contract working.
+- Impacted areas: `src/lib/remote-query-read.ts`, `src/lib/components/workflow/will-call-scan-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related component specs, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`
+- Supersedes: the 2026-04-16 blanket rule to call `.run()` directly for imperative remote query reads
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; the compatibility helper rule now lives in the memory bundle and architecture notes
+
 ## 2026-04-16 - Use `.run()` for imperative remote query reads
 
 - Tags: runtime, sveltekit, remote-functions
@@ -29,6 +110,7 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 - Rationale: The production select-category loading handoff stalled after local UI updates because imperative code awaited the query object directly. Current SvelteKit remote-function guidance requires `.run()` for non-reactive one-off reads, and the remaining audited hotspots followed the same unsupported pattern.
 - Impacted areas: `src/lib/components/workflow/will-call-scan-modal.svelte`, `src/lib/components/workflow/staging-location-modal.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, `src/lib/components/workflow/will-call-scan-modal.svelte.spec.ts`, `src/lib/components/workflow/staging-location-modal.svelte.spec.ts`, `src/routes/(app)/home/home-page.svelte.spec.ts`, `src/routes/(app)/staging/staging-page.svelte.spec.ts`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `src/routes/(app)/move-orders/[dropsheetId]/move-orders-page.svelte.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
 - Supersedes: the implicit assumption that remote `query(...)` helpers were safe to `await` directly inside imperative browser code as long as they happened to work in local preview
+- Superseded by: 2026-04-29 `readRemoteQuery` compatibility helper rule, after the installed SvelteKit runtime/types proved `.run()` is not public in this worktree
 - `project-state.yaml` updated: yes
 - Folded into long-lived docs: yes; the rule now lives in the memory bundle and this decision log
 

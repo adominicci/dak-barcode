@@ -4,7 +4,7 @@ This folder preserves the sample UI direction provided for the Stage & Load rebu
 
 ## Purpose
 
-Use this package when designing or implementing any operator-facing screen. The goal is not to copy the samples pixel-for-pixel, but to stay close to their layout language, visual hierarchy, and interaction patterns unless the product direction changes.
+Use this package when designing or implementing any operator-facing screen. The raw samples decide workflow placement inspiration and content references; `tokens.md` and `docs/design.md` decide the current compact iPad operational styling.
 
 ## What's here
 
@@ -17,17 +17,17 @@ Use this package when designing or implementing any operator-facing screen. The 
 1. Start with `tokens.md` for colors, typography, radius, spacing, shadows, and component patterns.
 2. Check `screen-map.md` to pick the closest sample for the screen you are building.
 3. Open the matching raw HTML file in `screens/` when you need exact structure, wording style, or density cues.
-4. Cross-check against `docs/design.md` when there is tension between the older “Industrial Precisionist” direction and these newer samples.
+4. Cross-check against `docs/design.md` when there is tension between an older large-radius sample and the newer scanner-first system.
 
 ## Current intent
 
-These references currently point the app toward a cleaner Inter-based operational UI with:
+These references currently point the app toward a compact Inter-based operational UI with:
 
-- bright white cards over cool light surfaces
-- saturated blue primary actions
-- softer gray metadata
-- large operational headings
-- generous touch spacing
-- fewer decorative effects than the auth shell experiments
+- full-width iPad work areas with 24px gutters
+- white top bars fixed at 56px
+- saturated blue action cards with 12px radius
+- always-visible scan inputs
+- centered modal selection flows
+- 64px navigation arrows and barcode-only scanned cards
 
 If the visual system evolves, update this package alongside `docs/design.md` instead of letting the references drift.

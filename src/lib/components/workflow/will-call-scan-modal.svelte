@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { LoaderCircle, PackageSearch, ScanBarcode, X } from '@lucide/svelte';
+	import { readRemoteQuery } from '$lib/remote-query-read';
 	import { lookupWillCallDropsheet } from '$lib/will-call.remote';
 
 	let {
@@ -52,7 +53,7 @@
 		let shouldRefocus = false;
 
 		try {
-			const result = await lookupWillCallDropsheet(loadNumber).run();
+			const result = await readRemoteQuery(lookupWillCallDropsheet(loadNumber));
 			if (!isActive) {
 				return;
 			}
