@@ -4,10 +4,11 @@
 	import { page } from '$app/state';
 	import { onMount, tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { ScanBarcode, ChevronDown, MapPin, TriangleAlert } from '@lucide/svelte';
+	import { ChevronDown, MapPin, TriangleAlert } from '@lucide/svelte';
 	import DepartmentSelectionModal from '$lib/components/workflow/department-selection-modal.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import StagingListPanel from '$lib/components/workflow/staging-list-panel.svelte';
+	import WorkflowScanField from '$lib/components/workflow/workflow-scan-field.svelte';
 	import { processStagingScan } from '$lib/scan.remote';
 	import { withTimeout } from '$lib/workflow/async-timeout';
 	import { createStagingScanController } from '$lib/workflow/staging-scan-controller';
@@ -46,7 +47,7 @@
 		workflowStores.prepareForStagingEntry();
 		stagingListController = createStagingListController();
 		stagingScanController = createStagingScanController({
-			processScan: processStagingScan,
+			processScan: async (input) => await processStagingScan(input),
 			refreshActiveList: async () => {
 				await stagingListController?.refreshActiveList();
 			}
@@ -269,29 +270,26 @@
 	}
 </script>
 
-<div class="space-y-8">
+<div class="space-y-5">
 	<!-- Scan & Filters (reference: staging-strict-v4) -->
-	<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-		<div class="lg:col-span-6 space-y-2">
-			<label class="ui-label text-xs px-1" for="scan-input">Scan Barcode</label>
-			<div class="relative">
-				<ScanBarcode class="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-primary" />
-				<input
-					id="scan-input"
-					data-testid="staging-scan-input"
-					type="text"
-					bind:value={scanInputValue}
-					bind:this={scanInputElement}
-					placeholder="Scan or type item barcode..."
-					disabled={isDepartmentGateOpen || isScanning || pendingTimedOutScan !== null}
-					onkeydown={handleScanKeydown}
-					class="w-full h-16 pl-14 pr-6 bg-surface-container-highest border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-lg placeholder:text-on-surface-variant/50"
-				/>
-			</div>
+	<section class="grid grid-cols-1 items-end gap-4 lg:grid-cols-12">
+		<div class="lg:col-span-6">
+			<WorkflowScanField
+				id="scan-input"
+				label="Scan Barcode"
+				bind:value={scanInputValue}
+				placeholder="Scan or type item barcode..."
+				disabled={isDepartmentGateOpen || isScanning || pendingTimedOutScan !== null}
+				onKeydown={handleScanKeydown}
+				onInputElement={(element) => {
+					scanInputElement = element;
+				}}
+				testId="staging-scan"
+			/>
 			{#if scanError}
 				<div
 					data-testid="staging-scan-error"
-					class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+					class="mt-3 flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700"
 				>
 					<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 					<p>{scanError}</p>
@@ -304,7 +302,7 @@
 				data-testid="staging-department-trigger"
 				type="button"
 				disabled={pendingTimedOutScan !== null || isScanning}
-				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+				class="ds-control flex h-14 w-full items-center justify-between px-4 font-semibold transition-colors hover:bg-ds-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
 				onclick={() => {
 					stagingScanController?.cancelPendingScan();
 					scanError = null;
@@ -322,7 +320,7 @@
 				data-testid="staging-location-trigger"
 				type="button"
 				disabled={isDepartmentGateOpen || pendingTimedOutScan !== null || isScanning}
-				class="w-full h-16 flex items-center justify-between px-6 bg-surface-container-low rounded-2xl text-on-surface font-semibold hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+				class="ds-control flex h-14 w-full items-center justify-between px-4 font-semibold transition-colors hover:bg-ds-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
 				onclick={() => (isLocationModalOpen = true)}
 			>
 				<span>{currentDropArea?.dropAreaLabel ?? 'Select Location'}</span>

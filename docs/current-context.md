@@ -1,5 +1,66 @@
 # Current Context
 
+## 2026-04-30 Loading Scan CustomerPortal Contract
+
+- Current worktree: `features/ui-redesign`.
+- Loading scan submissions now use CustomerPortalAPI-PY through the DST proxy path `POST /api/barcode-update/process-loading-scan-v2` instead of the old `dak-web` `/v1/scan/process-loading` route.
+- The frontend sends the active drop context with each loading scan: scanned text, department, selected driver location, load number, loader name, drop sheet id, active location id, sequence, and selected drop index.
+- CustomerPortal loading scan responses can include refreshed `LoadViewDetailAll` and `LoadViewUnion` rows. The Loading page now consumes those rows directly when present and falls back to the old separate detail/union refresh calls if the combined refresh payload is absent.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-scan.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/server/dak-scan.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `npx @sveltejs/mcp svelte-autofixer src/routes/'(app)'/loading/+page.svelte --svelte-version 5`
+  - `bun run check`
+  - `bun run test:unit -- --run`
+- Memory Impact Analysis: update required because the active loading scan backend contract changed. Updated current-context and project-state.
+
+## 2026-04-30 iPad Operational Design System Upgrade
+
+- Current worktree: `dak-barcode` active branch at time of update.
+- Scope handled here: documentation plus first implementation wave for the operational core UI. No auth, backend contract, scan-processing, loader-session, or routing behavior changes were intended.
+- Follow-up Select Category pass: `/select-category/[dropsheetId]` now uses the compact operational card density too. The page has an opt-in operational `LoadSummaryStrip`, shared department status pills, three-up department handoff cards on iPad, compact loader roster cards, and an in-flow utility action grid instead of the prior oversized rounded shells and sticky floating footer.
+- Select Category typography follow-up: section headings, department card titles, loader roster headings, and loader/name chips are tightened through shared DS typography helper classes in `src/app.css` plus route-level size classes. This was a visual density change only.
+- Select Category spacing follow-up: summary gaps, section panel padding, card padding, department/loader grid gaps, status padding, and footer padding were tightened for iPad information density. Shared `ds-operational-panel` and `ds-operational-card` helpers now live in `src/app.css`.
+- Home 500 follow-up: `OperationalActionCard` no longer blindly calls `resolve()` on every `href`. Home passes hrefs that may already be resolved to relative paths during SSR, such as `./staging?returnTo=%2Fhome`; the shared card now resolves absolute internal paths only and leaves already-resolved hrefs untouched.
+- Loading screen follow-up: `/loading` now uses the compact iPad operational panel composition inspired by the downloaded HTML while preserving the app's current data and actions. The active workspace is one compact panel with delivery/customer summary, department status pills, legacy Order Status/Dropsheet shortcuts, always-visible scan input, barcode-only scanned grid, and the existing 64px previous/next drop controls.
+- Modal follow-up: operational selection/location modals are centered dialogs again, not bottom sheets. The shared DS modal shell, staging department gate, loader selection modal, staging/loading location modal, loader editor, and Will Call signature modal now center within the viewport and omit drag handles.
+- Staging location modal follow-up: when the shared location modal shows a staging location list, it uses nearly the full available iPad viewport height and tighter tabs/cards so operators see more locations before scrolling. Loading keeps the same scan-only compact modal because it does not render the location list.
+- Design-source precedence is now explicit:
+  - current workflow references and live product rules decide what appears on each screen
+  - the compact iPad Operational system decides density, radii, touch targets, scan inputs, centered modals, counters, and card anatomy
+  - auth/account surfaces can keep older lower-density styling until intentionally redesigned
+- New shared workflow primitives cover compact action cards, scan fields, department status pills, loading drop counters, barcode-only scanned ID grids, and centered modal shell styling.
+- Home, app chrome, Staging scan controls/list panel, Loading scan/counter/status/scanned-item surfaces, selection modal shells, department selection, and staging/loading location modal styling now use the compact DS direction.
+- Durable design docs updated:
+  - `docs/design.md`
+  - `docs/ui-reference/tokens.md`
+  - `docs/ui-reference/screen-map.md`
+  - `docs/ui-reference/README.md`
+- Focused regressions added or updated:
+  - `src/lib/components/workflow/operational-design-components.svelte.spec.ts`
+  - `src/routes/(app)/home/home-page.svelte.spec.ts`
+  - `src/routes/(app)/staging/staging-page.svelte.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed so far in this session:
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts 'src/routes/(app)/home/home-page.svelte.spec.ts' 'src/routes/(app)/loading/loading-page.svelte.spec.ts' 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts 'src/routes/(app)/home/home-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts src/lib/components/workflow/staging-location-modal.svelte.spec.ts src/lib/components/workflow/selection-modal.svelte.spec.ts 'src/routes/(app)/staging/staging-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/loader-editor-modal.svelte.spec.ts src/lib/components/workflow/will-call-signature-modal.svelte.spec.ts`
+  - `bun run check`
+  - `bun run test:unit -- --run`
+  - `bun run build`
+  - Svelte autofixer checked edited Svelte files; the Select Category route still has the pre-existing `goto()`/`resolve()` suggestion, intentionally left unchanged to avoid routing behavior changes
+- Browser smoke check: dev server opened at `http://127.0.0.1:5173/` with Playwright viewport `1180x820`; authenticated workflow routes including Select Category redirect to `/login` without a session, so live authenticated workflow screenshot verification was blocked by auth.
+- Memory Impact Analysis: update required because repo-tracked design docs, runtime UI components, and durable UI-source precedence changed. Updated current-context, project-state, and decisions.
+
 ## 2026-04-29 Loading List LocationID Correction
 
 - Current worktree: `features/dak-245`
@@ -8,7 +69,7 @@
 - Live read-only DST lookup for drop area `25` confirmed it is valid for Loading because `DriverLocation: true`, even though `WrapLocation`, `PartLocation`, `RollLocation`, and `LoadLocation` are false.
 - Loading no longer treats `CategoryID` as the department guard. The visible unscanned label list now uses the legacy contract: selected department maps to `LocationID`, the endpoint is called with that `LocationID`, and the frontend only keeps rows whose returned `LocationID` matches the active drop and `scanned === false`.
 - The Loading page now opens the shared location modal with an explicit driver-location-only mode. It does not call the department-filtered location list and does not require department or load-location support; numeric lookup only requires `supportsDriverLocation`.
-- The driver-location-only Loading modal is scan-only, compact, and centered. It hides the browseable location-list card so operators only see the location input and close action.
+- The driver-location-only Loading modal is scan-only and now follows the compact centered-modal operational style. It hides the browseable location-list card so operators only see the location input and close action.
 - The empty/completed drop messages now use `items` wording: `No items are attached to this drop yet.` and `All items in this drop are scanned.`
 - Verification for this correction:
   - `bun run test:unit -- --run src/lib/components/workflow/staging-location-modal.svelte.spec.ts`
@@ -26,7 +87,7 @@
 - Scope handled here: DAK-245 concerns 1 and 2, a frontend-only loading scan-readiness mitigation for speed feedback, and the Loading scanned-location confirmation requested as point 4. Backend SQL/API optimization remains deferred.
 - Dropsheets no longer renders the fixed `min-w-[980px]` horizontally scrolling table shell that overflowed on shared iPad A16 Safari widths. The table keeps existing controls but uses a fluid table layout with lower-priority columns hidden at narrower widths.
 - Loading visible unscanned labels are governed by the active loading `LocationID` and `scanned === false`; `CategoryID` is not a reliable department guard for this legacy union response.
-- Select Category now keeps support actions and Complete Load in one compact sticky action grid. Normal completed loads show three compact buttons; Will Call completed loads show Order Status, Dropsheet, Signature, and Complete Load as four compact buttons so the loader cards remain visible on iPad.
+- Superseded by the 2026-04-30 operational pass: Select Category support actions and Complete Load now live in a compact in-flow action grid. Normal completed loads show three compact buttons; Will Call completed loads show Order Status, Dropsheet, Signature, and Complete Load as four compact buttons so the loader cards remain visible on iPad.
 - Select Category loader handoff now reads `getNumberOfDrops` through the shared `readRemoteQuery` helper, preventing the iPad runtime error `getNumberOfDrops(...).run is not a function` and allowing the loader session to navigate into Loading. The same helper now covers Will Call scan lookup and staging/location modal lookup reads.
 - Loading scan input now stays enabled while a scan is in flight. If operators scan during the post-scan mutation/refresh window, the page queues up to five raw scan texts, drains them sequentially after refreshed drop data settles, and builds each queued request from the latest active drop state.
 - Loading clears queued scan texts whenever the operator changes drops, so queued scans cannot be replayed against a different active drop after navigation.

@@ -15,6 +15,7 @@
 	import { readRemoteQuery } from '$lib/remote-query-read';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import ConfirmationModal from '$lib/components/workflow/confirmation-modal.svelte';
+	import DepartmentStatusPills from '$lib/components/workflow/department-status-pills.svelte';
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import WillCallSignatureModal from '$lib/components/workflow/will-call-signature-modal.svelte';
@@ -24,7 +25,6 @@
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
 	import { getWillCallSignature } from '$lib/will-call.remote';
-	import { getWorkflowStatusClasses } from '$lib/workflow/status-tones';
 	import type {
 		DepartmentStatus,
 		DropSheetCategoryAvailability,
@@ -39,6 +39,7 @@
 	type StatusEntry = {
 		label: string;
 		value: string | null;
+		testId: string;
 	};
 
 	const PERCENT_FORMATTER = new Intl.NumberFormat('en-US', {
@@ -147,13 +148,12 @@
 			? 'border-emerald-500/80 text-emerald-600 bg-emerald-50/80'
 			: 'border-rose-500/80 text-rose-600 bg-rose-50/80'
 	);
-	const blueBadgeClasses =
-		'rounded-full bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
+	const blueBadgeClasses = 'rounded-full bg-ds-blue-500 text-white';
 	const footerActionButtonClasses =
-		'flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-[1.25rem] bg-surface-container-low px-3 py-2.5 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]';
+		'ds-control flex min-h-12 min-w-0 items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:border-ds-blue-400 hover:bg-ds-blue-50 active:scale-[0.97]';
 	const footerActionIconClasses =
-		'flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/8 text-primary';
-	const footerActionLabelClasses = 'truncate text-sm font-bold tracking-tight text-slate-950';
+		'flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-ds-blue-50 text-ds-blue-600';
+	const footerActionLabelClasses = 'truncate text-base font-semibold text-ds-gray-900';
 	const footerGridClasses = $derived.by(() => {
 		if (data.willCall && canCompleteLoad) {
 			return 'sm:grid-cols-4';
@@ -178,13 +178,29 @@
 
 	function byStatusDisplay(status: DepartmentStatus | null): StatusEntry[] {
 		return [
-			{ label: 'Slit', value: status?.slit ?? null },
-			{ label: 'Trim', value: status?.trim ?? null },
-			{ label: 'Wrap', value: status?.wrap ?? null },
-			{ label: 'Roll', value: status?.roll ?? null },
-			{ label: 'Parts', value: status?.parts ?? null },
-			{ label: 'Soffit', value: status?.soffit ?? null }
+			{ label: 'Slit', value: status?.slit ?? null, testId: 'select-category-status-slit' },
+			{ label: 'Trim', value: status?.trim ?? null, testId: 'select-category-status-trim' },
+			{ label: 'Wrap', value: status?.wrap ?? null, testId: 'select-category-status-wrap' },
+			{ label: 'Roll', value: status?.roll ?? null, testId: 'select-category-status-roll' },
+			{ label: 'Parts', value: status?.parts ?? null, testId: 'select-category-status-parts' },
+			{ label: 'Soffit', value: status?.soffit ?? null, testId: 'select-category-status-soffit' }
 		];
+	}
+
+	function getStatusPillClass(value: string | null) {
+		switch (value?.trim().toUpperCase()) {
+			case 'NA':
+			case 'DONE':
+				return 'ds-status-done';
+			case 'DUE':
+				return 'ds-status-due';
+			case 'WAIT':
+			case 'BOT':
+			case 'BOL':
+				return 'ds-status-pending';
+			default:
+				return 'ds-status-neutral';
+		}
 	}
 
 	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: '/dropsheets') {
@@ -410,17 +426,18 @@
 	}
 </script>
 
-<div class="space-y-6 pb-32 xl:space-y-5">
-	<div class="space-y-3 rounded-[2.5rem] bg-white/92 p-3 shadow-[var(--shadow-soft)] ring-1 ring-white/80">
+<div class="space-y-3 pb-4">
+	<div class="space-y-2">
 		<LoadSummaryStrip
 			testId="select-category-summary-grid"
 			driverName={data.driverName}
 			loadNumber={data.loadNumber}
 			dropWeight={data.dropWeight}
+			variant="operational"
 		/>
 
 		{#if statusState.error}
-			<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
+			<div class="rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-3 text-sm text-rose-700">
 				<p class="font-semibold">Unable to load department status.</p>
 				<p class="mt-1 leading-6">
 					{getOperatorErrorMessage(statusState.error, 'Unable to load department status.')}
@@ -428,7 +445,7 @@
 			</div>
 		{:else if isStatusSectionLoading}
 			<div
-				class="flex min-h-[6.5rem] items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
+				class="flex min-h-24 items-center justify-center rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-ds-white p-4"
 				data-testid="select-category-status-loading-state"
 			>
 				<div class="flex flex-col items-center gap-3 text-center">
@@ -439,27 +456,14 @@
 		{:else}
 			<div
 				data-testid="select-category-status-strip"
-				class="overflow-hidden rounded-[1.75rem] bg-white p-2 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
+				class="rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-ds-white p-3"
 			>
-				<div data-testid="select-category-status-grid" class="grid grid-cols-6">
-					{#each statusEntries as entry (entry.label)}
-						<div class="flex flex-col">
-							<span class="py-1 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">
-								{entry.label}
-							</span>
-							<div
-								class={`border-l border-white/20 px-1.5 py-1.25 text-center text-[10px] font-bold first:border-l-0 ${getWorkflowStatusClasses(entry.value)}`}
-							>
-								{entry.value ?? '--'}
-							</div>
-						</div>
-					{/each}
-				</div>
+				<DepartmentStatusPills entries={statusEntries} testId="select-category-status-grid" />
 			</div>
 		{/if}
 
 		{#if categoryAvailabilityState.error}
-			<div class="rounded-[1.5rem] bg-amber-50 px-5 py-4 text-sm text-amber-800">
+			<div class="rounded-[var(--ds-radius-card)] bg-amber-50 px-4 py-3 text-sm text-amber-800">
 				Unable to filter departments by availability. Showing every loading department.
 			</div>
 		{/if}
@@ -468,15 +472,15 @@
 
 	<div
 		data-testid="select-category-departments-card"
-		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+		class="ds-operational-panel space-y-3 p-4"
 	>
 		<div class="flex items-center justify-between gap-3">
-			<h2 class="text-xl font-bold tracking-tight text-slate-950">Departments</h2>
+			<h2 class="ds-section-heading text-base">Departments</h2>
 		</div>
 
 		{#if isDepartmentsSectionLoading}
 			<div
-				class="flex min-h-[18rem] items-center justify-center rounded-[1.75rem] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-slate-100"
+				class="flex min-h-48 items-center justify-center rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-ds-white p-6"
 				data-testid="select-category-departments-loading-state"
 			>
 				<div class="flex flex-col items-center gap-3 text-center">
@@ -485,10 +489,9 @@
 				</div>
 			</div>
 		{:else}
-			<!-- Fixed three columns keep the department cards readable and left-to-right on the shared iPad. -->
-			<div data-testid="select-category-actions" class="grid grid-cols-3 gap-3">
+			<div data-testid="select-category-actions" class="grid grid-cols-1 gap-2 md:grid-cols-3">
 				{#if visibleDepartments.length === 0}
-					<div class="col-span-3 rounded-[1.75rem] bg-white px-6 py-8 text-center shadow-[var(--shadow-soft)]">
+					<div class="ds-operational-card px-4 py-6 text-center md:col-span-3">
 						<p class="text-lg font-semibold tracking-tight text-slate-950">No loading categories are ready.</p>
 						<p class="mt-2 text-sm leading-6 text-slate-600">
 							This load does not have wrap, roll, or parts labels available yet.
@@ -504,20 +507,20 @@
 						type="button"
 						onclick={() => handleDepartmentSelect(entry.department)}
 						disabled={pendingDepartment !== null}
-						class="group flex min-h-[7rem] cursor-pointer flex-col gap-3 rounded-[1.75rem] bg-white p-4 text-left shadow-[var(--shadow-soft)] ring-1 ring-slate-200/80 transition-all enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-card)] enabled:active:translate-y-0 enabled:hover:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+						class="ds-operational-card group flex min-h-[72px] cursor-pointer flex-col gap-2 p-3 text-left transition enabled:hover:border-ds-blue-400 enabled:hover:bg-ds-blue-50 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
 					>
 						<div
 							class="flex items-start justify-between gap-4"
 							data-testid={`select-category-department-header-${entry.department}`}
 						>
 							<div class="flex items-center gap-3">
-								<h3 class="text-[1.75rem] font-bold tracking-tight text-slate-950">{entry.department}</h3>
-								<span class={`px-3 py-1.5 text-sm font-semibold ${blueBadgeClasses}`}>
+								<h3 class="ds-operational-card-title text-lg">{entry.department}</h3>
+								<span class={`px-3 py-1.5 text-[13px] font-semibold ${blueBadgeClasses}`}>
 									{formatDepartmentProgress(departmentProgress)}
 								</span>
 							</div>
 							<div
-								class={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${getWorkflowStatusClasses(departmentStatus)}`}
+								class={`ds-status-pill h-8 min-w-16 px-3 ${getStatusPillClass(departmentStatus)}`}
 							>
 								{departmentStatus ?? '--'}
 							</div>
@@ -525,20 +528,20 @@
 
 						<div class="space-y-1.5">
 							<div
-								class="h-1.5 overflow-hidden rounded-full bg-surface-container-low"
+								class="h-2 overflow-hidden rounded-full bg-ds-gray-100"
 								data-testid={`select-category-department-progress-row-${entry.department}`}
 							>
 								<div
-									class="h-full rounded-full bg-emerald-500 transition-[width]"
+									class="h-full rounded-full bg-ds-green-400 transition-[width]"
 									style={`width: ${departmentProgress === null ? 0 : Math.max(0, Math.min(1, departmentProgress)) * 100}%`}
 								></div>
 							</div>
 
 							<div
-								class="flex flex-wrap gap-1.5 text-[10px] text-slate-600"
+								class="flex flex-wrap gap-2 text-[13px] text-ds-gray-600"
 								data-testid={`select-category-department-loader-row-${entry.department}`}
 							>
-								<span class={`px-2.5 py-1 font-medium ${blueBadgeClasses}`}>
+								<span class="rounded-full bg-ds-blue-50 px-3 py-1.5 text-[13px] font-semibold text-ds-blue-600">
 									{selectedLoaderLabel}
 								</span>
 							</div>
@@ -551,16 +554,16 @@
 
 	<div
 		data-testid="select-category-loader-roster"
-		class="space-y-4 rounded-[2.5rem] bg-white/92 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/80"
+		class="ds-operational-panel space-y-3 p-4"
 	>
 		<div class="flex items-center justify-between gap-3">
-			<h2 class="text-xl font-bold tracking-tight text-slate-950">Loaders</h2>
+			<h2 class="ds-section-heading text-base">Loaders</h2>
 		</div>
 
 		{#if data.departmentLoadersError}
 			<div
 				data-testid="select-category-loader-roster-error"
-				class="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700"
+				class="rounded-[var(--ds-radius-card)] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700"
 			>
 				<p class="font-semibold">Unable to load loader roster.</p>
 				{#if data.departmentLoadersError !== 'Unable to load loader roster.'}
@@ -568,29 +571,28 @@
 				{/if}
 			</div>
 		{:else}
-			<!-- Fixed three columns keep the loader roster readable and left-to-right on the shared iPad. -->
-			<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-3">
+			<div data-testid="select-category-loader-grid" class="grid grid-cols-3 gap-2">
 				{#each LOADING_ENTRY_DEPARTMENTS as entry (entry.department)}
 					{@const departmentLoaderNames = getDepartmentLoaderNames(entry.department)}
 					<section
 						data-testid={`select-category-loader-column-${entry.department}`}
-						class="rounded-[1.5rem] bg-surface-container-low/60 p-4 shadow-[var(--shadow-soft)] ring-1 ring-white/70"
+						class="rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-ds-gray-100 p-3"
 					>
 						<div class="flex items-center justify-between gap-3">
-							<h3 class="text-base font-bold tracking-tight text-slate-950">{entry.department}</h3>
-							<span class={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${blueBadgeClasses}`}>
+							<h3 class="ds-operational-subtitle text-sm">{entry.department}</h3>
+							<span class={`px-2.5 py-1 text-xs font-semibold ${blueBadgeClasses}`}>
 								{departmentLoaderNames.length}
 							</span>
 						</div>
 
 						{#if departmentLoaderNames.length === 0}
-							<div class="mt-3 rounded-[1.1rem] border border-dashed border-slate-200 bg-white/80 px-3 py-4 text-sm text-slate-500">
+							<div class="mt-3 rounded-[var(--ds-radius-card)] border border-dashed border-ds-gray-300 bg-ds-white px-3 py-4 text-[13px] text-ds-gray-600">
 								No loaders yet for this department.
 							</div>
 						{:else}
 							<div class="mt-3 flex flex-wrap gap-2">
 								{#each departmentLoaderNames as loaderName (loaderName)}
-									<span class={`px-3 py-2 text-sm font-medium ${blueBadgeClasses}`}>
+									<span class={`px-3 py-2 text-[13px] font-medium ${blueBadgeClasses}`}>
 										{loaderName}
 									</span>
 								{/each}
@@ -604,7 +606,7 @@
 
 	<div
 		data-testid="select-category-action-footer"
-		class="sticky bottom-3 z-10 rounded-[1.6rem] bg-white/94 p-2 shadow-[0_-18px_50px_-30px_rgba(15,23,42,0.36)] ring-1 ring-white/80 backdrop-blur-xl"
+		class="ds-operational-panel p-2"
 	>
 		<div
 			data-testid="select-category-utility-actions"
@@ -632,7 +634,7 @@
 						<p class={footerActionLabelClasses}>Order Status</p>
 					</div>
 				</div>
-				<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
+				<ChevronRight class="size-4.5 shrink-0 text-ds-gray-600" />
 			</button>
 
 			<button
@@ -657,7 +659,7 @@
 						<p class={footerActionLabelClasses}>Dropsheet</p>
 					</div>
 				</div>
-				<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
+				<ChevronRight class="size-4.5 shrink-0 text-ds-gray-600" />
 			</button>
 
 			{#if data.willCall}
@@ -676,9 +678,9 @@
 						</div>
 					</div>
 					{#if isLoadingWillCallSignature}
-						<LoaderCircle class="size-4.5 shrink-0 animate-spin text-slate-400" />
+						<LoaderCircle class="size-4.5 shrink-0 animate-spin text-ds-gray-600" />
 					{:else}
-						<ChevronRight class="size-4.5 shrink-0 text-slate-400" />
+						<ChevronRight class="size-4.5 shrink-0 text-ds-gray-600" />
 					{/if}
 				</button>
 			{/if}
@@ -686,7 +688,7 @@
 			{#if canCompleteLoad}
 				<button
 					type="button"
-					class="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-[1.25rem] bg-[linear-gradient(135deg,#0058bc_0%,#0070eb_100%)] px-3 py-2.5 text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03]"
+					class="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-[var(--ds-radius-card)] bg-ds-blue-500 px-3 py-2.5 text-white transition hover:brightness-[1.03] active:scale-[0.97]"
 					onclick={openCompleteLoadingModal}
 				>
 					<span
@@ -701,7 +703,7 @@
 	</div>
 
 	{#if submitError}
-		<div class="rounded-[1.75rem] bg-rose-50 px-5 py-4 text-sm text-rose-700">
+		<div class="rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-3 text-sm text-rose-700">
 			<p>{submitError}</p>
 		</div>
 	{/if}

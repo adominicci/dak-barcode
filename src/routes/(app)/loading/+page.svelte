@@ -3,22 +3,24 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
-		ArrowLeft,
-		ArrowRight,
 		ClipboardList,
 		LoaderCircle,
 		PackageSearch,
 		PenLine,
-		ScanBarcode,
+		Trash2,
 		Truck,
-		TriangleAlert
+		TriangleAlert,
+		X
 	} from '@lucide/svelte';
 	import { onMount, settled } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { get } from 'svelte/store';
 	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
+	import DepartmentStatusPills from '$lib/components/workflow/department-status-pills.svelte';
+	import DropCounterBar from '$lib/components/workflow/drop-counter-bar.svelte';
+	import ScannedIdGrid from '$lib/components/workflow/scanned-id-grid.svelte';
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
+	import WorkflowScanField from '$lib/components/workflow/workflow-scan-field.svelte';
 	import { getDepartmentStatus } from '$lib/department-status.remote';
 	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
@@ -32,7 +34,6 @@
 	} from '$lib/workflow/loading-department-status';
 	import { withTimeout } from '$lib/workflow/async-timeout';
 	import { createLoadingScanController } from '$lib/workflow/loading-scan-controller';
-	import { getLoadingUnionKey } from '$lib/workflow/loading-union-key';
 	import {
 		buildEndLoaderSessionInput,
 		hasLoadingWorkflowContext,
@@ -43,12 +44,12 @@
 		workflowStores,
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
-	import type { LoadingScanRequest } from '$lib/types';
+	import type { LoadingScanRequest, LoadViewDetail, LoadViewUnion, ScanResult } from '$lib/types';
 
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
 	const LOADING_SCAN_TIMING_STORAGE_KEY = 'dak.loadingScanTiming';
-	const MAX_QUEUED_SCAN_TEXTS = 5;
+	const MAX_QUEUED_SCAN_TEXTS = 50;
 
 	type LoadingRetryState =
 		| {
@@ -65,6 +66,14 @@
 		message: string;
 		errorKind: 'business' | 'api' | 'transport';
 		retryState: LoadingRetryState | null;
+	};
+
+	type LoadingScanIssue = {
+		id: number;
+		scannedText: string;
+		title: string;
+		message: string;
+		createdAt: number;
 	};
 
 	const selectedDepartment = get(workflowStores.selectedDepartment);
@@ -88,6 +97,12 @@
 	let queuedScanTexts = $state<string[]>([]);
 	let inFlightScanText = $state<string | null>(null);
 	let isDrainingQueuedScans = $state(false);
+	let refreshedDropDetails = $state<LoadViewDetail[] | null>(null);
+	let refreshedDropLabelsByKey = $state<Record<string, LoadViewUnion[]>>({});
+	let pendingLocationScanText = $state<string | null>(null);
+	let scanIssues = $state<LoadingScanIssue[]>([]);
+	let isScanIssuesDrawerOpen = $state(false);
+	let nextScanIssueId = 1;
 
 	const loadingEntry = $derived(parseLoadingEntryContext(page.url));
 	const hasWorkflowContext = hasLoadingWorkflowContext({
@@ -135,7 +150,7 @@
 			refresh: () => query.refresh()
 		};
 	});
-	const dropDetails = $derived(dropDetailsState.current);
+	const dropDetails = $derived(refreshedDropDetails ?? dropDetailsState.current);
 	const dropNavigation = $derived(
 		createLoadingDropNavigationState(dropDetails.length, selectedDropIndex)
 	);
@@ -171,6 +186,21 @@
 			};
 		}
 
+		const labelsKey = getDropLabelsQueryKey({
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: selectedDropDetail.locationId
+		});
+		const refreshedDropLabels = refreshedDropLabelsByKey[labelsKey];
+		if (refreshedDropLabels) {
+			return {
+				current: refreshedDropLabels,
+				error: null,
+				loading: false,
+				refresh: null
+			};
+		}
+
 		const query = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
@@ -192,6 +222,9 @@
 				)
 			: []
 	);
+	const unscannedPartListIds = $derived(
+		unscannedDropLabels.map((label) => label.partListId || '--')
+	);
 	const isEmptyDrop = $derived(
 		!isLoadingDropLabels && selectedDropDetail !== null && selectedDropDetail.labelCount === 0
 	);
@@ -202,6 +235,7 @@
 			(selectedDropDetail.scannedCount >= selectedDropDetail.labelCount ||
 				(dropLabels.length > 0 && unscannedDropLabels.length === 0))
 	);
+	const scanIssueCount = $derived(scanIssues.length);
 
 	$effect(() => {
 		if (shouldRedirectHome || loadingEntry === null || selectedDropDetail === null) {
@@ -252,6 +286,8 @@
 		return () => {
 			unsubscribeDropArea();
 			loadingScanController?.cancelPendingScan();
+			pendingLocationScanText = null;
+			clearScanIssues();
 			workflowStores.clearCurrentLoadingHeaderContext();
 			loadingScanController = null;
 		};
@@ -286,6 +322,7 @@
 		navigation.cancel();
 		isEndingSession = true;
 		lifecycleError = null;
+		clearScanIssues();
 
 		void (async () => {
 			try {
@@ -326,6 +363,52 @@
 		scanError = null;
 	}
 
+	function openScanIssuesDrawer() {
+		isScanIssuesDrawerOpen = true;
+	}
+
+	function closeScanIssuesDrawer() {
+		isScanIssuesDrawerOpen = false;
+	}
+
+	function addScanIssue(input: { scannedText: string; title: string; message: string }) {
+		const scannedText = input.scannedText.trim();
+		if (scannedText.length === 0) {
+			return;
+		}
+
+		scanIssues = [
+			...scanIssues,
+			{
+				id: nextScanIssueId,
+				scannedText,
+				title: input.title,
+				message: input.message,
+				createdAt: Date.now()
+			}
+		];
+		nextScanIssueId += 1;
+		isScanIssuesDrawerOpen = true;
+	}
+
+	function removeScanIssue(issueId: number) {
+		scanIssues = scanIssues.filter((issue) => issue.id !== issueId);
+	}
+
+	function removeScanIssuesForBarcode(scannedText: string | null | undefined) {
+		const normalizedScanText = scannedText?.trim();
+		if (!normalizedScanText) {
+			return;
+		}
+
+		scanIssues = scanIssues.filter((issue) => issue.scannedText !== normalizedScanText);
+	}
+
+	function clearScanIssues() {
+		scanIssues = [];
+		isScanIssuesDrawerOpen = false;
+	}
+
 	function buildLegacyActionSearchParams(input: {
 		loadNumber: string | null;
 		dropWeight: number | null;
@@ -350,6 +433,13 @@
 
 	function setTransportError(message: string, retryState: LoadingRetryState | null) {
 		clearQueuedScans();
+		if (retryState?.mode === 'direct') {
+			addScanIssue({
+				scannedText: retryState.request.scannedText,
+				title: 'Connection issue',
+				message
+			});
+		}
 		scanError = {
 			title: 'Connection issue',
 			message,
@@ -395,12 +485,29 @@
 		queuedScanTexts = [];
 	}
 
+	function getDropLabelsQueryKey(input: {
+		loadNumber: string;
+		sequence: number;
+		locationId: number;
+	}) {
+		return [input.loadNumber, input.sequence, input.locationId].join('|');
+	}
+
 	function isDuplicateQueuedScan(scannedText: string) {
 		return inFlightScanText === scannedText || queuedScanTexts.at(-1) === scannedText;
 	}
 
 	function enqueueScanText(scannedText: string) {
-		if (isDuplicateQueuedScan(scannedText) || queuedScanTexts.length >= MAX_QUEUED_SCAN_TEXTS) {
+		if (isDuplicateQueuedScan(scannedText)) {
+			return false;
+		}
+
+		if (queuedScanTexts.length >= MAX_QUEUED_SCAN_TEXTS) {
+			addScanIssue({
+				scannedText,
+				title: 'Queue full',
+				message: 'Queue is full. Wait briefly and rescan this barcode.'
+			});
 			return false;
 		}
 
@@ -424,16 +531,36 @@
 			department: loaderInfo.department,
 			dropAreaId: currentDropArea?.dropAreaId ?? null,
 			loadNumber: selectedDropDetail.loadNumber,
-			loaderName: loaderInfo.loaderName
+			loaderName: loaderInfo.loaderName,
+			dropSheetId: selectedDropDetail.dropSheetId,
+			locationId: selectedDropDetail.locationId,
+			sequence: selectedDropDetail.sequence,
+			selectedDropIndex: dropNavigation.selectedIndex
 		};
 	}
 
-	async function refreshActiveDropData() {
+	async function refreshActiveDropData(result: ScanResult) {
 		if (selectedDropDetail === null || !dropDetailsState.refresh) {
 			return;
 		}
 
 		const refreshStartedAt = getLoadingScanTimestamp();
+		if (result.loadingRefresh) {
+			refreshedDropDetails = result.loadingRefresh.dropDetails;
+			refreshedDropLabelsByKey = {
+				...refreshedDropLabelsByKey,
+				[getDropLabelsQueryKey(result.loadingRefresh.dropLabelsKey)]:
+					result.loadingRefresh.dropLabels
+			};
+			logLoadingScanTiming('combined-refresh', refreshStartedAt, {
+				detailRows: result.loadingRefresh.dropDetails.length,
+				unionRows: result.loadingRefresh.dropLabels.length
+			});
+			return;
+		}
+
+		refreshedDropDetails = null;
+		refreshedDropLabelsByKey = {};
 		const activeUnionQuery = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
@@ -476,22 +603,40 @@
 	async function applyScanAction(
 		action: ReturnType<NonNullable<typeof loadingScanController>['submitScan']> extends Promise<infer T>
 			? T
-			: never
+			: never,
+		scannedText: string | null = null
 	) {
 		if (!action) {
 			await focusScanInput();
 			return;
 		}
 
-		scanError =
-			action.kind === 'error'
-				? {
-						title: action.title,
-						message: action.message,
-						errorKind: action.errorKind,
-						retryState: null
-					}
-				: null;
+		if (action.kind === 'needs-location') {
+			pendingLocationScanText = scannedText;
+		} else if (action.kind === 'success') {
+			pendingLocationScanText = null;
+		}
+
+		if (action.kind === 'error') {
+			if (action.errorKind === 'business') {
+				addScanIssue({
+					scannedText: scannedText ?? pendingLocationScanText ?? inFlightScanText ?? '',
+					title: action.title,
+					message: action.message
+				});
+				pendingLocationScanText = null;
+				scanError = null;
+			} else {
+				scanError = {
+					title: action.title,
+					message: action.message,
+					errorKind: action.errorKind,
+					retryState: null
+				};
+			}
+		} else {
+			scanError = null;
+		}
 		scanPrompt = action.kind === 'needs-location' ? action.message : null;
 		isLocationModalOpen = action.kind === 'needs-location';
 
@@ -507,7 +652,7 @@
 		if (action.showSuccessToast) {
 			clearScanError();
 			scanPrompt = null;
-			toast.success(action.message);
+			removeScanIssuesForBarcode(scannedText);
 		}
 
 		if (!isScanning && pendingTimedOutScan === null) {
@@ -516,12 +661,13 @@
 	}
 
 	function monitorTimedOutScanSettlement(
-		scanPromise: ReturnType<NonNullable<typeof loadingScanController>['submitScan']>
+		scanPromise: ReturnType<NonNullable<typeof loadingScanController>['submitScan']>,
+		scannedText: string | null = null
 	) {
 		pendingTimedOutScan = (async () => {
 			try {
 				const action = await scanPromise;
-				await applyScanAction(action);
+				await applyScanAction(action, scannedText);
 
 				if (action?.kind === 'location-updated' && loadingScanController?.hasPendingScan()) {
 					await retryPendingScanWithDropArea(action.dropArea.dropAreaId);
@@ -543,7 +689,11 @@
 			department: loaderInfo.department,
 			dropAreaId,
 			loadNumber: selectedDropDetail.loadNumber,
-			loaderName: loaderInfo.loaderName
+			loaderName: loaderInfo.loaderName,
+			dropSheetId: selectedDropDetail.dropSheetId,
+			locationId: selectedDropDetail.locationId,
+			sequence: selectedDropDetail.sequence,
+			selectedDropIndex: dropNavigation.selectedIndex
 		});
 
 		try {
@@ -553,7 +703,7 @@
 				LOADING_SCAN_TIMEOUT_MESSAGE
 			);
 			if (action) {
-				await applyScanAction(action);
+				await applyScanAction(action, pendingLocationScanText);
 			}
 			return action !== null;
 		} catch (error) {
@@ -594,7 +744,7 @@
 				LOADING_SCAN_TIMEOUT_MS,
 				LOADING_SCAN_TIMEOUT_MESSAGE
 			);
-			await applyScanAction(action);
+			await applyScanAction(action, request.scannedText);
 			shouldRefocusAfterScan = true;
 
 			if (action?.kind === 'location-updated' && loadingScanController.hasPendingScan()) {
@@ -605,7 +755,7 @@
 
 			if (error instanceof Error && error.message === LOADING_SCAN_TIMEOUT_MESSAGE) {
 				setTransportError(LOADING_SCAN_TIMEOUT_MESSAGE, null);
-				monitorTimedOutScanSettlement(scanPromise);
+				monitorTimedOutScanSettlement(scanPromise, request.scannedText);
 				shouldRefocusAfterScan = false;
 			} else {
 				setTransportError(
@@ -725,6 +875,7 @@
 
 		clearQueuedScans();
 		clearScanError();
+		pendingLocationScanText = null;
 		isLocationModalOpen = false;
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,
@@ -754,6 +905,7 @@
 		loadingScanController?.cancelPendingScan();
 		clearQueuedScans();
 		clearScanError();
+		pendingLocationScanText = null;
 		scanPrompt = null;
 		isLocationModalOpen = false;
 		await focusScanInput();
@@ -762,6 +914,7 @@
 	async function handleErrorDismiss() {
 		if (scanError?.retryState?.mode === 'pending' || loadingScanController?.hasPendingScan()) {
 			loadingScanController?.cancelPendingScan();
+			pendingLocationScanText = null;
 		}
 
 		clearQueuedScans();
@@ -795,24 +948,24 @@
 
 </script>
 
-<div class="space-y-6">
+<div class="space-y-5">
 	{#if lifecycleError}
-		<div class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+		<div class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 			<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 			<p>{lifecycleError}</p>
 		</div>
 	{/if}
 
-	<div class="rounded-[2rem] bg-surface-container-low p-4 sm:p-6">
+	<div>
 		{#if shouldRedirectHome}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<p class="text-lg font-semibold text-slate-900">Returning to Home...</p>
 				<p class="mt-2 text-sm leading-6 text-slate-600">
 					Loading requires an active dropsheet handoff from the current session.
 				</p>
 			</div>
 		{:else if loaderInfoState.error}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the loader session.</p>
 				<p class="mt-2 text-sm leading-6 text-slate-600">
 					{getOperatorErrorMessage(
@@ -822,7 +975,7 @@
 				</p>
 			</div>
 		{:else if loaderInfoState.loading || loaderInfo === null}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
 					<LoaderCircle class="size-8 animate-spin" />
 				</div>
@@ -831,14 +984,14 @@
 				</p>
 			</div>
 		{:else if dropDetailsState.error}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<p class="text-lg font-semibold text-slate-900">Unable to load the drop list.</p>
 				<p class="mt-2 text-sm leading-6 text-slate-600">
 					{getOperatorErrorMessage(dropDetailsState.error, 'Unable to load the drop list.')}
 				</p>
 			</div>
 		{:else if dropDetailsState.loading && dropDetails.length === 0}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
 					<LoaderCircle class="size-8 animate-spin" />
 				</div>
@@ -847,7 +1000,7 @@
 				</p>
 			</div>
 		{:else if selectedDropDetail === null}
-			<div class="rounded-[2rem] bg-white px-6 py-12 text-center shadow-sm">
+			<div class="rounded-[var(--ds-radius-card)] bg-white px-6 py-12 text-center">
 				<div class="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/5 text-primary">
 					<PackageSearch class="size-8" />
 				</div>
@@ -855,132 +1008,151 @@
 					No drops are ready for this loading session.
 				</p>
 			</div>
-			{:else}
-				<div class="space-y-4">
-					<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-						<div class="space-y-3">
-							<LoadSummaryStrip
-								testId="loading-summary-strip"
-								driverName={loaderInfo.loaderName}
-								loadNumber={loadNumber ?? '--'}
-								dropWeight={loadingEntry?.dropWeight ?? null}
-								customerName={selectedDropDetail.customerName}
-								variant="loading"
-							/>
+		{:else}
+			<div class="ds-operational-panel space-y-3 p-4" data-testid="loading-workflow-panel">
+				<div
+					class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]"
+					data-testid="loading-context-grid"
+				>
+					<div class="space-y-2">
+						<LoadSummaryStrip
+							testId="loading-summary-strip"
+							driverName={loaderInfo.loaderName}
+							loadNumber={loadNumber ?? '--'}
+							dropWeight={loadingEntry?.dropWeight ?? null}
+							customerName={selectedDropDetail.customerName}
+							variant="loading"
+						/>
 
-							<div class="grid gap-2 sm:grid-cols-2" data-testid="loading-legacy-actions">
-								<button
-									type="button"
-									aria-label="Order Status"
-									data-testid="loading-order-status-button"
-									onclick={() =>
-										goto(
-											resolve(
-												`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams({
-													loadNumber,
-													dropWeight: loadingEntry?.dropWeight ?? null,
-													driverName: selectedDropDetail.driverName?.trim() ?? null
-												}).toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
-												{
-													dropsheetId: String(selectedDropDetail.dropSheetId)
-												}
-											)
+						<div class="grid gap-2 sm:grid-cols-2" data-testid="loading-legacy-actions">
+							<button
+								type="button"
+								aria-label="Order Status"
+								data-testid="loading-order-status-button"
+								onclick={() =>
+									goto(
+										resolve(
+											`/(app)/order-status/[dropsheetId]?${buildLegacyActionSearchParams({
+												loadNumber,
+												dropWeight: loadingEntry?.dropWeight ?? null,
+												driverName: selectedDropDetail.driverName?.trim() ?? null
+											}).toString()}` as `/(app)/order-status/[dropsheetId]?${string}`,
+											{
+												dropsheetId: String(selectedDropDetail.dropSheetId)
+											}
 										)
-									}
-									class="flex items-center justify-between gap-3 rounded-[1.5rem] bg-white px-4 py-3 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-								>
-									<div class="flex min-w-0 items-center gap-2.5">
-										<span class="flex size-9 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-											<ClipboardList class="size-4" />
-										</span>
-										<div class="min-w-0">
-											<p class="text-sm font-bold tracking-tight text-slate-950">Order Status</p>
-										</div>
+									)
+								}
+								class="ds-control flex min-h-12 items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-ds-blue-50"
+							>
+								<div class="flex min-w-0 items-center gap-2.5">
+									<span class="flex size-9 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
+										<ClipboardList class="size-4" />
+									</span>
+									<div class="min-w-0">
+										<p class="text-sm font-semibold text-ds-gray-900">Order Status</p>
 									</div>
-									<PenLine class="size-4 shrink-0 text-slate-400" />
-								</button>
+								</div>
+								<PenLine class="size-4 shrink-0 text-slate-400" />
+							</button>
 
-								<button
-									type="button"
-									aria-label="Dropsheet"
-									data-testid="loading-dropsheet-button"
-									onclick={() =>
-										goto(
-											resolve(
-												`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams({
-													loadNumber,
-													dropWeight: loadingEntry?.dropWeight ?? null,
-													driverName: selectedDropDetail.driverName?.trim() ?? null
-												}).toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
-												{
-													dropsheetId: String(selectedDropDetail.dropSheetId)
-												}
-											)
+							<button
+								type="button"
+								aria-label="Dropsheet"
+								data-testid="loading-dropsheet-button"
+								onclick={() =>
+									goto(
+										resolve(
+											`/(app)/move-orders/[dropsheetId]?${buildLegacyActionSearchParams({
+												loadNumber,
+												dropWeight: loadingEntry?.dropWeight ?? null,
+												driverName: selectedDropDetail.driverName?.trim() ?? null
+											}).toString()}` as `/(app)/move-orders/[dropsheetId]?${string}`,
+											{
+												dropsheetId: String(selectedDropDetail.dropSheetId)
+											}
 										)
-									}
-									class="flex items-center justify-between gap-3 rounded-[1.5rem] bg-white px-4 py-3 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-								>
-									<div class="flex min-w-0 items-center gap-2.5">
-										<span class="flex size-9 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-											<Truck class="size-4" />
-										</span>
-										<div class="min-w-0">
-											<p class="text-sm font-bold tracking-tight text-slate-950">Dropsheet</p>
-										</div>
+									)
+								}
+								class="ds-control flex min-h-12 items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-ds-blue-50"
+							>
+								<div class="flex min-w-0 items-center gap-2.5">
+									<span class="flex size-9 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
+										<Truck class="size-4" />
+									</span>
+									<div class="min-w-0">
+										<p class="text-sm font-semibold text-ds-gray-900">Dropsheet</p>
 									</div>
-									<PenLine class="size-4 shrink-0 text-slate-400" />
-								</button>
-							</div>
-						</div>
-
-						<div
-							class="rounded-[1.75rem] bg-white p-3 shadow-[var(--shadow-soft)]"
-							data-testid="loading-department-status-strip"
-						>
-							<div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
-								{#each departmentStatusEntries as entry (entry.testId)}
-									<div class="min-w-0 space-y-2 text-center" data-testid={entry.testId}>
-										<p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-											{entry.label}
-										</p>
-										<div
-											class={`rounded-[1rem] px-2 py-2 text-[11px] font-bold uppercase tracking-[0.16em] ${entry.className}`}
-										>
-											{entry.value ?? '--'}
-										</div>
-									</div>
-								{/each}
-							</div>
+								</div>
+								<PenLine class="size-4 shrink-0 text-slate-400" />
+							</button>
 						</div>
 					</div>
 
-					<section
-						data-testid="loading-scan-section"
-						class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col rounded-[2rem] bg-white p-3 shadow-sm sm:p-4"
-					>
-						<div class="shrink-0 space-y-3">
-							<div class="space-y-2">
-								<label class="ui-label px-1 text-xs" for="loading-scan-input">Scan Barcode</label>
-								<div class="relative">
-									<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-primary" />
-										<input
-											id="loading-scan-input"
-											data-testid="loading-scan-input"
-											type="text"
-											bind:value={scanInputValue}
-											bind:this={scanInputElement}
-											placeholder={currentDropArea?.dropAreaLabel
-												? 'Scan or type loading barcode...'
-												: 'Scan a driver location or loading barcode...'}
-											disabled={pendingTimedOutScan !== null || isLocationModalOpen}
-											onkeydown={handleScanKeydown}
-											class="h-14 w-full rounded-2xl border-none bg-surface-container-highest pl-14 pr-6 text-base transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary"
-										/>
-									</div>
+					<div class="p-0 lg:pt-3" data-testid="loading-department-status-strip">
+						<DepartmentStatusPills entries={departmentStatusEntries} testId="loading-department-status" />
+					</div>
+				</div>
+
+				<section
+					data-testid="loading-scan-section"
+					class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col"
+				>
+					<div class="shrink-0 space-y-2">
+						<div class="space-y-2">
+							<div
+								data-testid="loading-queue-status"
+								class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-white px-3 py-2 text-sm shadow-[0_10px_30px_-24px_rgba(15,23,42,0.4)]"
+							>
+								<div class="flex flex-wrap items-center gap-2.5">
+									<span
+										class={[
+											'inline-flex min-h-9 items-center rounded-[var(--ds-radius-control)] px-3 text-xs font-bold uppercase tracking-[0.08em]',
+											isScanning
+												? 'bg-ds-blue-50 text-ds-blue-600'
+												: 'bg-emerald-50 text-emerald-700'
+										]}
+									>
+										{isScanning ? 'Processing' : 'Ready'}
+									</span>
+									<span class="font-semibold text-ds-gray-900">
+										Queued {queuedScanTexts.length}/{MAX_QUEUED_SCAN_TEXTS}
+									</span>
+								</div>
+
+								<button
+									type="button"
+									class={[
+										'inline-flex min-h-10 items-center justify-center rounded-[var(--ds-radius-control)] px-4 text-sm font-bold transition',
+										scanIssueCount > 0
+											? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100'
+											: 'bg-ds-gray-100 text-ds-gray-600 hover:bg-ds-blue-50 hover:text-ds-blue-600'
+									]}
+									aria-label={`Open scan issues (${scanIssueCount})`}
+									onclick={openScanIssuesDrawer}
+								>
+									Issues {scanIssueCount}
+								</button>
+							</div>
+
+							<WorkflowScanField
+								id="loading-scan-input"
+								label="Scan Barcode"
+								bind:value={scanInputValue}
+								placeholder={currentDropArea?.dropAreaLabel
+									? 'Scan or type loading barcode...'
+									: 'Scan a driver location or loading barcode...'}
+								disabled={pendingTimedOutScan !== null || isLocationModalOpen}
+								onKeydown={handleScanKeydown}
+								onInputElement={(element) => {
+									scanInputElement = element;
+								}}
+								testId="loading-scan"
+							/>
 
 								{#if scanError}
 									<div
-										class="flex gap-3 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
 									>
 										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 										<div class="min-w-0 flex-1">
@@ -990,7 +1162,7 @@
 												{#if scanError.retryState}
 													<button
 														type="button"
-														class="inline-flex items-center justify-center rounded-full bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
+														class="inline-flex items-center justify-center rounded-[var(--ds-radius-control)] bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-70"
 														disabled={isScanning || pendingTimedOutScan !== null}
 														onclick={handleErrorRetry}
 													>
@@ -999,7 +1171,7 @@
 												{/if}
 												<button
 													type="button"
-													class="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
+													class="inline-flex items-center justify-center rounded-[var(--ds-radius-control)] bg-white px-4 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
 													disabled={isScanning || pendingTimedOutScan !== null}
 													onclick={handleErrorDismiss}
 												>
@@ -1010,7 +1182,7 @@
 									</div>
 								{:else if scanPrompt}
 									<div
-										class="flex gap-3 rounded-2xl bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
+										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
 									>
 										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 										<p>{scanPrompt}</p>
@@ -1019,24 +1191,24 @@
 							</div>
 						</div>
 
-						<div class="mt-2.5 flex min-h-0 flex-1 flex-col rounded-[1.5rem] bg-surface-container-low p-2">
+						<div class="mt-2 flex min-h-0 flex-1 flex-col rounded-[var(--ds-radius-card)] bg-ds-gray-100 p-3">
 							{#if dropLabelsState.error}
-								<div class="rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
+								<div class="rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 									{getOperatorErrorMessage(
 										dropLabelsState.error,
 										'Unable to load the drop labels.'
 									)}
 								</div>
 							{:else if isLoadingDropLabels}
-								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-[var(--ds-radius-card)] bg-white px-4 py-8 text-center text-sm text-slate-600">
 									Loading label list...
 								</div>
 							{:else if isEmptyDrop}
-								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-[var(--ds-radius-card)] bg-white px-4 py-8 text-center text-sm text-slate-600">
 									No items are attached to this drop yet.
 								</div>
 							{:else if isFullyScannedDrop}
-								<div class="flex flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600">
+								<div class="flex flex-1 items-center justify-center rounded-[var(--ds-radius-card)] bg-white px-4 py-8 text-center text-sm text-slate-600">
 									All items in this drop are scanned.
 								</div>
 							{:else}
@@ -1044,88 +1216,95 @@
 									class="min-h-0 flex-1 overflow-y-auto pr-1"
 									data-testid="loading-part-list-scroll"
 								>
-									<div
-										class="grid gap-3 md:grid-cols-3"
-										data-testid="loading-part-list-grid"
-									>
-										{#each unscannedDropLabels as label, index (getLoadingUnionKey(label, index))}
-											<div class="rounded-[1.35rem] bg-white px-5 py-5 shadow-sm">
-												<p class="text-base font-bold leading-7 tracking-tight text-slate-950">
-													{label.partListId || '--'}
-												</p>
-											</div>
-										{/each}
-									</div>
+									<ScannedIdGrid items={unscannedPartListIds} testId="loading-part-list-grid" />
 								</div>
 							{/if}
-					</div>
-
-					<div
-						class="mt-4 shrink-0 rounded-[1.75rem] bg-surface-container-low p-2.5"
-						data-testid="loading-active-drop-summary"
-					>
-						<h3 class="text-base font-bold tracking-tight text-slate-950" data-testid="loading-active-drop-title">
-							Drop {dropNavigation.activeDropNumber} of {dropNavigation.totalDrops}
-						</h3>
-
-						<div class="mt-2.5 grid items-stretch gap-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-							<button
-								type="button"
-								aria-label="Previous drop"
-								data-testid="loading-active-drop-previous"
-								class="inline-flex h-16 w-16 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={!dropNavigation.canGoPrevious}
-								onclick={() => moveToDrop('previous')}
-							>
-								<ArrowLeft class="size-7" />
-							</button>
-
-							<div
-								data-testid="loading-drop-stat-labels"
-								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
-							>
-								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Labels</p>
-								<p class="mt-1 text-lg font-bold tracking-tight text-white">
-									{selectedDropDetail.labelCount}
-								</p>
-							</div>
-
-							<div
-								data-testid="loading-drop-stat-scanned"
-								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
-							>
-								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Scanned</p>
-								<p class="mt-1 text-lg font-bold tracking-tight text-white">
-									{selectedDropDetail.scannedCount}
-								</p>
-							</div>
-
-							<div
-								data-testid="loading-drop-stat-need-pick"
-								class="ui-primary-gradient rounded-[1.25rem] px-3 py-2 text-white shadow-sm"
-							>
-								<p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">Need pick</p>
-								<p class="mt-1 text-lg font-bold tracking-tight text-white">
-									{selectedDropDetail.needPickCount}
-								</p>
-							</div>
-
-							<button
-								type="button"
-								aria-label="Next drop"
-								data-testid="loading-active-drop-next"
-								class="inline-flex h-16 w-16 self-center items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-								disabled={!dropNavigation.canGoNext}
-								onclick={() => moveToDrop('next')}
-							>
-								<ArrowRight class="size-7" />
-							</button>
 						</div>
-					</div>
+
+						<DropCounterBar
+							activeDropNumber={dropNavigation.activeDropNumber}
+							totalDrops={dropNavigation.totalDrops}
+							labels={selectedDropDetail.labelCount}
+							scanned={selectedDropDetail.scannedCount}
+							needPick={selectedDropDetail.needPickCount}
+							canGoPrevious={dropNavigation.canGoPrevious}
+							canGoNext={dropNavigation.canGoNext}
+							onPrevious={() => moveToDrop('previous')}
+							onNext={() => moveToDrop('next')}
+							testId="loading-active-drop-summary"
+							previousTestId="loading-active-drop-previous"
+							nextTestId="loading-active-drop-next"
+							statTestIdBase="loading-drop-stat"
+						/>
 				</section>
 			</div>
 		{/if}
 	</div>
+
+	{#if isScanIssuesDrawerOpen}
+		<aside
+			data-testid="loading-scan-issues-drawer"
+			class="fixed right-0 top-14 z-40 flex h-[calc(100dvh-3.5rem)] w-full max-w-[28rem] flex-col border-l border-rose-100 bg-white shadow-[-20px_0_60px_-36px_rgba(15,23,42,0.6)]"
+			aria-labelledby="loading-scan-issues-title"
+		>
+			<div class="flex items-start justify-between gap-4 border-b border-ds-gray-300 px-5 py-4">
+				<div class="min-w-0">
+					<p class="ui-label">Scan Issues</p>
+					<h2 id="loading-scan-issues-title" class="mt-1 text-xl font-bold text-ds-gray-900">
+						Needs attention
+					</h2>
+					<p class="mt-1 text-sm text-ds-gray-600">
+						{scanIssueCount} {scanIssueCount === 1 ? 'barcode' : 'barcodes'} to review
+					</p>
+				</div>
+				<button
+					type="button"
+					class="inline-flex size-14 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-ds-gray-600 transition hover:bg-ds-blue-50 hover:text-ds-blue-600"
+					aria-label="Close scan issues"
+					onclick={closeScanIssuesDrawer}
+				>
+					<X class="size-7" />
+				</button>
+			</div>
+
+			<div class="min-h-0 flex-1 overflow-y-auto bg-ds-gray-100 p-4">
+				{#if scanIssues.length === 0}
+					<div
+						class="flex min-h-64 flex-col items-center justify-center rounded-[var(--ds-radius-card)] bg-white px-6 py-10 text-center text-ds-gray-600"
+					>
+						<TriangleAlert class="size-9 text-ds-blue-500" />
+						<p class="mt-4 text-base font-semibold text-ds-gray-900">No scan issues</p>
+						<p class="mt-1 text-sm">Failed scans will stay here until they are cleared.</p>
+					</div>
+				{:else}
+					<div class="space-y-3">
+						{#each scanIssues as issue (issue.id)}
+							<article
+								class="rounded-[var(--ds-radius-card)] border border-rose-100 bg-white p-3 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.45)]"
+							>
+								<div class="flex items-start justify-between gap-3">
+									<div class="min-w-0">
+										<p class="font-mono text-base font-bold text-ds-gray-900">
+											{issue.scannedText}
+										</p>
+										<p class="mt-2 text-sm font-semibold text-rose-700">{issue.message}</p>
+									</div>
+									<button
+										type="button"
+										class="inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--ds-radius-control)] bg-rose-50 text-rose-700 transition hover:bg-rose-100"
+										aria-label={`Clear issue for ${issue.scannedText}`}
+										onclick={() => removeScanIssue(issue.id)}
+									>
+										<Trash2 class="size-5" />
+									</button>
+								</div>
+							</article>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</aside>
+	{/if}
 
 	{#if isLocationModalOpen && loaderInfo}
 		<StagingLocationModal

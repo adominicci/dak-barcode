@@ -48,7 +48,8 @@ import type {
 	RawDakLoaderInfo,
 	RawDakLoaderSession,
 	RawDakScanDropArea,
-	RawDakScanResult
+	RawDakScanResult,
+	RawCustomerPortalLoadingScanResult
 } from '$lib/types/raw-dak';
 
 function nullableString(value: string | null | undefined): string | null {
@@ -470,4 +471,36 @@ export function mapDakScanResult(raw: RawDakScanResult): ScanResult {
 			typeof rawNeedPick === 'number' && Number.isFinite(rawNeedPick) ? rawNeedPick : null,
 		dropArea: raw.drop_area || raw.dropArea ? mapDakScanDropArea(raw.drop_area ?? raw.dropArea!) : null
 	};
+}
+
+export function mapCustomerPortalLoadingScanResult(
+	raw: RawCustomerPortalLoadingScanResult
+): ScanResult {
+	const result = mapDakScanResult(raw);
+	const rawDetails = raw.load_view_detail_all ?? raw.loadViewDetailAll;
+	const rawUnion = raw.load_view_union ?? raw.loadViewUnion;
+	const rawUnionKey = raw.load_view_union_key ?? raw.loadViewUnionKey;
+	const loadNumber = rawUnionKey?.load_number ?? rawUnionKey?.loadNumber;
+	const sequence = rawUnionKey?.sequence;
+	const locationId = rawUnionKey?.location_id ?? rawUnionKey?.locationId;
+
+	if (
+		Array.isArray(rawDetails) &&
+		Array.isArray(rawUnion) &&
+		typeof loadNumber === 'string' &&
+		typeof sequence === 'number' &&
+		typeof locationId === 'number'
+	) {
+		result.loadingRefresh = {
+			dropDetails: rawDetails.map(mapDstLoadViewDetail),
+			dropLabels: rawUnion.map(mapDstLoadViewUnion),
+			dropLabelsKey: {
+				loadNumber,
+				sequence,
+				locationId
+			}
+		};
+	}
+
+	return result;
 }

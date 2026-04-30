@@ -99,6 +99,9 @@ describe('staging location modal', () => {
 			.not.toHaveClass('h-[calc(100dvh-2rem)]');
 		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-5xl/);
 		await expect
+			.element(page.getByTestId('staging-location-modal'))
+			.not.toHaveClass(/h-\[calc\(100dvh-3rem\)\]/);
+		await expect
 			.element(page.getByTestId('staging-location-list-scroll-region'))
 			.not.toBeInTheDocument();
 		await expect
@@ -196,9 +199,9 @@ describe('staging location modal', () => {
 		await expect.element(page.getByRole('tab', { name: 'C' })).toHaveAttribute('aria-selected', 'false');
 		await expect.element(page.getByRole('tab', { name: 'W' })).toHaveAttribute('aria-selected', 'false');
 		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveClass(/xl:grid-cols-5/);
-		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(
-			/h-\[calc\(100dvh-2rem\)\]/
-		);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/ds-modal/);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/h-\[calc\(100dvh-3rem\)\]/);
+		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/max-w-7xl/);
 		await expect.element(page.getByTestId('staging-location-modal')).toHaveClass(/overflow-hidden/);
 		await expect.element(page.getByTestId('staging-location-list-scroll-region')).toHaveClass(
 			/overscroll-contain/
@@ -207,8 +210,12 @@ describe('staging location modal', () => {
 			/overflow-y-auto/
 		);
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(
-			/ui-primary-gradient/
+			/ds-action-card/
 		);
+		await expect.element(page.getByRole('tab', { name: 'B' })).toHaveClass(/h-10/);
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(/min-h-16/);
+		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(/py-3/);
+		await expect.element(page.getByRole('button', { name: 'Bay 2' }).getByText('Bay 2')).toHaveClass(/text-2xl/);
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveClass(/text-white/);
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).toHaveTextContent('Bay 2');
 		await expect.element(page.getByRole('button', { name: 'Bay 2' })).not.toHaveTextContent('Select');
@@ -343,6 +350,9 @@ describe('staging location modal', () => {
 			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'A' }))
 			.toHaveAttribute('aria-selected', 'true');
 		await expect
+			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'A' }))
+			.toHaveAttribute('aria-controls', 'staging-location-second-tabpanel');
+		await expect
 			.element(page.getByTestId('staging-location-letter-tabs').getByRole('tab', { name: 'B' }))
 			.toBeInTheDocument();
 		await expect.element(page.getByTestId('staging-location-second-letter-tabs')).toBeInTheDocument();
@@ -364,6 +374,10 @@ describe('staging location modal', () => {
 		await expect.element(page.getByRole('button', { name: 'A-R-1' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'A-R-2' })).toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: 'B-R-1' })).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('staging-location-modal-grid')).toHaveAttribute(
+			'id',
+			'staging-location-second-tabpanel'
+		);
 
 		await page.getByTestId('staging-location-second-letter-tabs').getByRole('tab', { name: 'R' }).click();
 

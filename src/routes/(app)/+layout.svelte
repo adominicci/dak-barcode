@@ -193,18 +193,18 @@
 	});
 </script>
 
-<div class="ui-page min-h-dvh text-foreground">
+<div class="ds-page-shell min-h-dvh text-foreground">
 	{#if isHomeRoute}
 		<div class="min-h-dvh">
 			{@render children()}
 		</div>
 	{:else}
-		<header class="glass-header fixed top-0 w-full z-50 shadow-sm border-b border-slate-100">
-			<div class="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
+		<header class="ds-topbar fixed top-0 z-50 w-full">
+			<div class="flex h-full w-full items-center justify-between px-6">
 				<div class="flex items-center gap-4">
 					<a
 						href={resolve(backPath as any)}
-						class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+						class="flex size-12 items-center justify-center rounded-[var(--ds-radius-control)] transition-colors hover:bg-ds-gray-100"
 						aria-label="Back"
 					>
 						<ArrowLeft class="size-5 text-slate-700" />
@@ -226,7 +226,7 @@
 							{/if}
 							<button
 								type="button"
-								class="inline-flex size-10 items-center justify-center rounded-full bg-surface-container-low text-slate-600 transition hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+								class="inline-flex size-12 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-slate-600 transition hover:bg-ds-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
 								aria-label="Refresh loading header"
 								disabled={isRefreshingLoadingHeader}
 								onclick={handleLoadingHeaderRefresh}
@@ -238,7 +238,7 @@
 						<TargetBadge target={data.activeTarget} wrapperClass="hidden md:flex" />
 						<a
 							href={resolve(accountPath as any)}
-							class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md"
+							class="flex size-9 items-center justify-center rounded-full bg-ds-blue-500 text-xs font-bold text-white"
 						>
 							{getUserInitials(data.displayName, data.userEmail)}
 						</a>
@@ -247,7 +247,7 @@
 							type="submit"
 							variant="outline"
 							size="sm"
-							class="h-10 rounded-full border-transparent bg-[rgba(139,36,54,0.08)] px-4 text-sm font-semibold text-[#8b2436] hover:bg-[rgba(139,36,54,0.14)]"
+							class="h-10 rounded-[var(--ds-radius-control)] border-transparent bg-red-50 px-4 text-sm font-semibold text-ds-red-500 hover:bg-red-100"
 						>
 							<LogOut class="size-4" />
 							Sign out
@@ -257,7 +257,7 @@
 			</div>
 		</header>
 
-		<main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+		<main class="ds-page-content pt-[calc(var(--ds-topbar-height)+24px)] pb-6">
 			{@render children()}
 		</main>
 	{/if}

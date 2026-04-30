@@ -2,6 +2,26 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-04-30 - Use centered modals for operational selection flows
+
+- Tags: design-system, modal, iPad, workflow-ui
+- Decision: Operator-facing modal flows use centered dialogs with viewport-constrained height and no drag handle. This supersedes the earlier bottom-sheet modal guidance from the compact iPad Operational UI rollout.
+- Rationale: The current iPad workflow screenshots and operator feedback show bottom sheets occupying too much vertical context and making selections feel less like the previous app. Centered dialogs restore the expected interaction model while keeping compact DS radii, touch targets, and card density.
+- Impacted areas: `docs/design.md`, `docs/ui-reference/*`, `src/app.css`, shared workflow modal components and specs
+- Supersedes: the bottom-sheet selection-flow portion of `2026-04-30 - Adopt compact iPad Operational UI system`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
+## 2026-04-30 - Adopt compact iPad Operational UI system
+
+- Tags: design-system, scanner-ux, iPad, workflow-ui
+- Decision: Operator-facing workflow screens use the compact iPad Operational design system for layout density, DS color tokens, 56px top bars, 10-12px radii, always-visible scan inputs, bottom-sheet selections, department status pills, loading drop counters, and barcode-only scanned item cards. Existing workflow references still decide what content and actions appear on each screen.
+- Rationale: The prior operational UI overused wide radii, nested cards, decorative glass/blur, and excessive padding. The shared iPad scanning device benefits from denser, clearer, top-to-bottom workflow surfaces with large touch targets and fewer decorative layers.
+- Impacted areas: `docs/design.md`, `docs/ui-reference/*`, `src/app.css`, `src/routes/(app)/+layout.svelte`, `src/routes/(app)/home/+page.svelte`, `src/routes/(app)/staging/+page.svelte`, `src/routes/(app)/loading/+page.svelte`, shared workflow components and specs
+- Supersedes: the older “Industrial Precisionist” operational guidance that treated 24-32px cards, glass headers, and lavender grouping panels as the default for scanner workflows
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; design docs and retrieval memory updated in this turn
+
 ## 2026-04-29 - Loading location modal accepts any driver location
 
 - Tags: product, loading, legacy-dst, location-selection

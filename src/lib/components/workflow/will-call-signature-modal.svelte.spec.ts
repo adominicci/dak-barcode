@@ -74,6 +74,29 @@ describe('will-call signature modal', () => {
 		});
 	});
 
+	it('renders as a centered modal on every viewport', async () => {
+		render(WillCallSignatureModal, {
+			dropSheetId: 42,
+			signatureRecord: {
+				dropSheetCustomerId: null,
+				dropSheetId: 42,
+				signature: null,
+				signatureTimestamp: null,
+				receivedBy: null,
+				signaturePath: null
+			},
+			onClose: vi.fn(),
+			onUploaded: vi.fn()
+		});
+
+		await expect
+			.element(page.getByTestId('will-call-signature-modal-backdrop'))
+			.toHaveClass(/items-center/);
+		await expect
+			.element(page.getByTestId('will-call-signature-modal-backdrop'))
+			.not.toHaveClass(/items-end/);
+	});
+
 	it('renders an existing signature in view-only mode and resolves a signed URL for stored object paths', async () => {
 		render(WillCallSignatureModal, {
 			dropSheetId: 42,

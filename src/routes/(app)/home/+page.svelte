@@ -13,6 +13,7 @@
 		UserRoundPlus
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import OperationalActionCard from '$lib/components/workflow/operational-action-card.svelte';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 	import WillCallScanModal from '$lib/components/workflow/will-call-scan-modal.svelte';
 	import type { PageProps } from './$types';
@@ -106,22 +107,17 @@
 	}
 </script>
 
-<section class="relative min-h-dvh overflow-hidden bg-surface px-4 pb-16 pt-4 sm:px-6 lg:px-8">
-	<!-- Decorative background blurs matching reference -->
-	<div class="pointer-events-none fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] z-[-1]"></div>
-	<div class="pointer-events-none fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-primary/5 blur-[100px] z-[-1]"></div>
-
-	<div class="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col">
-		<!-- Glass header matching module-selector reference -->
+<section class="ds-page-shell min-h-dvh overflow-hidden">
+	<div class="flex min-h-dvh w-full flex-col">
 		<header
 			data-testid="home-topbar"
-			class="glass-header flex items-center justify-between rounded-2xl border-b border-slate-100 px-6 py-4 shadow-sm"
+			class="ds-topbar flex items-center justify-between px-6"
 		>
 			<div class="flex items-center gap-4">
 				<button
 					type="button"
 					disabled
-					class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low text-slate-500"
+					class="flex size-12 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-gray-100 text-ds-gray-600 disabled:opacity-60"
 					aria-label="Back"
 				>
 					<ArrowLeft class="size-5" />
@@ -144,12 +140,12 @@
 					<CalendarDays class="size-4" />
 					<span class="text-sm">{homeDateLabel}</span>
 				</div>
-					{#if data.isAdmin}
-						<a
-							href={withHomeReturnTo('/location')}
-							class="hidden sm:inline-flex h-10 items-center justify-center rounded-full bg-surface-container-low px-4 text-sm font-semibold text-slate-700 transition hover:bg-surface-container"
-						>
-							Change target
+				{#if data.isAdmin}
+					<a
+						href={resolve('/location?returnTo=%2Fhome')}
+						class="hidden h-10 items-center justify-center rounded-[var(--ds-radius-control)] border border-ds-gray-300 bg-white px-4 text-sm font-semibold text-ds-gray-900 transition hover:bg-ds-blue-50 sm:inline-flex"
+					>
+						Change target
 					</a>
 				{/if}
 				<form method="POST" action="/logout" data-testid="home-sign-out-form">
@@ -157,93 +153,40 @@
 						type="submit"
 						variant="outline"
 						size="sm"
-						class="h-10 rounded-full border-transparent bg-[rgba(139,36,54,0.08)] px-4 text-sm font-semibold whitespace-nowrap text-[#8b2436] hover:bg-[rgba(139,36,54,0.14)]"
+						class="h-10 rounded-[var(--ds-radius-control)] border-transparent bg-red-50 px-4 text-sm font-semibold whitespace-nowrap text-ds-red-500 hover:bg-red-100"
 					>
 						<LogOut class="size-4" />
 						Sign out
 					</Button>
 				</form>
-				<div class="w-10 h-10 rounded-full industrial-gradient flex items-center justify-center text-xs font-bold text-white shadow-md">
+				<div class="flex size-9 items-center justify-center rounded-full bg-ds-blue-500 text-xs font-bold text-white">
 					{getUserInitials(data.displayName, data.userEmail)}
 				</div>
 			</div>
 		</header>
 
-		<!-- Centered card grid matching module-selector reference -->
-		<div class="flex flex-1 items-center justify-center py-12">
+		<div class="ds-page-content flex flex-1 items-center">
 			<div
 				data-testid="home-card-grid"
-				class="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
+				class="grid w-full grid-cols-1 gap-5 md:grid-cols-2"
 			>
 				{#each actions as action (action.name)}
 					{@const Icon = action.icon}
-					{@const isUtility = action.variant === 'utility'}
 					{@const isWillCall = action.action === 'will-call'}
-
-					{#if isWillCall}
-						<button
-							data-testid={action.testId}
-							type="button"
-							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
-							onclick={() => {
-								isWillCallModalOpen = true;
-							}}
-						>
-							<div class="flex items-center gap-6">
-								<div
-									data-testid={`${action.testId}-icon`}
-									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white transition-colors duration-300 group-hover:bg-white/22"
-								>
-									<Icon class="size-7" />
-								</div>
-								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
-									<span class="text-sm font-medium text-white/78">{action.detail}</span>
-								</div>
-							</div>
-							<ChevronRight class="size-6 text-white/72 transition-colors" />
-						</button>
-					{:else if isUtility}
-						<a
-							data-testid={action.testId}
-							href={withHomeReturnTo(action.href as HomeActionHref)}
-							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] border-2 border-dashed border-white/25 p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
-						>
-							<div class="flex items-center gap-6">
-								<div
-									data-testid={`${action.testId}-icon`}
-									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white"
-								>
-									<Icon class="size-7" />
-								</div>
-								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
-									<span class="text-sm font-medium text-white/78">{action.detail}</span>
-								</div>
-							</div>
-							<Plus class="size-6 text-white/72" />
-						</a>
-					{:else}
-						<a
-							data-testid={action.testId}
-							href={withHomeReturnTo(action.href as HomeActionHref)}
-							class="ui-primary-gradient group flex w-full items-center justify-between rounded-[2rem] p-8 text-white transition-all duration-300 hover:brightness-[1.03] active:scale-95"
-						>
-							<div class="flex items-center gap-6">
-								<div
-									data-testid={`${action.testId}-icon`}
-									class="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/18 bg-white/18 text-white transition-colors duration-300 group-hover:bg-white/22"
-								>
-									<Icon class="size-7" />
-								</div>
-								<div class="text-left">
-									<span class="block text-2xl font-bold tracking-tight text-white">{action.name}</span>
-									<span class="text-sm font-medium text-white/78">{action.detail}</span>
-								</div>
-							</div>
-							<ChevronRight class="size-6 text-white/72 transition-colors" />
-						</a>
-					{/if}
+					<OperationalActionCard
+						name={action.name}
+						detail={action.detail}
+						icon={Icon}
+						trailingIcon={action.variant === 'utility' ? Plus : ChevronRight}
+						href={isWillCall ? null : withHomeReturnTo(action.href as HomeActionHref)}
+						testId={action.testId}
+						variant={action.variant}
+						onclick={isWillCall
+							? () => {
+									isWillCallModalOpen = true;
+								}
+							: null}
+					/>
 				{/each}
 			</div>
 		</div>

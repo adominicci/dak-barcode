@@ -7,20 +7,24 @@ import {
 	DAK_LOADING_SCAN_ROUTE,
 	DAK_STAGING_SCAN_DEPENDENCY,
 	DAK_STAGING_SCAN_ROUTE,
+	DST_LOADING_SCAN_ROUTE,
 	loadingScanInputSchema,
 	processDakLoadingScan,
+	processDstLoadingScan,
 	processDakStagingScan,
 	serializeDakLoadingScanRequest,
 	serializeDakStagingScanRequest,
 	stagingScanInputSchema
 } from './dak-scan';
 
-const { fetchDak } = vi.hoisted(() => ({
-	fetchDak: vi.fn()
+const { fetchDak, fetchDst } = vi.hoisted(() => ({
+	fetchDak: vi.fn(),
+	fetchDst: vi.fn()
 }));
 
 vi.mock('./proxy', () => ({
-	fetchDak
+	fetchDak,
+	fetchDst
 }));
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
@@ -34,6 +38,7 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 
 beforeEach(() => {
 	fetchDak.mockReset();
+	fetchDst.mockReset();
 });
 
 describe('dak scan stub helpers', () => {
@@ -315,15 +320,137 @@ describe('dak scan stub helpers', () => {
 		});
 	});
 
+	it('posts loading scans to the CustomerPortal combined endpoint and maps refresh rows', async () => {
+		fetchDst.mockResolvedValue(
+			jsonResponse({
+				scan_type: 'single_label',
+				status: 'success',
+				message: 'Label loaded.',
+				needs_location: false,
+				need_pick: 5,
+				load_view_detail_all: [
+					{
+						DropSequence: 1,
+						DropSheetID: 3001,
+						DropSheetCustID: 8001,
+						LoadNumber: 'L-100',
+						LoadDate: '2026-04-30',
+						LocationID: 1,
+						DSSequence: 2,
+						fkCustomerID: 44,
+						CustomerName: 'Dakota Western Lumber',
+						Driver: 'WILL CALL',
+						TotalCount: '1',
+						LabelCount: 1,
+						Scanned: 0,
+						NeedPick: 1
+					}
+				],
+				load_view_union: [
+					{
+						FirstOfPartListID: '15WSFO',
+						LabelNumber: 1,
+						OrderSoNumber: 'SO-100',
+						LoadNumber: 'L-100',
+						DSSequence: 2,
+						DropArea: 'Will Call Shelf',
+						Scanned: false,
+						LocationID: 1,
+						length: '10',
+						CategoryID: 1,
+						LPID: 5001
+					}
+				],
+				load_view_union_key: {
+					load_number: 'L-100',
+					sequence: 2,
+					location_id: 1
+				}
+			})
+		);
+
+		await expect(
+			processDstLoadingScan({
+				scannedText: 'LP-100',
+				department: 'Roll',
+				dropAreaId: 25,
+				loadNumber: 'L-100',
+				loaderName: 'Alex',
+				dropSheetId: 3001,
+				locationId: 1,
+				sequence: 1,
+				selectedDropIndex: 0
+			})
+		).resolves.toMatchObject({
+			scanType: 'single_label',
+			status: 'success',
+			message: 'Label loaded.',
+			needPick: 5,
+			loadingRefresh: {
+				dropLabelsKey: {
+					loadNumber: 'L-100',
+					sequence: 2,
+					locationId: 1
+				},
+				dropDetails: [
+					{
+						dropSheetId: 3001,
+						dropSheetCustomerId: 8001,
+						sequence: 2,
+						labelCount: 1,
+						scannedCount: 0,
+						needPickCount: 1
+					}
+				],
+				dropLabels: [
+					{
+						partListId: '15WSFO',
+						labelNumber: 1,
+						orderSoNumber: 'SO-100',
+						loadNumber: 'L-100',
+						sequence: 2,
+						locationId: 1,
+						categoryId: 1,
+						lpid: 5001
+					}
+				]
+			}
+		});
+
+		expect(fetchDst).toHaveBeenCalledOnce();
+		expect(fetchDak).not.toHaveBeenCalled();
+		const [path, init] = fetchDst.mock.calls[0] as [string, RequestInit | undefined];
+		const headers = new Headers(init?.headers);
+
+		expect(path).toBe('/api/barcode-update/process-loading-scan-v2');
+		expect(init?.method).toBe('POST');
+		expect(headers.get('Content-Type')).toBe('application/json');
+		expect(JSON.parse(String(init?.body))).toEqual({
+			ScannedText: 'LP-100',
+			Department: 'Roll',
+			DropAreaID: 25,
+			LoadNumber: 'L-100',
+			LoaderName: 'Alex',
+			DropSheetID: 3001,
+			LocationID: 1,
+			DSSequence: 1,
+			SelectedDropIndex: 0
+		});
+	});
+
 	it('keeps the scan endpoint constants aligned with the backend dependency tickets', () => {
 		expect(DAK_STAGING_SCAN_ROUTE).toBe('/v1/scan/process-staging');
 		expect(DAK_STAGING_SCAN_DEPENDENCY).toBe('DAK-193');
 		expect(DAK_LOADING_SCAN_ROUTE).toBe('/v1/scan/process-loading');
+		expect(DST_LOADING_SCAN_ROUTE).toBe('/api/barcode-update/process-loading-scan-v2');
 		expect(DAK_LOADING_SCAN_DEPENDENCY).toBe('DAK-194');
 		expectTypeOf(processDakStagingScan).toEqualTypeOf<
 			(input: StagingScanRequest) => Promise<ScanResult>
 		>();
 		expectTypeOf(processDakLoadingScan).toEqualTypeOf<
+			(input: LoadingScanRequest) => Promise<ScanResult>
+		>();
+		expectTypeOf(processDstLoadingScan).toEqualTypeOf<
 			(input: LoadingScanRequest) => Promise<ScanResult>
 		>();
 	});
