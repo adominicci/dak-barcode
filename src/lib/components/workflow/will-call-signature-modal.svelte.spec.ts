@@ -4,12 +4,14 @@ import { render } from 'vitest-browser-svelte';
 
 const {
 	createSignedUrl,
+	from,
 	upload,
 	remove,
 	createSupabaseBrowserClient,
 	uploadWillCallSignature
 } = vi.hoisted(() => ({
 	createSignedUrl: vi.fn(),
+	from: vi.fn(),
 	upload: vi.fn(),
 	remove: vi.fn(),
 	createSupabaseBrowserClient: vi.fn(),
@@ -44,8 +46,13 @@ describe('will-call signature modal', () => {
 			data: { signedUrl: 'https://signed.example.com/signature.png' },
 			error: null
 		});
+		from.mockReturnValue({
+			createSignedUrl,
+			upload,
+			remove
+		});
 		upload.mockResolvedValue({
-			data: { path: 'will-call/42/signature_123.png' },
+			data: { path: 'signatures/will-call/42/signature_123.png' },
 			error: null
 		});
 		remove.mockResolvedValue({
@@ -54,11 +61,7 @@ describe('will-call signature modal', () => {
 		});
 		createSupabaseBrowserClient.mockReturnValue({
 			storage: {
-				from: () => ({
-					createSignedUrl,
-					upload,
-					remove
-				})
+				from
 			}
 		});
 		uploadWillCallSignature.mockResolvedValue(undefined);
@@ -80,7 +83,7 @@ describe('will-call signature modal', () => {
 				signature: null,
 				signatureTimestamp: null,
 				receivedBy: 'Jordan',
-				signaturePath: 'will-call/42/signature_123.png'
+				signaturePath: 'signatures/will-call/42/signature_123.png'
 			},
 			onClose: vi.fn(),
 			onUploaded: vi.fn()
@@ -88,7 +91,8 @@ describe('will-call signature modal', () => {
 
 		await expect.element(page.getByLabelText('Received By')).toHaveAttribute('readonly');
 		await expect.element(page.getByLabelText('Received By')).toHaveValue('Jordan');
-		expect(createSignedUrl).toHaveBeenCalledWith('will-call/42/signature_123.png', 3600);
+		expect(from).toHaveBeenCalledWith('files');
+		expect(createSignedUrl).toHaveBeenCalledWith('signatures/will-call/42/signature_123.png', 3600);
 		await expect.element(page.getByRole('img', { name: 'Will call signature preview' })).toHaveAttribute(
 			'src',
 			'https://signed.example.com/signature.png'
@@ -149,8 +153,9 @@ describe('will-call signature modal', () => {
 		);
 		await page.getByRole('button', { name: 'Upload Signature' }).click();
 
+		expect(from).toHaveBeenCalledWith('files');
 		expect(upload).toHaveBeenCalledWith(
-			expect.stringMatching(/^will-call\/42\/signature_\d+\.png$/),
+			expect.stringMatching(/^signatures\/will-call\/42\/signature_\d+\.png$/),
 			expect.any(Blob),
 			{
 				contentType: 'image/png',
@@ -159,7 +164,7 @@ describe('will-call signature modal', () => {
 		);
 		expect(uploadWillCallSignature).toHaveBeenCalledWith({
 			dropSheetId: 42,
-			signaturePath: 'will-call/42/signature_123.png',
+			signaturePath: 'signatures/will-call/42/signature_123.png',
 			receivedBy: 'Jordan'
 		});
 		expect(onUploaded).toHaveBeenCalled();
@@ -436,7 +441,7 @@ describe('will-call signature modal', () => {
 
 		expect(upload).toHaveBeenCalled();
 		expect(uploadWillCallSignature).toHaveBeenCalled();
-		expect(remove).toHaveBeenCalledWith(['will-call/42/signature_123.png']);
+		expect(remove).toHaveBeenCalledWith(['signatures/will-call/42/signature_123.png']);
 		await expect.element(page.getByText('DST unavailable')).toBeInTheDocument();
 	});
 

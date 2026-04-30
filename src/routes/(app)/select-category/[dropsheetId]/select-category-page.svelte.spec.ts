@@ -355,14 +355,18 @@ describe('select-category page', () => {
 		await expect.element(page.getByLabelText('Received By')).toHaveValue('Jordan');
 	});
 
-	it('refreshes the will call signature from a promise-like query after upload', async () => {
-		const initialSignature = createWillCallSignatureRecord();
-		const refreshedSignature = createWillCallSignatureRecord({
-			receivedBy: 'Jordan',
-			signaturePath: 'will-call/42/signature_123.png'
-		});
+	it('refreshes the will call signature through getWillCallSignature().run() after upload', async () => {
+		const runInitialSignature = vi.fn().mockResolvedValue(createWillCallSignatureRecord());
+		const runRefreshedSignature = vi
+			.fn()
+			.mockResolvedValue(
+				createWillCallSignatureRecord({
+					receivedBy: 'Jordan',
+					signaturePath: 'signatures/will-call/42/signature_123.png'
+				})
+			);
 		const upload = vi.fn().mockResolvedValue({
-			data: { path: 'will-call/42/signature_123.png' },
+			data: { path: 'signatures/will-call/42/signature_123.png' },
 			error: null
 		});
 		const createSignedUrl = vi.fn().mockResolvedValue({
@@ -376,8 +380,8 @@ describe('select-category page', () => {
 		const canvasRenderingContext = createCanvasRenderingContextMock();
 
 		getWillCallSignature
-			.mockReturnValueOnce(Promise.resolve(initialSignature))
-			.mockReturnValueOnce(Promise.resolve(refreshedSignature));
+			.mockReturnValueOnce({ run: runInitialSignature })
+			.mockReturnValueOnce({ run: runRefreshedSignature });
 		createSupabaseBrowserClient.mockReturnValue({
 			storage: {
 				from: () => ({
@@ -448,14 +452,14 @@ describe('select-category page', () => {
 
 		await page.getByRole('button', { name: 'Upload Signature' }).click();
 
-		expect(getWillCallSignature).toHaveBeenCalledWith(42);
+		expect(runInitialSignature).toHaveBeenCalledOnce();
 		await vi.waitFor(() => {
 			expect(uploadWillCallSignature).toHaveBeenCalledWith({
 				dropSheetId: 42,
-				signaturePath: 'will-call/42/signature_123.png',
+				signaturePath: 'signatures/will-call/42/signature_123.png',
 				receivedBy: 'Jordan'
 			});
-			expect(getWillCallSignature).toHaveBeenCalledTimes(2);
+			expect(runRefreshedSignature).toHaveBeenCalledOnce();
 		});
 		await expect
 			.element(page.getByRole('dialog', { name: 'Customer signature' }))
