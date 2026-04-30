@@ -485,6 +485,11 @@
 		queuedScanTexts = [];
 	}
 
+	function clearCombinedRefreshRows() {
+		refreshedDropDetails = null;
+		refreshedDropLabelsByKey = {};
+	}
+
 	function getDropLabelsQueryKey(input: {
 		loadNumber: string;
 		sequence: number;
@@ -494,7 +499,7 @@
 	}
 
 	function isDuplicateQueuedScan(scannedText: string) {
-		return inFlightScanText === scannedText || queuedScanTexts.at(-1) === scannedText;
+		return inFlightScanText === scannedText || queuedScanTexts.includes(scannedText);
 	}
 
 	function enqueueScanText(scannedText: string) {
@@ -559,8 +564,7 @@
 			return;
 		}
 
-		refreshedDropDetails = null;
-		refreshedDropLabelsByKey = {};
+		clearCombinedRefreshRows();
 		const activeUnionQuery = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
@@ -877,6 +881,7 @@
 		clearScanError();
 		pendingLocationScanText = null;
 		isLocationModalOpen = false;
+		clearCombinedRefreshRows();
 		selectedDropIndex = moveLoadingDropSelection({
 			selectedIndex: dropNavigation.selectedIndex,
 			totalDrops: dropNavigation.totalDrops,

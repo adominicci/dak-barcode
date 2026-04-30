@@ -1013,6 +1013,89 @@ describe('loading page', () => {
 		}));
 	});
 
+	it('ignores duplicate scans already waiting anywhere in the queue', async () => {
+		const scanDeferred = createDeferred<ScanResult>();
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan
+			.mockImplementationOnce(() => scanDeferred.promise)
+			.mockResolvedValue(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(1);
+		});
+
+		await submitMainScan('LP-200');
+		await submitMainScan('LP-300');
+		await submitMainScan('LP-200');
+
+		scanDeferred.resolve(createScanResult());
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(3);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({
+				scannedText: 'LP-200'
+			})
+		);
+		expect(processLoadingScan).toHaveBeenNthCalledWith(
+			3,
+			expect.objectContaining({
+				scannedText: 'LP-300'
+			})
+		);
+	});
+
+	it('clears combined refresh rows when the operator changes drops', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		processLoadingScan.mockResolvedValue(
+			createScanResult({
+				loadingRefresh: {
+					dropDetails: [
+						createDropDetail({
+							dropSequence: 1,
+							sequence: 1,
+							customerName: 'Combined Acme'
+						}),
+						createDropDetail({
+							dropSequence: 2,
+							dropSheetCustomerId: 85,
+							sequence: 2,
+							customerName: 'Combined Beacon'
+						})
+					],
+					dropLabels: [
+						createUnionLabel({
+							partListId: 'COMBINED-200',
+							sequence: 2
+						})
+					],
+					dropLabelsKey: {
+						loadNumber: 'L-042',
+						sequence: 2,
+						locationId: 2
+					}
+				}
+			})
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+
+		await expect.element(page.getByText('Combined Beacon')).toBeInTheDocument();
+		await page.getByRole('button', { name: /Next drop/i }).click();
+
+		await expect.element(page.getByText('Acme Metals')).toBeInTheDocument();
+		await expect.element(page.getByText('Combined Acme')).not.toBeInTheDocument();
+	});
+
 	it('updates the in-memory drop area for successful location scans without refreshing detail queries', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
