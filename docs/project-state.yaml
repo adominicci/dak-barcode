@@ -70,7 +70,7 @@ product:
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
   intentionally_limited:
-    - some support pages still rely on DST-backed read models while loading mixes DST and dak-web data
+    - some support pages still rely on DST-backed read models while loading mixes DST, CustomerPortalAPI-PY, and dak-web data
 
 architecture:
   last_verified_at: 2026-04-22
@@ -178,7 +178,8 @@ workflows:
       - numeric scans are driver locations only
       - non-numeric scans go through pallet or single-label processing
       - Roll resets the current location after each successful scan
-      - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to five raw scans, and drains them only after refreshed drop data has settled
+      - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to 50 raw scans, and drains them only after refreshed drop data has settled
+      - loading label scans post to CustomerPortalAPI-PY `/api/barcode-update/process-loading-scan-v2` and can consume returned detail/union refresh rows instead of always making separate post-scan refresh calls
       - loading clears queued scan texts on drop navigation so they cannot submit against a newly selected drop
       - the Loading route title appends the active scanned driver location while selected so operators can confirm the location used by subsequent scans
       - Loading location selection accepts numeric drop areas when DriverLocation is true and does not require department-specific location support
@@ -197,7 +198,7 @@ workflows:
       - Add Loader
 
 integrations:
-  last_verified_at: 2026-04-29
+  last_verified_at: 2026-04-30
   verified_against:
     - docs/architecture.md
     - docs/prd.md
@@ -213,7 +214,7 @@ integrations:
       target_format: X-Db CANTON|FREEPORT|SANDBOX
   required_endpoints:
     - POST /v1/scan/process-staging
-    - POST /v1/scan/process-loading
+    - POST /api/barcode-update/process-loading-scan-v2
     - GET /v1/scan/department-status
   required_environment_variables:
     - PUBLIC_SUPABASE_URL

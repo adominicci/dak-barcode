@@ -839,13 +839,17 @@ describe('loading page', () => {
 		const inputElement = await submitMainScan('LP-100');
 
 		await vi.waitFor(() => {
-			expect(processLoadingScan).toHaveBeenCalledWith({
+			expect(processLoadingScan).toHaveBeenCalledWith(expect.objectContaining({
 				scannedText: 'LP-100',
 				department: 'Wrap',
 				dropAreaId: null,
 				loadNumber: 'L-042',
-				loaderName: 'Alex'
-			});
+				loaderName: 'Alex',
+				dropSheetId: 42,
+				locationId: 2,
+				sequence: 1,
+				selectedDropIndex: 0
+			}));
 		});
 		await vi.waitFor(() => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
@@ -965,13 +969,14 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-200',
 			department: 'Wrap',
 			dropAreaId: null,
 			loadNumber: 'L-REFRESHED',
-			loaderName: 'Alex'
-		});
+			loaderName: 'Alex',
+			selectedDropIndex: 0
+		}));
 	});
 
 	it('ignores duplicate in-flight and most-recent queued loading scans', async () => {
@@ -999,13 +1004,13 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-200',
 			department: 'Wrap',
 			dropAreaId: null,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
+		}));
 	});
 
 	it('updates the in-memory drop area for successful location scans without refreshing detail queries', async () => {
@@ -1183,13 +1188,13 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-100',
 			department: 'Wrap',
 			dropAreaId: 42,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
+		}));
 		await vi.waitFor(() => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
 			expect(unionRefresh).toHaveBeenCalledOnce();
@@ -1247,13 +1252,13 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-100',
 			department: 'Parts',
 			dropAreaId: 25,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
+		}));
 		expect(get(workflowStores.currentDropArea)).toEqual({
 			dropAreaId: 25,
 			dropAreaLabel: 'DM'
@@ -1425,13 +1430,13 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-			expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+			expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 				scannedText: '42',
 				department: 'Wrap',
 				dropAreaId: null,
 				loadNumber: 'L-042',
 				loaderName: 'Alex'
-			});
+			}));
 		});
 
 	it('pauses queued scans while a location modal is open and drains after the pending scan is retried', async () => {
@@ -1490,20 +1495,20 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(3);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-100',
 			department: 'Wrap',
 			dropAreaId: 41,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(3, {
+		}));
+		expect(processLoadingScan).toHaveBeenNthCalledWith(3, expect.objectContaining({
 			scannedText: 'LP-200',
 			department: 'Wrap',
 			dropAreaId: 41,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
+		}));
 		expect(detailRefresh).toHaveBeenCalledTimes(2);
 		expect(unionRefresh).toHaveBeenCalledTimes(2);
 	});
@@ -1680,13 +1685,13 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(processLoadingScan).toHaveBeenCalledTimes(2);
 		});
-		expect(processLoadingScan).toHaveBeenNthCalledWith(2, {
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
 			scannedText: 'LP-100',
 			department: 'Wrap',
 			dropAreaId: null,
 			loadNumber: 'L-042',
 			loaderName: 'Alex'
-		});
+		}));
 		expect(toastSuccess).not.toHaveBeenCalled();
 		await expect.element(page.getByText('LP-100')).not.toBeInTheDocument();
 		expect(document.activeElement).toBe(inputElement);
@@ -1752,13 +1757,13 @@ describe('loading page', () => {
 			await vi.waitFor(() => {
 				expect(processLoadingScan).toHaveBeenCalledTimes(3);
 			});
-			expect(processLoadingScan).toHaveBeenNthCalledWith(3, {
+			expect(processLoadingScan).toHaveBeenNthCalledWith(3, expect.objectContaining({
 				scannedText: '42',
 				department: 'Wrap',
 				dropAreaId: 41,
 				loadNumber: 'L-042',
 				loaderName: 'Alex'
-			});
+			}));
 		} finally {
 			vi.useRealTimers();
 		}

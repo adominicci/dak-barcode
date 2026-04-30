@@ -268,6 +268,10 @@ export type StagingScanRequest = {
 export type LoadingScanRequest = StagingScanRequest & {
 	loadNumber: string;
 	loaderName: string;
+	dropSheetId?: number;
+	locationId?: number;
+	sequence?: number;
+	selectedDropIndex?: number;
 };
 
 export type ScanType = 'location' | 'pallet' | 'single_label';
@@ -287,6 +291,16 @@ export type ScanDropAreaSummary = {
 	label: string;
 };
 
+export type LoadingScanRefreshPayload = {
+	dropDetails: LoadViewDetail[];
+	dropLabels: LoadViewUnion[];
+	dropLabelsKey: {
+		loadNumber: string;
+		sequence: number;
+		locationId: number;
+	};
+};
+
 export type ScanResult = {
 	scanType: ScanType | null;
 	status: ScanStatus;
@@ -294,6 +308,7 @@ export type ScanResult = {
 	needsLocation: boolean;
 	needPick: number | null;
 	dropArea: ScanDropAreaSummary | null;
+	loadingRefresh?: LoadingScanRefreshPayload;
 };
 
 export const OPERATOR_TARGETS = WAREHOUSE_ALIASES;

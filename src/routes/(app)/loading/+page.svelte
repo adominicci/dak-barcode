@@ -44,7 +44,7 @@
 		workflowStores,
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
-	import type { LoadingScanRequest } from '$lib/types';
+	import type { LoadingScanRequest, LoadViewDetail, LoadViewUnion, ScanResult } from '$lib/types';
 
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
@@ -97,6 +97,8 @@
 	let queuedScanTexts = $state<string[]>([]);
 	let inFlightScanText = $state<string | null>(null);
 	let isDrainingQueuedScans = $state(false);
+	let refreshedDropDetails = $state<LoadViewDetail[] | null>(null);
+	let refreshedDropLabelsByKey = $state<Record<string, LoadViewUnion[]>>({});
 	let pendingLocationScanText = $state<string | null>(null);
 	let scanIssues = $state<LoadingScanIssue[]>([]);
 	let isScanIssuesDrawerOpen = $state(false);
@@ -148,7 +150,7 @@
 			refresh: () => query.refresh()
 		};
 	});
-	const dropDetails = $derived(dropDetailsState.current);
+	const dropDetails = $derived(refreshedDropDetails ?? dropDetailsState.current);
 	const dropNavigation = $derived(
 		createLoadingDropNavigationState(dropDetails.length, selectedDropIndex)
 	);
@@ -178,6 +180,21 @@
 		if (!selectedDropDetail) {
 			return {
 				current: [],
+				error: null,
+				loading: false,
+				refresh: null
+			};
+		}
+
+		const labelsKey = getDropLabelsQueryKey({
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: selectedDropDetail.locationId
+		});
+		const refreshedDropLabels = refreshedDropLabelsByKey[labelsKey];
+		if (refreshedDropLabels) {
+			return {
+				current: refreshedDropLabels,
 				error: null,
 				loading: false,
 				refresh: null
@@ -468,6 +485,14 @@
 		queuedScanTexts = [];
 	}
 
+	function getDropLabelsQueryKey(input: {
+		loadNumber: string;
+		sequence: number;
+		locationId: number;
+	}) {
+		return [input.loadNumber, input.sequence, input.locationId].join('|');
+	}
+
 	function isDuplicateQueuedScan(scannedText: string) {
 		return inFlightScanText === scannedText || queuedScanTexts.at(-1) === scannedText;
 	}
@@ -506,16 +531,36 @@
 			department: loaderInfo.department,
 			dropAreaId: currentDropArea?.dropAreaId ?? null,
 			loadNumber: selectedDropDetail.loadNumber,
-			loaderName: loaderInfo.loaderName
+			loaderName: loaderInfo.loaderName,
+			dropSheetId: selectedDropDetail.dropSheetId,
+			locationId: selectedDropDetail.locationId,
+			sequence: selectedDropDetail.sequence,
+			selectedDropIndex: dropNavigation.selectedIndex
 		};
 	}
 
-	async function refreshActiveDropData() {
+	async function refreshActiveDropData(result: ScanResult) {
 		if (selectedDropDetail === null || !dropDetailsState.refresh) {
 			return;
 		}
 
 		const refreshStartedAt = getLoadingScanTimestamp();
+		if (result.loadingRefresh) {
+			refreshedDropDetails = result.loadingRefresh.dropDetails;
+			refreshedDropLabelsByKey = {
+				...refreshedDropLabelsByKey,
+				[getDropLabelsQueryKey(result.loadingRefresh.dropLabelsKey)]:
+					result.loadingRefresh.dropLabels
+			};
+			logLoadingScanTiming('combined-refresh', refreshStartedAt, {
+				detailRows: result.loadingRefresh.dropDetails.length,
+				unionRows: result.loadingRefresh.dropLabels.length
+			});
+			return;
+		}
+
+		refreshedDropDetails = null;
+		refreshedDropLabelsByKey = {};
 		const activeUnionQuery = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
@@ -644,7 +689,11 @@
 			department: loaderInfo.department,
 			dropAreaId,
 			loadNumber: selectedDropDetail.loadNumber,
-			loaderName: loaderInfo.loaderName
+			loaderName: loaderInfo.loaderName,
+			dropSheetId: selectedDropDetail.dropSheetId,
+			locationId: selectedDropDetail.locationId,
+			sequence: selectedDropDetail.sequence,
+			selectedDropIndex: dropNavigation.selectedIndex
 		});
 
 		try {

@@ -295,7 +295,7 @@ The target format differs by backend and must be treated as a strict contract:
 ### New backend endpoints required by the frontend
 
 - `POST /v1/scan/process-staging`
-- `POST /v1/scan/process-loading`
+- `POST /api/barcode-update/process-loading-scan-v2`
 - `GET /v1/scan/department-status`
 
 These endpoints are part of the overall project, but they are not implemented inside this repository.

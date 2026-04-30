@@ -1,5 +1,22 @@
 # Current Context
 
+## 2026-04-30 Loading Scan CustomerPortal Contract
+
+- Current worktree: `features/ui-redesign`.
+- Loading scan submissions now use CustomerPortalAPI-PY through the DST proxy path `POST /api/barcode-update/process-loading-scan-v2` instead of the old `dak-web` `/v1/scan/process-loading` route.
+- The frontend sends the active drop context with each loading scan: scanned text, department, selected driver location, load number, loader name, drop sheet id, active location id, sequence, and selected drop index.
+- CustomerPortal loading scan responses can include refreshed `LoadViewDetailAll` and `LoadViewUnion` rows. The Loading page now consumes those rows directly when present and falls back to the old separate detail/union refresh calls if the combined refresh payload is absent.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-scan.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/server/dak-scan.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `npx @sveltejs/mcp svelte-autofixer src/routes/'(app)'/loading/+page.svelte --svelte-version 5`
+  - `bun run check`
+  - `bun run test:unit -- --run`
+- Memory Impact Analysis: update required because the active loading scan backend contract changed. Updated current-context and project-state.
+
 ## 2026-04-30 iPad Operational Design System Upgrade
 
 - Current worktree: `dak-barcode` active branch at time of update.

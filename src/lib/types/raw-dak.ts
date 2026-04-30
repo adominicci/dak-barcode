@@ -1,3 +1,5 @@
+import type { RawDstLoadViewDetail, RawDstLoadViewUnion } from './raw-dst';
+
 export type RawDakLoaderInfo = {
 	LoaderID: number;
 	fkDropSheetID: number;
@@ -72,4 +74,21 @@ export type RawDakScanResult = {
 	needsLocation?: boolean | null;
 	drop_area?: RawDakScanDropArea | null;
 	dropArea?: RawDakScanDropArea | null;
+};
+
+type RawCustomerPortalLoadingRefreshKey = {
+	load_number?: string | null;
+	loadNumber?: string | null;
+	sequence?: number | null;
+	location_id?: number | null;
+	locationId?: number | null;
+};
+
+export type RawCustomerPortalLoadingScanResult = RawDakScanResult & {
+	load_view_detail_all?: RawDstLoadViewDetail[] | null;
+	loadViewDetailAll?: RawDstLoadViewDetail[] | null;
+	load_view_union?: RawDstLoadViewUnion[] | null;
+	loadViewUnion?: RawDstLoadViewUnion[] | null;
+	load_view_union_key?: RawCustomerPortalLoadingRefreshKey | null;
+	loadViewUnionKey?: RawCustomerPortalLoadingRefreshKey | null;
 };

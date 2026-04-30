@@ -221,6 +221,12 @@ The frontend must normalize targets differently for each backend:
 
 This normalization should happen in one shared place, not throughout the app.
 
+Current scan ownership is split by workflow: staging scans use `dak-web`
+`POST /v1/scan/process-staging`, while loading scans use
+`dst-customer-portal`/CustomerPortalAPI-PY
+`POST /api/barcode-update/process-loading-scan-v2` so the response can include
+the post-scan Loading detail and label refresh rows.
+
 ---
 
 ## Route Structure
