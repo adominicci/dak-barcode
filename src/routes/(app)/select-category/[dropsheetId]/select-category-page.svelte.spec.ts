@@ -553,6 +553,9 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-department-header-Wrap')).toHaveTextContent(
 			/Wrap\s+50%\s+WAIT/
 		);
+		await expect
+			.element(page.getByTestId('select-category-department-header-Wrap').getByText('WAIT'))
+			.toHaveClass(/ds-status-pending/);
 		await expect.element(
 			page.getByTestId('select-category-department-header-Wrap').getByText('Wrap', {
 				exact: true

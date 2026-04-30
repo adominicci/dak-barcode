@@ -193,10 +193,11 @@
 			case 'DONE':
 				return 'ds-status-done';
 			case 'DUE':
+				return 'ds-status-due';
 			case 'WAIT':
 			case 'BOT':
 			case 'BOL':
-				return 'ds-status-due';
+				return 'ds-status-pending';
 			default:
 				return 'ds-status-neutral';
 		}
