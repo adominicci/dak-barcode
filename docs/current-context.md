@@ -6,7 +6,7 @@
 - Complete Load still sends the loaded notification through dakview-web `POST /v1/logistics/dropsheet-notify` first.
 - The Complete Load remote command now requires the carried Select Category `transfer` boolean. When `transfer=true`, it calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` after notification success with body `{ dropsheet_id, mode: "pending" }`.
 - Transfer export uses the active app target as dak-web `X-Db` through `fetchDak` and adds `Y-Db: AZURE`; `repair_missing_target` is intentionally not used by the frontend.
-- If notification succeeds but transfer export fails or returns `results[]` rows skipped with `reason="source_packages_missing"`, the command returns partial success. Select Category warns the operator and still exits to Dropsheets to avoid duplicate loaded emails from a retry.
+- If notification succeeds but transfer export fails or returns skipped rows (`orders_skipped > 0`, including `reason="source_packages_missing"`), the command returns partial success. Select Category warns the operator and still exits to Dropsheets to avoid duplicate loaded emails from a retry.
 - Focused regressions added or updated:
   - `src/lib/server/dak-loading-complete.spec.ts`
   - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`

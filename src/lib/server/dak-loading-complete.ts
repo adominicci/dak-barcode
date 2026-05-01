@@ -16,7 +16,7 @@ export const loadingCompleteInputSchema = v.object({
 
 type LoadingCompleteInput = v.InferOutput<typeof loadingCompleteInputSchema>;
 type PostSendSyncStatus = 'failed';
-type TransferLabelExportWarningStatus = 'failed' | 'source_packages_missing';
+type TransferLabelExportWarningStatus = 'failed' | 'orders_skipped' | 'source_packages_missing';
 
 export type DakLoadingCompletePostSendSyncFailure = {
 	status: PostSendSyncStatus;
@@ -38,8 +38,14 @@ export type DakLoadingCompleteResult =
 	| {
 			ok: true;
 			partial: true;
-			postSendSync?: DakLoadingCompletePostSendSyncFailure;
+			postSendSync: DakLoadingCompletePostSendSyncFailure;
 			transferLabelExport?: DakLoadingCompleteTransferLabelExportWarning;
+	  }
+	| {
+			ok: true;
+			partial: true;
+			postSendSync?: DakLoadingCompletePostSendSyncFailure;
+			transferLabelExport: DakLoadingCompleteTransferLabelExportWarning;
 	  };
 
 function jsonInit(payload: unknown, headersInit?: HeadersInit): RequestInit {
@@ -121,12 +127,20 @@ function countSourcePackagesMissingResults(payload: unknown): number {
 	).length;
 }
 
+function readNonNegativeInteger(value: unknown): number {
+	return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
 function formatTransferExportFailure(response: Response, details: string): string {
 	return `Transfer label export failed: ${response.status} ${response.statusText}${details ? `: ${details}` : ''}`;
 }
 
 function formatSourcePackagesMissingMessage(count: number): string {
 	return `Transfer label export skipped ${count} ${count === 1 ? 'order' : 'orders'} because source packages are missing.`;
+}
+
+function formatOrdersSkippedMessage(count: number): string {
+	return `Transfer label export skipped ${count} ${count === 1 ? 'order' : 'orders'}.`;
 }
 
 function formatUnknownTransferExportError(error: unknown): string {
@@ -172,6 +186,14 @@ async function completeTransferLabelExport(
 
 	const payload = await readJsonPayload(response);
 	const sourcePackagesMissingCount = countSourcePackagesMissingResults(payload);
+	const ordersSkippedCount = isRecord(payload) ? readNonNegativeInteger(payload.orders_skipped) : 0;
+
+	if (ordersSkippedCount > sourcePackagesMissingCount) {
+		return {
+			status: 'orders_skipped',
+			message: formatOrdersSkippedMessage(ordersSkippedCount)
+		};
+	}
 
 	if (sourcePackagesMissingCount > 0) {
 		return {
@@ -204,12 +226,28 @@ export async function completeDakLoadingEmail(
 		? await completeTransferLabelExport(input.dropSheetId)
 		: null;
 
-	if (postSendSync || transferLabelExport) {
+	if (postSendSync && transferLabelExport) {
 		return {
 			ok: true,
 			partial: true,
-			...(postSendSync ? { postSendSync } : {}),
-			...(transferLabelExport ? { transferLabelExport } : {})
+			postSendSync,
+			transferLabelExport
+		};
+	}
+
+	if (postSendSync) {
+		return {
+			ok: true,
+			partial: true,
+			postSendSync
+		};
+	}
+
+	if (transferLabelExport) {
+		return {
+			ok: true,
+			partial: true,
+			transferLabelExport
 		};
 	}
 

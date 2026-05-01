@@ -195,4 +195,35 @@ describe('dak loading complete helpers', () => {
 			}
 		});
 	});
+
+	it('returns partial success when transfer label export reports skipped rows for an unhandled reason', async () => {
+		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
+		fetchDak.mockResolvedValueOnce(
+			jsonResponse({
+				orders_considered: 2,
+				orders_exported: 1,
+				orders_skipped: 1,
+				packages_exported: 4,
+				details_exported: 4,
+				results: [
+					{
+						order_number: 41012027,
+						status: 'skipped',
+						reason: 'quota_exceeded'
+					}
+				]
+			})
+		);
+
+		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
+
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
+			ok: true,
+			partial: true,
+			transferLabelExport: {
+				status: 'orders_skipped',
+				message: 'Transfer label export skipped 1 order.'
+			}
+		});
+	});
 });
