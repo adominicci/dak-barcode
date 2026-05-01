@@ -49,4 +49,34 @@ describe('selection modal', () => {
 		await page.getByRole('button', { name: 'Refresh list' }).click();
 		expect(props.onRefresh).toHaveBeenCalledOnce();
 	});
+
+	it('can render a browse-only three-column picker for unavailable selections', async () => {
+		const props = {
+			...baseProps(),
+			title: 'Select trailer',
+			description: 'Choose a trailer for L-042.',
+			options: [
+				{ id: 'trailer-16208', label: '16208-Transfer Trailer' },
+				{ id: 'trailer-2023', label: 'Conestoga Trailer (2023D)' }
+			],
+			columns: 3 as const,
+			selectionDisabled: true,
+			selectionDisabledMessage: 'Trailer updates are coming soon.'
+		};
+		render(SelectionModal, {
+			props
+		});
+
+		await expect.element(page.getByRole('dialog', { name: 'Select trailer' })).toBeInTheDocument();
+		await expect.element(page.getByText('Trailer updates are coming soon.')).toBeInTheDocument();
+		await expect.element(page.getByTestId('selection-modal-options-grid')).toHaveClass(
+			/lg:grid-cols-3/
+		);
+		await expect.element(page.getByTestId('selection-modal-options-grid')).not.toHaveClass(
+			/lg:grid-cols-4/
+		);
+		await expect.element(page.getByRole('button', { name: '16208-Transfer Trailer' })).toBeDisabled();
+
+		expect(props.onPick).not.toHaveBeenCalled();
+	});
 });

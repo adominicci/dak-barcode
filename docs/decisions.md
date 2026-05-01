@@ -2,6 +2,35 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-01 - Dropsheet transfer flag is carried into Select Category
+
+- Tags: backend-contract, dropsheets, select-category, transfer
+- Decision: Frontend dropsheet records include a boolean `transfer` field from dakview-web dropsheet JSON. Dropsheets passes `transfer=true|false` when navigating to Select Category, Select Category exposes it in page data, and Select Category return URLs preserve the flag for downstream Loading handoffs.
+- Rationale: The FastAPI dropsheet list now returns transfer status from the dropsheet source, and later workflow routes need the value without re-querying or losing it during route transitions.
+- Impacted areas: `src/lib/types/index.ts`, `src/lib/types/raw-dst.ts`, `src/lib/server/type-mappers.ts`, `src/routes/(app)/dropsheets/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.server.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-05-01 - Trailer picker updates through dakview-web dropsheet trailer endpoint
+
+- Tags: backend-contract, dropsheets, trailer-picker, dak-web
+- Decision: Dropsheets trailer selection now calls dakview-web `POST /v1/logistics/dropsheet-trailer-update` with the active target database header and a payload containing `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`. The existing DST trailer update helper remains available for legacy code, but the trailer picker command uses the dak-web endpoint.
+- Rationale: Trailer equipment identities come from dakview-web equipment rows, including string IDs and optional `photo_url`, and the backend now owns a narrow update endpoint for the matching `dbo.tblDropSheetMain` trailer fields.
+- Impacted areas: `src/lib/server/dak-equipment.ts`, `src/lib/trailers.remote.ts`, `src/routes/(app)/dropsheets/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the browse-only portion of `2026-05-01 - Trailer lookup reads from dakview-web EQUIPMENT database`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
+## 2026-05-01 - Trailer lookup reads from dakview-web EQUIPMENT database
+
+- Tags: backend-contract, dropsheets, trailer-picker, dak-web
+- Decision: Dropsheets trailer picker options now come from dakview-web `GET /v1/lookup-tables/equipments` with `X-Db: EQUIPMENT`, `equipment_category=Trailers`, and `location=<active target>`. The original browse-only limitation is superseded by the live dak-web update endpoint decision above.
+- Rationale: Trailer equipment is now sourced from a separate equipment database, not CustomerPortalAPI-PY/DST trailer lookup tables. The operator still needs location-scoped options for the selected app target, but the SQL connection target must be `EQUIPMENT`.
+- Impacted areas: `src/lib/server/proxy.ts`, `src/lib/server/dak-equipment.ts`, `src/lib/trailers.remote.ts`, `src/lib/trailers.cached.ts`, `src/lib/components/workflow/selection-modal.svelte`, `src/routes/(app)/dropsheets/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: the assumption that Dropsheets trailer options are read from CustomerPortalAPI-PY/DST `get-trailers`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-04-30 - Use centered modals for operational selection flows
 
 - Tags: design-system, modal, iPad, workflow-ui

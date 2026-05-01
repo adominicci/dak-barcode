@@ -21,6 +21,8 @@ export type RawDstDropSheet = {
 	DriverName?: string | null;
 	AllLoaded?: boolean | null;
 	Loader?: string | null;
+	transfer?: boolean | null;
+	Transfer?: boolean | null;
 };
 
 export type RawDstWillCallDropSheet = {
