@@ -34,10 +34,10 @@
 	});
 </script>
 
-<div class="space-y-2" data-testid={testId}>
+<div class="space-y-1" data-testid={testId}>
 	<label class="ui-label px-1" for={id}>{label}</label>
 	<div class="relative">
-		<ScanBarcode class="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ds-blue-500" />
+		<ScanBarcode class="absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-ds-blue-500" />
 		<input
 			{id}
 			data-testid={`${testId}-input`}
@@ -51,7 +51,7 @@
 			autocapitalize="off"
 			spellcheck="false"
 			onkeydown={onKeydown}
-			class="ds-scan-input h-14 w-full pl-14 pr-4 text-base font-medium transition placeholder:text-ds-gray-600/65 disabled:cursor-not-allowed disabled:opacity-60"
+			class="ds-scan-input h-12 w-full pl-12 pr-4 text-base font-medium transition placeholder:text-ds-gray-600/65 disabled:cursor-not-allowed disabled:opacity-60"
 		/>
 	</div>
 </div>

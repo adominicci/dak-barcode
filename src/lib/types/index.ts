@@ -76,8 +76,9 @@ export type Loader = {
 };
 
 export type Trailer = {
-	id: number;
+	id: number | string;
 	name: string;
+	photoUrl?: string | null;
 };
 
 export type DropSheet = {
@@ -92,6 +93,7 @@ export type DropSheet = {
 	driverName: string | null;
 	allLoaded: boolean;
 	loaderName: string | null;
+	transfer: boolean;
 };
 
 export type WillCallDropsheetLookup = {

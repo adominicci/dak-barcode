@@ -30,8 +30,9 @@
 
 	type PickerKind = 'trailer' | 'loader';
 	type PickerOption = {
-		id: number;
+		id: number | string;
 		label: string;
+		photoUrl?: string | null;
 	};
 	type PickerState = {
 		kind: PickerKind;
@@ -63,7 +64,7 @@
 	});
 
 	const TABLE_SELECTION_BUTTON_CLASSES =
-		'inline-flex min-h-12 w-full max-w-full items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-3 py-2 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
+		'inline-flex min-h-11 w-full max-w-full items-center justify-center rounded-lg bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] px-2 py-2 text-sm font-semibold text-white shadow-[var(--shadow-primary)] transition hover:brightness-[1.03] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 lg:min-h-12 lg:px-3';
 
 	let { data }: PageProps = $props();
 	let selectedDateValue = $derived(parseDate(data.selectedDate));
@@ -110,7 +111,8 @@
 	const trailerOptions = $derived(
 		trailersState.current.map((trailer) => ({
 			id: trailer.id,
-			label: trailer.name
+			label: trailer.name,
+			photoUrl: trailer.photoUrl ?? null
 		}))
 	);
 	const activePickerOptions = $derived.by(() => {
@@ -214,7 +216,8 @@
 			driverName: isWillCall ? 'WILL CALL' : dropSheet.driverName ?? '',
 			dropWeight: String(dropSheet.dropWeight),
 			percentCompleted: String(dropSheet.percentCompleted),
-			returnTo: resolve(`/dropsheets?date=${data.selectedDate}`)
+			returnTo: resolve(`/dropsheets?date=${data.selectedDate}`),
+			transfer: String(dropSheet.transfer)
 		});
 
 		if (isWillCall) {
@@ -251,7 +254,9 @@
 			if (activePicker.kind === 'trailer') {
 				await updateDropsheetTrailer({
 					dropSheetId: activePicker.dropSheet.id,
-					trailerId: option.id
+					trailerId: String(option.id),
+					trailerName: option.label,
+					trailerUrl: option.photoUrl ?? null
 				});
 			} else {
 				await updateDropsheetPickedByLoader({
@@ -424,13 +429,29 @@
 		{:else}
 			<div>
 				<table class="w-full table-fixed border-separate border-spacing-0">
+					<colgroup>
+						<col class="w-[13%]" />
+						<col class="w-[10%]" />
+						<col class="w-[10%]" />
+						<col class="w-[18%]" />
+						<col class="w-[9%]" />
+						<col class="w-[14%]" />
+						<col class="w-[7%]" />
+						<col class="w-[14%]" />
+						<col class="w-[5%]" />
+					</colgroup>
 					<thead class="sticky top-0 z-10 bg-slate-50">
-						<tr class="text-left text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
-							<th class="w-[18%] px-2 py-3 font-semibold sm:px-3">Delivery Number</th>
-							<th class="w-[13%] px-2 py-3 text-center font-semibold sm:px-3">Drop Weight</th>
-							<th class="hidden w-[10%] px-2 py-3 text-center font-semibold xl:table-cell sm:px-3">Load Number</th>
-							<th class="w-[18%] px-2 py-3 text-center font-semibold sm:px-3">Trailer Number</th>
-							<th class="w-[13%] px-2 py-3 text-center font-semibold sm:px-3">
+						<tr class="text-left text-[10px] uppercase tracking-[0.12em] text-on-surface-variant">
+							<th class="px-1.5 py-3 font-semibold lg:px-2">Delivery Number</th>
+							<th class="px-1.5 py-3 text-center font-semibold lg:px-2">Drop Weight</th>
+							<th
+								data-testid="dropsheets-load-number-header"
+								class="px-1.5 py-3 text-center font-semibold lg:px-2"
+							>
+								Load Number
+							</th>
+							<th class="px-1.5 py-3 text-center font-semibold lg:px-2">Trailer Number</th>
+							<th class="px-1.5 py-3 text-center font-semibold lg:px-2">
 								<span
 									data-testid="dropsheets-percent-completed-header"
 									class="inline-flex items-center justify-center gap-0.5"
@@ -438,26 +459,29 @@
 									<span>Completed</span><span class="text-[9px] leading-none text-on-surface-variant">%</span>
 								</span>
 							</th>
-							<th class="hidden w-[15%] px-2 py-3 text-center font-semibold lg:table-cell sm:px-3">Loaded TS</th>
-							<th class="w-[8%] px-2 py-3 text-center font-semibold sm:px-3">Completed</th>
-							<th class="w-[18%] px-2 py-3 text-center font-semibold sm:px-3">Loader</th>
-							<th class="w-[8%] px-2 py-3 text-right font-semibold sm:px-3">Go</th>
+							<th class="hidden px-1.5 py-3 text-center font-semibold lg:table-cell lg:px-2">Loaded TS</th>
+							<th class="px-1.5 py-3 text-center font-semibold lg:px-2">Completed</th>
+							<th class="px-1.5 py-3 text-center font-semibold lg:px-2">Loader</th>
+							<th class="px-1.5 py-3 text-right font-semibold lg:px-2">Go</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each dropsheets as dropSheet (dropSheet.id)}
 							{@const isComplete = dropSheet.percentCompleted >= 1}
 							<tr class="group bg-white transition hover:bg-slate-50/70">
-								<td class="break-words border-b border-slate-100 px-2 py-4 text-sm font-semibold text-slate-950 sm:px-3">
+								<td class="whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-sm font-semibold text-slate-950 lg:px-2">
 									{dropSheet.loadNumber}
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm tabular-nums text-slate-700 sm:px-3">
+								<td class="whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-center text-sm tabular-nums text-slate-700 lg:px-2">
 									{WEIGHT_FORMATTER.format(dropSheet.dropWeight)}
 								</td>
-								<td class="hidden whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm text-slate-700 xl:table-cell sm:px-3">
+								<td
+									data-testid={`dropsheets-load-number-cell-${dropSheet.id}`}
+									class="whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-center text-sm text-slate-700 lg:px-2"
+								>
 									{dropSheet.loadNumberShort ?? '--'}
 								</td>
-								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
+								<td class="border-b border-slate-100 px-1.5 py-4 text-center lg:px-2">
 									<button
 										type="button"
 										class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -467,13 +491,13 @@
 										<span class="truncate">{formatTrailerLabel(dropSheet.trailer)}</span>
 									</button>
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm font-semibold text-slate-950 sm:px-3">
+								<td class="whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-center text-sm font-semibold text-slate-950 lg:px-2">
 									<span class="inline-flex items-baseline justify-center gap-0.5 tabular-nums"><span>{formatPercentCompleted(dropSheet.percentCompleted)}</span><span class="text-[9px] leading-none text-slate-500">%</span></span>
 								</td>
-								<td class="hidden whitespace-nowrap border-b border-slate-100 px-2 py-4 text-center text-sm text-slate-700 lg:table-cell sm:px-3">
+								<td class="hidden whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-center text-sm text-slate-700 lg:table-cell lg:px-2">
 									{formatLoadedAt(dropSheet.loadedAt, isComplete)}
 								</td>
-								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
+								<td class="border-b border-slate-100 px-1.5 py-4 text-center lg:px-2">
 									<div class="flex justify-center">
 										<Checkbox
 											checked={dropSheet.allLoaded}
@@ -482,7 +506,7 @@
 										/>
 									</div>
 								</td>
-								<td class="border-b border-slate-100 px-2 py-4 text-center sm:px-3">
+								<td class="border-b border-slate-100 px-1.5 py-4 text-center lg:px-2">
 									<button
 										type="button"
 										class={TABLE_SELECTION_BUTTON_CLASSES}
@@ -492,10 +516,10 @@
 										<span class="truncate">{formatLoaderLabel(dropSheet.loaderName)}</span>
 									</button>
 								</td>
-								<td class="whitespace-nowrap border-b border-slate-100 px-2 py-4 text-right sm:px-3">
+								<td class="whitespace-nowrap border-b border-slate-100 px-1.5 py-4 text-right lg:px-2">
 									<button
 										type="button"
-										class="inline-flex size-11 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white sm:size-12"
+										class="inline-flex size-10 items-center justify-center rounded-full bg-primary/5 text-primary transition group-hover:bg-primary group-hover:text-white lg:size-11"
 										aria-label={`Open select category for ${dropSheet.loadNumber}`}
 										onclick={() => goToDropSheetCategory(dropSheet)}
 									>
@@ -519,6 +543,7 @@
 		loading={activePickerLoading}
 		error={pickerError ?? activePickerQueryError}
 		saving={pickerSaving}
+		columns={activePicker.kind === 'trailer' ? 3 : 4}
 		emptyMessage={activePickerEmptyMessage}
 		onClose={closePicker}
 		onPick={handlePickerSelect}

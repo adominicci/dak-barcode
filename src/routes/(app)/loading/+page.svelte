@@ -953,7 +953,7 @@
 
 </script>
 
-<div class="space-y-5">
+<div class="space-y-3">
 	{#if lifecycleError}
 		<div class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 			<TriangleAlert class="mt-0.5 size-4 shrink-0" />
@@ -1014,12 +1014,15 @@
 				</p>
 			</div>
 		{:else}
-			<div class="ds-operational-panel space-y-3 p-4" data-testid="loading-workflow-panel">
+			<div
+				class="ds-operational-panel flex max-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden p-3"
+				data-testid="loading-workflow-panel"
+			>
 				<div
-					class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]"
+					class="grid shrink-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]"
 					data-testid="loading-context-grid"
 				>
-					<div class="space-y-2">
+					<div class="space-y-1.5">
 						<LoadSummaryStrip
 							testId="loading-summary-strip"
 							driverName={loaderInfo.loaderName}
@@ -1048,10 +1051,10 @@
 										)
 									)
 								}
-								class="ds-control flex min-h-12 items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-ds-blue-50"
+								class="ds-control flex min-h-11 items-center justify-between gap-2.5 px-3 py-1.5 text-left transition hover:bg-ds-blue-50"
 							>
 								<div class="flex min-w-0 items-center gap-2.5">
-									<span class="flex size-9 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
+									<span class="flex size-8 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
 										<ClipboardList class="size-4" />
 									</span>
 									<div class="min-w-0">
@@ -1079,10 +1082,10 @@
 										)
 									)
 								}
-								class="ds-control flex min-h-12 items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-ds-blue-50"
+								class="ds-control flex min-h-11 items-center justify-between gap-2.5 px-3 py-1.5 text-left transition hover:bg-ds-blue-50"
 							>
 								<div class="flex min-w-0 items-center gap-2.5">
-									<span class="flex size-9 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
+									<span class="flex size-8 items-center justify-center rounded-[var(--ds-radius-control)] bg-ds-blue-50 text-ds-blue-500">
 										<Truck class="size-4" />
 									</span>
 									<div class="min-w-0">
@@ -1094,25 +1097,25 @@
 						</div>
 					</div>
 
-					<div class="p-0 lg:pt-3" data-testid="loading-department-status-strip">
+					<div class="p-0 lg:pt-1" data-testid="loading-department-status-strip">
 						<DepartmentStatusPills entries={departmentStatusEntries} testId="loading-department-status" />
 					</div>
 				</div>
 
 				<section
 					data-testid="loading-scan-section"
-					class="flex min-h-[31rem] max-h-[calc(100dvh-12rem)] flex-col"
+					class="flex min-h-0 flex-1 flex-col"
 				>
-					<div class="shrink-0 space-y-2">
-						<div class="space-y-2">
+					<div class="shrink-0 space-y-1.5">
+						<div class="space-y-1.5">
 							<div
 								data-testid="loading-queue-status"
-								class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-white px-3 py-2 text-sm shadow-[0_10px_30px_-24px_rgba(15,23,42,0.4)]"
+								class="flex flex-wrap items-center justify-between gap-2 rounded-[var(--ds-radius-card)] border border-ds-gray-300 bg-white px-3 py-1.5 text-sm shadow-[0_10px_30px_-24px_rgba(15,23,42,0.4)]"
 							>
 								<div class="flex flex-wrap items-center gap-2.5">
 									<span
 										class={[
-											'inline-flex min-h-9 items-center rounded-[var(--ds-radius-control)] px-3 text-xs font-bold uppercase tracking-[0.08em]',
+											'inline-flex min-h-8 items-center rounded-[var(--ds-radius-control)] px-3 text-xs font-bold uppercase tracking-[0.08em]',
 											isScanning
 												? 'bg-ds-blue-50 text-ds-blue-600'
 												: 'bg-emerald-50 text-emerald-700'
@@ -1128,7 +1131,7 @@
 								<button
 									type="button"
 									class={[
-										'inline-flex min-h-10 items-center justify-center rounded-[var(--ds-radius-control)] px-4 text-sm font-bold transition',
+										'inline-flex min-h-9 items-center justify-center rounded-[var(--ds-radius-control)] px-3 text-sm font-bold transition',
 										scanIssueCount > 0
 											? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100'
 											: 'bg-ds-gray-100 text-ds-gray-600 hover:bg-ds-blue-50 hover:text-ds-blue-600'
@@ -1157,7 +1160,7 @@
 
 								{#if scanError}
 									<div
-										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
+										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-[0_12px_30px_-24px_rgba(190,24,93,0.48)]"
 									>
 										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 										<div class="min-w-0 flex-1">
@@ -1187,7 +1190,7 @@
 									</div>
 								{:else if scanPrompt}
 									<div
-										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
+										class="flex gap-3 rounded-[var(--ds-radius-card)] bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-[0_12px_30px_-24px_rgba(180,83,9,0.42)]"
 									>
 										<TriangleAlert class="mt-0.5 size-4 shrink-0" />
 										<p>{scanPrompt}</p>
@@ -1196,7 +1199,10 @@
 							</div>
 						</div>
 
-						<div class="mt-2 flex min-h-0 flex-1 flex-col rounded-[var(--ds-radius-card)] bg-ds-gray-100 p-3">
+						<div
+							class="mt-1.5 flex min-h-0 flex-1 flex-col rounded-[var(--ds-radius-card)] bg-ds-gray-100 p-2"
+							data-testid="loading-part-list-shell"
+						>
 							{#if dropLabelsState.error}
 								<div class="rounded-[var(--ds-radius-card)] bg-rose-50 px-4 py-4 text-sm text-rose-700">
 									{getOperatorErrorMessage(

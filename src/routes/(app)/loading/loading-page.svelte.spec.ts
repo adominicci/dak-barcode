@@ -487,8 +487,8 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByTestId('loading-legacy-actions')).toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-2/);
-		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-2/);
+		await expect.element(page.getByRole('button', { name: 'Order Status' })).toHaveClass(/py-1\.5/);
+		await expect.element(page.getByRole('button', { name: 'Dropsheet' })).toHaveClass(/py-1\.5/);
 
 		await page.getByRole('button', { name: 'Order Status' }).click();
 		expect(goto).toHaveBeenCalledWith(
@@ -510,16 +510,34 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/ds-operational-panel/);
-		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/space-y-3/);
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
 		await expect.element(page.getByTestId('loading-context-grid')).toHaveClass(/lg:grid-cols/);
 		await expect.element(page.getByTestId('loading-summary-strip')).toHaveClass(/gap-2/);
 		await expect.element(page.getByTestId('loading-summary-strip')).not.toHaveClass(/shadow/);
 		await expect.element(page.getByTestId('loading-department-status-strip')).toHaveClass(/p-0/);
 		await expect.element(page.getByTestId('loading-department-status-strip')).not.toHaveClass(/bg-white/);
-		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-\[31rem\]/);
+		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-0/);
 		await expect.element(page.getByTestId('loading-scan-section')).not.toHaveClass(/bg-white/);
 		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/ds-nav-arrow/);
 		await expect.element(page.getByTestId('loading-active-drop-next')).toHaveClass(/ds-nav-arrow/);
+	});
+
+	it('constrains the loading workspace to the iPad viewport with dense vertical spacing', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/overflow-hidden/);
+		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/p-3/);
+		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-0/);
+		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/flex-1/);
+		await expect.element(page.getByTestId('loading-scan-section')).not.toHaveClass(/min-h-\[31rem\]/);
+		await expect.element(page.getByTestId('loading-queue-status')).toHaveClass(/py-1\.5/);
+		await expect.element(page.getByTestId('loading-part-list-shell')).toHaveClass(/p-2/);
+		expect(getElementByTestId('loading-active-drop-previous').className).toContain('!size-12');
+		expect(getElementByTestId('loading-active-drop-next').className).toContain('!size-12');
 	});
 
 	it('renders the active drop summary with compact footer controls', async () => {
@@ -528,7 +546,7 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByText('Drop 2 of 2')).toHaveClass(/text-base/);
+		await expect.element(page.getByText('Drop 2 of 2')).toHaveClass(/text-sm/);
 		await expect.element(page.getByTestId('loading-scan-input')).toHaveClass(/ds-scan-input/);
 		await expect.element(page.getByTestId('loading-active-drop-summary')).toHaveClass(/ds-drop-counter/);
 		await expect.element(page.getByTestId('loading-active-drop-previous')).toHaveClass(/ds-nav-arrow/);
@@ -562,7 +580,7 @@ describe('loading page', () => {
 			/ds-counter-card/
 		);
 		await expect.element(page.getByText('PL-200')).toBeInTheDocument();
-		await expect.element(page.getByText('PL-200')).toHaveClass(/text-\[17px\]/);
+		await expect.element(page.getByText('PL-200')).toHaveClass(/text-\[16px\]/);
 		const firstChip = page.getByTestId('loading-part-list-grid').element().firstElementChild;
 		if (!(firstChip instanceof HTMLElement)) {
 			throw new Error('Expected the first loading part-list chip to be rendered.');

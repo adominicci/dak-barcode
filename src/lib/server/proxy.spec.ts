@@ -496,6 +496,30 @@ describe('fetchDak', () => {
 		expect(headers.get('X-Db')).toBe('CANTON');
 	});
 
+	it('allows a caller to override the dak database header for cross-database lookups', async () => {
+		const { event, requestFetch } = createRequestEventMock({
+			authContext: createAuthContext({ target: 'Freeport' })
+		});
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDak } = await import('./proxy');
+
+		await fetchDak('/v1/lookup-tables/equipments?equipment_category=Trailers&location=Freeport', undefined, {
+			dbTarget: 'EQUIPMENT'
+		});
+
+		expect(requestFetch).toHaveBeenCalledOnce();
+		const [input, init] = getFetchCall(requestFetch);
+		const url = new URL(String(input));
+		const headers = new Headers(init?.headers);
+
+		expect(`${url.origin}${url.pathname}`).toBe('https://dak.example.com/v1/lookup-tables/equipments');
+		expect(url.searchParams.get('location')).toBe('Freeport');
+		expect(headers.get('Authorization')).toBe('Bearer jwt-token');
+		expect(headers.get('X-Db')).toBe('EQUIPMENT');
+	});
+
 	it('rejects absolute dak proxy URLs before sending credentials', async () => {
 		const { event, requestFetch, getSession, getVerifiedUser } = createRequestEventMock();
 

@@ -218,6 +218,7 @@ const layoutData = {
 	userEmail: 'loader@dakotasteelandtrim.com',
 	userRole: 'loading' as const,
 	willCall: false,
+	transfer: false,
 	percentCompleted: 0.875,
 	departmentLoadersError: null,
 	departmentLoaders: [
@@ -715,6 +716,7 @@ describe('select-category page', () => {
 				dropWeight: 2152.4,
 				percentCompleted: 0.875,
 				returnTo: '/dropsheets?date=2026-03-24',
+				transfer: true,
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -749,7 +751,7 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24%26transfer%3Dtrue&dropWeight=2152.4&driverName=David+Schmidt'
 		);
 	});
 

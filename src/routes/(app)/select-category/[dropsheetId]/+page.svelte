@@ -137,6 +137,7 @@
 		if (data.willCall) {
 			searchParams.set('willcall', 'true');
 		}
+		searchParams.set('transfer', String(data.transfer));
 
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});

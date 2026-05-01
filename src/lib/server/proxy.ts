@@ -5,16 +5,23 @@ import type { User } from '@supabase/supabase-js';
 import {
 	toDakTarget,
 	toDstTarget,
+	type DakTarget,
 	type FrontendTarget,
 	type ProfileWithWarehouse
 } from '$lib/types';
 import { requirePrivateEnv } from '$lib/server/environment';
+
+export type DakDatabaseTarget = DakTarget | 'EQUIPMENT';
 
 export type ProxyAuthContext = {
 	accessToken: string;
 	profile: ProfileWithWarehouse;
 	target: FrontendTarget;
 	user: User;
+};
+
+type FetchDakOptions = {
+	dbTarget?: DakDatabaseTarget;
 };
 
 type ProxyRequestEvent = Pick<RequestEvent, 'fetch' | 'locals'>;
@@ -132,7 +139,7 @@ export async function fetchDst(path: string, init?: RequestInit) {
 	);
 }
 
-export async function fetchDak(path: string, init?: RequestInit) {
+export async function fetchDak(path: string, init?: RequestInit, options: FetchDakOptions = {}) {
 	const relativePath = requireRelativeProxyPath(path);
 	const baseUrl = requireConfiguredBaseUrl('DAK_WEB_URL');
 	const event = getRequestEvent();
@@ -141,7 +148,7 @@ export async function fetchDak(path: string, init?: RequestInit) {
 	const headers = new Headers(init?.headers);
 
 	headers.set('Authorization', `Bearer ${accessToken}`);
-	headers.set('X-Db', toDakTarget(target));
+	headers.set('X-Db', options.dbTarget ?? toDakTarget(target));
 
 	return fetchWithTimeout(
 		event,
