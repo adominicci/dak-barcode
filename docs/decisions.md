@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-01 - Transfer Complete Load exports labels through dedicated endpoint
+
+- Tags: backend-contract, loading, complete-load, transfer
+- Decision: Complete Load keeps the normal loaded notification call to dakview-web `POST /v1/logistics/dropsheet-notify`. When the carried Select Category `transfer` flag is true, the same remote command then calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` with `{ dropsheet_id, mode: "pending" }`, active-target `X-Db`, and `Y-Db: AZURE`.
+- Rationale: Transfer label export was moved out of dropsheet notify into a dedicated FastAPI endpoint. Running it only for transfer dropsheets preserves the normal load-completion flow while avoiding duplicate emails if export needs retry after notification succeeds.
+- Impacted areas: `src/lib/server/dak-loading-complete.ts`, `src/lib/loading-complete.remote.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`, `docs/prd.md`
+- Supersedes: relying on `/v1/logistics/dropsheet-notify` to export transfer labels
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; backend contract and retrieval memory updated in this turn
+
 ## 2026-05-01 - Dropsheet transfer flag is carried into Select Category
 
 - Tags: backend-contract, dropsheets, select-category, transfer

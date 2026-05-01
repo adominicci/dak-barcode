@@ -227,6 +227,13 @@ Current scan ownership is split by workflow: staging scans use `dak-web`
 `POST /api/barcode-update/process-loading-scan-v2` so the response can include
 the post-scan Loading detail and label refresh rows.
 
+Complete Load uses `dak-web` `POST /v1/logistics/dropsheet-notify` for the
+loaded notification. When the Select Category handoff has `transfer=true`, the
+same remote command then calls
+`POST /v1/logistics/dropsheet-transfer-label-export` with `mode: "pending"`,
+the active target as `X-Db`, and `Y-Db: AZURE`. Post-notification transfer
+export failures are warnings so operators do not resend loaded emails.
+
 ---
 
 ## Route Structure
