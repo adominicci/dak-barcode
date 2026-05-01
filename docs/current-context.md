@@ -1,5 +1,114 @@
 # Current Context
 
+## 2026-05-01 Transfer Label Export on Complete Load
+
+- Current worktree: `features/label-export`.
+- Complete Load still sends the loaded notification through dakview-web `POST /v1/logistics/dropsheet-notify` first.
+- The Complete Load remote command now requires the carried Select Category `transfer` boolean. When `transfer=true`, it calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` after notification success with body `{ dropsheet_id, mode: "pending" }`.
+- Transfer export uses the active app target as dak-web `X-Db` through `fetchDak` and adds `Y-Db: AZURE`; `repair_missing_target` is intentionally not used by the frontend.
+- If notification succeeds but transfer export fails or returns skipped rows (`orders_skipped > 0`, including `reason="source_packages_missing"`), the command returns partial success. Select Category warns the operator and still exits to Dropsheets to avoid duplicate loaded emails from a retry.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-loading-complete.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - Red run confirmed missing transfer validation/call forwarding and missing transfer export behavior.
+  - `bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked Select Category and only reported the pre-existing `goto()`/`resolve()` advisory.
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because Complete Load backend behavior and the transfer endpoint contract changed. Updated current-context, project-state, decisions, architecture, and PRD.
+
+## 2026-05-01 Dropsheet Transfer Flag Handoff
+
+- Current worktree: `features/trailers`.
+- dakview-web `GET /v1/logistics/get-dropsheets` now exposes `transfer` as a boolean in the dropsheet JSON contract. A direct unauthenticated Heroku `curl` for `2026-05-01` / Canton returned `401 Authorization header is required`, so the frontend change was verified through mapper and route-contract tests plus the local backend docs/source.
+- The frontend `DropSheet` contract now includes `transfer: boolean`; DST/dak dropsheet mapping accepts lowercase `transfer` and falls back to legacy-style `Transfer`, defaulting to `false`.
+- Dropsheets navigation to Select Category now always carries `transfer=true|false` in the query string.
+- Select Category server load parses the carried `transfer` flag as a boolean and exposes it in page data. The Select Category return URL used by Loading also preserves the flag so back/forward workflow handoffs do not lose it.
+- Focused regressions added or updated:
+  - `src/lib/server/type-mappers.spec.ts`
+  - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.server.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/server/type-mappers.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.server.spec.ts' 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked Dropsheets with no issues; Select Category reported one pre-existing `goto()`/`resolve()` advisory outside this transfer change.
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because the dropsheet route contract and select-category handoff changed. Updated current-context, project-state, and decisions.
+
+## 2026-05-01 Loading iPad Viewport Density
+
+- Current worktree: `features/trailers`.
+- Loading now constrains the active workflow panel to `calc(100dvh - 6.5rem)` with internal scrolling for the part-list area, so the iPad viewport does not need page-level scrolling just to reach the drop counter.
+- Vertical density tightened in Loading: panel padding, context/action gaps, queue row, scan input height, part-list shell padding, scanned item cards, and drop counter controls.
+- Shared workflow primitives touched for the density pass:
+  - `src/lib/components/workflow/workflow-scan-field.svelte`
+  - `src/lib/components/workflow/drop-counter-bar.svelte`
+  - `src/lib/components/workflow/scanned-id-grid.svelte`
+- Focused regression added:
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts` verifies the viewport-constrained panel, internal scan-section flex behavior, compact queue/list shell, and smaller drop navigation controls.
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - Svelte autofixer checked Loading and changed workflow components; no issues reported. Existing suggestions remain around pre-existing `$effect` function calls and `bind:this`.
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because repo-tracked iPad Loading layout behavior changed. Updated current-context and project-state; no backend or workflow contract decision changed.
+
+## 2026-05-01 Dropsheets iPad Load Number Column
+
+- Current worktree: `features/trailers`.
+- Dropsheets table layout now keeps the `Load Number` column visible at tablet/iPad widths instead of hiding it until the `xl` breakpoint.
+- The table uses explicit column widths plus tighter cell padding/action sizing so delivery number, drop weight, load number, trailer, completed percent, loaded timestamp, completed checkbox, loader, and go action can stay on a single row in the iPad operational layout.
+- Focused regression added:
+  - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts` verifies the load-number header and row cell are not hidden.
+- Verification completed:
+  - `bun run test:unit -- --run 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/components/workflow/selection-modal.svelte.spec.ts 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked `src/routes/(app)/dropsheets/+page.svelte` with no issues
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because repo-tracked iPad Dropsheets layout behavior changed. Updated current-context and project-state; no backend or workflow contract decision changed.
+
+## 2026-05-01 Dropsheets Trailer Update Enabled
+
+- Current worktree: `features/trailers`.
+- The Dropsheets trailer picker is no longer browse-only.
+- Selecting a trailer now calls dakview-web `POST /v1/logistics/dropsheet-trailer-update` through the SvelteKit proxy with the active app target as the dak-web `X-Db` header.
+- The update payload sends `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`; the existing legacy DST update helper remains in place but is no longer used by the trailer picker command.
+- Trailer lookup still reads equipment options from dakview-web `GET /v1/lookup-tables/equipments` with `X-Db: EQUIPMENT`, `equipment_category=Trailers`, and `location=<active target>`.
+- Equipment `photo_url` is preserved as `photoUrl` on frontend trailer options so the update command can send `trailer_url` when present.
+- Loader picker behavior remains unchanged.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-equipment.spec.ts`
+  - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts`
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/server/dak-equipment.spec.ts 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run src/lib/server/dak-equipment.spec.ts src/lib/target-scoped-lookups.spec.ts src/lib/components/workflow/selection-modal.svelte.spec.ts 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked `src/routes/(app)/dropsheets/+page.svelte` with no issues
+- Memory Impact Analysis: update required because repo-tracked behavior changed from browse-only to live trailer update. Updated current-context, project-state, and decisions.
+
+## 2026-05-01 Dropsheets Trailer Lookup From Equipment DB
+
+- Current worktree: `features/trailers`.
+- Dropsheets trailer picker options now come from dakview-web `GET /v1/lookup-tables/equipments`.
+- The equipment lookup uses `X-Db: EQUIPMENT` because equipment lives in a separate database, while `location` remains the active app target (`Canton`, `Freeport`, or `Sandbox`) and `equipment_category` is fixed to `Trailers`.
+- The frontend maps dakview-web equipment rows to trailer picker options with `id` from `id` and label from `equipment_name`, allowing longer equipment names such as `16208-Transfer Trailer`.
+- Superseded by `2026-05-01 Dropsheets Trailer Update Enabled`: trailer selection now updates through dakview-web instead of rendering browse-only.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-equipment.spec.ts`
+  - `src/lib/server/proxy.spec.ts`
+  - `src/lib/target-scoped-lookups.spec.ts`
+  - `src/lib/components/workflow/selection-modal.svelte.spec.ts`
+  - `src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts`
+- Verification completed:
+  - `bun run test:unit -- --run src/lib/server/dak-equipment.spec.ts src/lib/server/proxy.spec.ts src/lib/target-scoped-lookups.spec.ts src/lib/components/workflow/selection-modal.svelte.spec.ts 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - `npx @sveltejs/mcp svelte-autofixer './src/lib/components/workflow/selection-modal.svelte' --async --svelte-version 5`
+  - `npx @sveltejs/mcp svelte-autofixer './src/routes/(app)/dropsheets/+page.svelte' --async --svelte-version 5`
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because repo-tracked behavior and backend lookup source changed. Updated current-context, project-state, and decisions.
+
 ## 2026-04-30 Loading Scan CustomerPortal Contract
 
 - Current worktree: `features/ui-redesign`.

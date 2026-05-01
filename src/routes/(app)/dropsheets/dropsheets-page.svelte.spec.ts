@@ -14,6 +14,7 @@ type DropsheetRow = {
   driverName: string | null;
   allLoaded: boolean;
   loaderName: string | null;
+  transfer: boolean;
 };
 
 type LoaderRow = {
@@ -23,8 +24,9 @@ type LoaderRow = {
 };
 
 type TrailerRow = {
-  id: number;
+  id: number | string;
   name: string;
+  photoUrl?: string | null;
 };
 
 type QueryState<T> = {
@@ -140,6 +142,7 @@ describe("dropsheets page", () => {
           driverName: "Dylan Driver",
           allLoaded: false,
           loaderName: null,
+          transfer: false,
         },
         {
           id: 91,
@@ -153,6 +156,7 @@ describe("dropsheets page", () => {
           driverName: "Taylor Driver",
           allLoaded: true,
           loaderName: "Chris",
+          transfer: false,
         },
       ]),
     );
@@ -245,7 +249,7 @@ describe("dropsheets page", () => {
       .toHaveClass(/min-h-12/);
     await expect
       .element(page.getByLabelText("Open select category for L-042"))
-      .toHaveClass(/size-12/);
+      .toHaveClass(/size-10/);
   });
 
   it("does not force the dropsheets list into a horizontally scrolling iPad layout", async () => {
@@ -263,6 +267,7 @@ describe("dropsheets page", () => {
           driverName: "Dylan Driver",
           allLoaded: false,
           loaderName: null,
+          transfer: false,
         },
       ]),
     );
@@ -282,6 +287,52 @@ describe("dropsheets page", () => {
     await expect.element(page.getByText("L-042")).toBeInTheDocument();
     expect(document.querySelector(".overflow-x-auto")).toBeNull();
     expect(document.querySelector(".min-w-\\[980px\\]")).toBeNull();
+  });
+
+  it("keeps the load number column visible in the iPad table layout", async () => {
+    getDropsheets.mockReturnValue(
+      createQueryState([
+        {
+          id: 42,
+          loadNumber: "03042026-1033",
+          loadNumberShort: "1 MARK",
+          trailer: "18107 Step Deck (2004)",
+          percentCompleted: 1,
+          loadedAt: "2026-03-24T08:00:00Z",
+          dropWeight: 6,
+          driverId: 12,
+          driverName: "Dylan Driver",
+          allLoaded: true,
+          loaderName: null,
+          transfer: false,
+        },
+      ]),
+    );
+    getLoaders.mockReturnValue(
+      createQueryState([{ id: 1, name: "Alex", isActive: true }]),
+    );
+    getTrailers.mockReturnValue(createQueryState([{ id: 9, name: "TR-9" }]));
+
+    render(DropsheetsPage, {
+      params: {},
+      form: undefined,
+      data: {
+        ...layoutData,
+      },
+    });
+
+    await expect
+      .element(page.getByTestId("dropsheets-load-number-header"))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("dropsheets-load-number-header"))
+      .not.toHaveClass(/hidden/);
+    await expect
+      .element(page.getByTestId("dropsheets-load-number-cell-42"))
+      .toHaveTextContent("1 MARK");
+    await expect
+      .element(page.getByTestId("dropsheets-load-number-cell-42"))
+      .not.toHaveClass(/hidden/);
   });
 
   it("shows the shared spinner in the refresh button while dropsheets are loading", async () => {
@@ -328,6 +379,7 @@ describe("dropsheets page", () => {
               driverName: "Taylor Day Two",
               allLoaded: true,
               loaderName: "Chris",
+              transfer: false,
             },
           ],
           { refresh: dayTwoRefresh },
@@ -348,6 +400,7 @@ describe("dropsheets page", () => {
             driverName: "Dylan Driver",
             allLoaded: false,
             loaderName: "Alex",
+            transfer: false,
           },
         ],
         { refresh: dayOneRefresh },
@@ -410,6 +463,7 @@ describe("dropsheets page", () => {
             driverName: "Dylan Driver",
             allLoaded: false,
             loaderName: null,
+            transfer: false,
           },
         ],
         { refresh },
@@ -424,8 +478,16 @@ describe("dropsheets page", () => {
     );
     getTrailers.mockReturnValue(
       createQueryState([
-        { id: 9, name: "TR-9" },
-        { id: 12, name: "TR-12" },
+        {
+          id: "trailer-16208",
+          name: "16208-Transfer Trailer",
+          photoUrl: null,
+        },
+        {
+          id: "trailer-2023d",
+          name: "Conestoga Trailer (2023D)",
+          photoUrl: "https://equipment.example/trailer-2023d.jpg",
+        },
       ], { refresh: trailerRefresh }),
     );
     updateDropsheetTrailer.mockResolvedValue(undefined);
@@ -449,16 +511,24 @@ describe("dropsheets page", () => {
     await page.getByRole("button", { name: "Refresh list" }).click();
     expect(trailerRefresh).toHaveBeenCalledOnce();
     await expect
-      .element(page.getByRole("button", { name: "TR-12" }))
-      .toBeInTheDocument();
+      .element(page.getByText("Trailer updates are coming soon."))
+      .not.toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("selection-modal-options-grid"))
+      .toHaveClass(/lg:grid-cols-3/);
+    await expect
+      .element(page.getByRole("button", { name: "Conestoga Trailer (2023D)" }))
+      .toBeEnabled();
     await expect
       .element(page.getByRole("button", { name: "Casey" }))
       .not.toBeInTheDocument();
-    await page.getByRole("button", { name: "TR-12" }).click();
+    await page.getByRole("button", { name: "Conestoga Trailer (2023D)" }).click();
 
     expect(updateDropsheetTrailer).toHaveBeenCalledWith({
       dropSheetId: 42,
-      trailerId: 12,
+      trailerId: "trailer-2023d",
+      trailerName: "Conestoga Trailer (2023D)",
+      trailerUrl: "https://equipment.example/trailer-2023d.jpg",
     });
     expect(refresh).toHaveBeenCalledOnce();
     await expect
@@ -510,6 +580,7 @@ describe("dropsheets page", () => {
           driverName: "Dylan Driver",
           allLoaded: false,
           loaderName: null,
+          transfer: false,
         },
       ]),
     );
@@ -557,6 +628,7 @@ describe("dropsheets page", () => {
           driverName: "Dylan Driver",
           allLoaded: false,
           loaderName: null,
+          transfer: false,
         },
       ]),
     );
@@ -599,6 +671,7 @@ describe("dropsheets page", () => {
           driverName: "Dylan Driver",
           allLoaded: false,
           loaderName: "Alex",
+          transfer: true,
         },
       ]),
     );
@@ -620,7 +693,7 @@ describe("dropsheets page", () => {
       .click();
 
     expect(goto).toHaveBeenCalledWith(
-      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4&percentCompleted=0.875&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24",
+      "/select-category/42?loadNumber=L-042&deliveryNumber=L-042&driverName=Dylan+Driver&dropWeight=2152.4&percentCompleted=0.875&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24&transfer=true",
     );
   });
 
@@ -639,6 +712,7 @@ describe("dropsheets page", () => {
           driverName: null,
           allLoaded: false,
           loaderName: null,
+          transfer: false,
         },
       ]),
     );
@@ -660,7 +734,7 @@ describe("dropsheets page", () => {
       .click();
 
     expect(goto).toHaveBeenCalledWith(
-      "/select-category/21?loadNumber=WC-021&deliveryNumber=WC-021&driverName=WILL+CALL&dropWeight=0&percentCompleted=0&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24&willcall=true",
+      "/select-category/21?loadNumber=WC-021&deliveryNumber=WC-021&driverName=WILL+CALL&dropWeight=0&percentCompleted=0&returnTo=%2Fdropsheets%3Fdate%3D2026-03-24&transfer=false&willcall=true",
     );
   });
 

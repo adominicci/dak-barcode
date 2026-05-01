@@ -181,7 +181,8 @@ export function mapDstDropSheet(raw: RawDstDropSheet): DropSheet {
 		driverId: nullableNumber(raw.Driver),
 		driverName: nullableString(raw.DriverName),
 		allLoaded: raw.AllLoaded ?? false,
-		loaderName: nullableString(raw.Loader)
+		loaderName: nullableString(raw.Loader),
+		transfer: raw.transfer ?? raw.Transfer ?? false
 	};
 }
 

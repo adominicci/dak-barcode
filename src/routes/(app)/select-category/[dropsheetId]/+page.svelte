@@ -47,7 +47,7 @@
 		maximumFractionDigits: 0
 	});
 	const COMPLETE_LOAD_PARTIAL_WARNING =
-		'Notifications were already sent. Internal sync still needs attention. Do not resend.';
+		'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load.';
 
 	let { data }: PageProps = $props();
 
@@ -137,6 +137,7 @@
 		if (data.willCall) {
 			searchParams.set('willcall', 'true');
 		}
+		searchParams.set('transfer', String(data.transfer));
 
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});
@@ -316,7 +317,10 @@
 		completeLoadingError = null;
 
 		try {
-			const result = await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			const result = await completeLoadingEmail({
+				dropSheetId: data.dropSheetId,
+				transfer: data.transfer
+			});
 			isCompleteLoadingModalOpen = false;
 
 			if (result.partial) {

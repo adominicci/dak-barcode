@@ -55,6 +55,7 @@ describe("dst record mappers", () => {
         DriverName: "Dylan",
         AllLoaded: false,
         Loader: "Alex",
+        transfer: true,
       }),
     ).toEqual({
       id: 42,
@@ -68,6 +69,7 @@ describe("dst record mappers", () => {
       driverName: "Dylan",
       allLoaded: false,
       loaderName: "Alex",
+      transfer: true,
     });
 
     expect(
