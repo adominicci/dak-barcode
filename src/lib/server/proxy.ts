@@ -20,7 +20,7 @@ export type ProxyAuthContext = {
 	user: User;
 };
 
-type FetchDakOptions = {
+export type FetchDakOptions = {
 	dbTarget?: DakDatabaseTarget;
 };
 

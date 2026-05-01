@@ -199,11 +199,7 @@
 								type="button"
 								disabled={saving || selectionDisabled}
 								class={`group flex min-h-20 items-center justify-center rounded-[var(--ds-radius-card)] px-4 py-4 text-center text-lg font-semibold tracking-tight transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${BLUE_CARD_CLASSES}`}
-								onclick={() => {
-									if (!selectionDisabled) {
-										onPick(option);
-									}
-								}}
+								onclick={() => onPick(option)}
 							>
 								<span class="text-balance">{option.label}</span>
 							</button>

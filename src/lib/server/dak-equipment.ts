@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import type { FrontendTarget, Trailer } from '$lib/types';
 import type { RawDakEquipment } from '$lib/types/raw-dak';
-import { fetchDak } from './proxy';
+import { fetchDak, type FetchDakOptions } from './proxy';
 
 export const DAK_EQUIPMENT_LOOKUP_ROUTE = '/v1/lookup-tables/equipments' as const;
 export const DAK_DROPSHEET_TRAILER_UPDATE_ROUTE =
@@ -38,8 +38,12 @@ function isNonEmptyString(value: unknown): value is string {
 	return typeof value === 'string' && value.trim().length > 0;
 }
 
-async function readDakEquipmentJson(path: string): Promise<unknown> {
-	const response = await fetchDak(path, undefined, { dbTarget: 'EQUIPMENT' });
+async function readDakInternal(
+	path: string,
+	init?: RequestInit,
+	options?: FetchDakOptions
+): Promise<unknown> {
+	const response = await fetchDak(path, init, options);
 
 	if (!response.ok) {
 		const details = (await response.text()).trim();
@@ -51,6 +55,10 @@ async function readDakEquipmentJson(path: string): Promise<unknown> {
 	}
 
 	return response.json();
+}
+
+async function readDakEquipmentJson(path: string): Promise<unknown> {
+	return readDakInternal(path, undefined, { dbTarget: 'EQUIPMENT' });
 }
 
 function jsonInit(body: unknown): RequestInit {
@@ -64,18 +72,7 @@ function jsonInit(body: unknown): RequestInit {
 }
 
 async function readDakJson(path: string, init?: RequestInit): Promise<unknown> {
-	const response = await fetchDak(path, init);
-
-	if (!response.ok) {
-		const details = (await response.text()).trim();
-		const suffix = details ? ` ${details}` : '';
-
-		throw new Error(
-			`DAK request failed for ${path}: ${response.status} ${response.statusText}${suffix}`
-		);
-	}
-
-	return response.json();
+	return readDakInternal(path, init);
 }
 
 function expectListResponse<T>(body: unknown, path: string): T[] {
