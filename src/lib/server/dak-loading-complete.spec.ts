@@ -20,30 +20,37 @@ function getFetchCall() {
 	return fetchDak.mock.calls.at(-1) as [string, RequestInit | undefined];
 }
 
+function getFetchCallAt(index: number) {
+	return fetchDak.mock.calls.at(index) as [string, RequestInit | undefined];
+}
+
 beforeEach(() => {
 	vi.resetModules();
 	fetchDak.mockReset();
 });
 
 describe('dak loading complete helpers', () => {
-	it('validates the dropsheet id input used by the completion command', async () => {
+	it('validates the dropsheet id and transfer flag input used by the completion command', async () => {
 		const { loadingCompleteInputSchema } = await import('./dak-loading-complete');
 
-		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 42 }).success).toBe(true);
-		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 0 }).success).toBe(false);
-		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: '42' }).success).toBe(false);
+		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 42, transfer: false }).success).toBe(true);
+		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 42 }).success).toBe(false);
+		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 42, transfer: 'true' }).success).toBe(false);
+		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: 0, transfer: false }).success).toBe(false);
+		expect(v.safeParse(loadingCompleteInputSchema, { dropSheetId: '42', transfer: false }).success).toBe(false);
 	});
 
-	it('posts the legacy loading-complete payload through dak-web and returns an ok result', async () => {
+	it('posts only the loaded notification when the dropsheet is not a transfer', async () => {
 		fetchDak.mockResolvedValue(jsonResponse({ ok: true }));
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
-		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).resolves.toEqual({
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: false })).resolves.toEqual({
 			ok: true,
 			partial: false
 		});
 
+		expect(fetchDak).toHaveBeenCalledOnce();
 		const [path, init] = getFetchCall();
 		const headers = new Headers(init?.headers);
 
@@ -54,6 +61,41 @@ describe('dak loading complete helpers', () => {
 			dropsheet_id: 42,
 			type: 'loaded',
 			send_email_to: ''
+		});
+	});
+
+	it('posts the transfer label export after the loaded notification for transfer dropsheets', async () => {
+		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
+		fetchDak.mockResolvedValueOnce(jsonResponse({
+			orders_considered: 2,
+			orders_exported: 2,
+			orders_skipped: 0,
+			packages_exported: 8,
+			details_exported: 8,
+			results: []
+		}));
+
+		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
+
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
+			ok: true,
+			partial: false
+		});
+
+		expect(fetchDak).toHaveBeenCalledTimes(2);
+		const [notifyPath] = getFetchCallAt(0);
+		const [exportPath, exportInit] = getFetchCallAt(1);
+		const exportHeaders = new Headers(exportInit?.headers);
+
+		expect(notifyPath).toBe('/v1/logistics/dropsheet-notify');
+		expect(exportPath).toBe('/v1/logistics/dropsheet-transfer-label-export');
+		expect(exportInit?.method).toBe('POST');
+		expect(exportHeaders.get('Content-Type')).toBe('application/json');
+		expect(exportHeaders.get('Y-Db')).toBe('AZURE');
+		expect(exportHeaders.get('X-Db')).toBeNull();
+		expect(JSON.parse(String(exportInit?.body))).toEqual({
+			dropsheet_id: 42,
+			mode: 'pending'
 		});
 	});
 
@@ -73,7 +115,7 @@ describe('dak loading complete helpers', () => {
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
-		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).resolves.toEqual({
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: false })).resolves.toEqual({
 			ok: true,
 			partial: true,
 			postSendSync: {
@@ -95,8 +137,62 @@ describe('dak loading complete helpers', () => {
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
-		await expect(completeDakLoadingEmail({ dropSheetId: 42 })).rejects.toThrow(
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).rejects.toThrow(
 			'502 Bad Gateway: email dispatch failed'
 		);
+		expect(fetchDak).toHaveBeenCalledOnce();
+	});
+
+	it('returns partial success when transfer label export fails after notification succeeds', async () => {
+		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
+		fetchDak.mockResolvedValueOnce(
+			new Response('label export failed', {
+				status: 502,
+				statusText: 'Bad Gateway'
+			})
+		);
+
+		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
+
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
+			ok: true,
+			partial: true,
+			transferLabelExport: {
+				status: 'failed',
+				message: 'Transfer label export failed: 502 Bad Gateway: label export failed'
+			}
+		});
+		expect(fetchDak).toHaveBeenCalledTimes(2);
+	});
+
+	it('returns partial success when transfer label export skips rows with missing source packages', async () => {
+		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
+		fetchDak.mockResolvedValueOnce(
+			jsonResponse({
+				orders_considered: 1,
+				orders_exported: 0,
+				orders_skipped: 1,
+				packages_exported: 0,
+				details_exported: 0,
+				results: [
+					{
+						order_number: 41012026,
+						status: 'skipped',
+						reason: 'source_packages_missing'
+					}
+				]
+			})
+		);
+
+		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
+
+		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
+			ok: true,
+			partial: true,
+			transferLabelExport: {
+				status: 'source_packages_missing',
+				message: 'Transfer label export skipped 1 order because source packages are missing.'
+			}
+		});
 	});
 });

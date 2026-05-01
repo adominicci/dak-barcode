@@ -1,5 +1,23 @@
 # Current Context
 
+## 2026-05-01 Transfer Label Export on Complete Load
+
+- Current worktree: `features/label-export`.
+- Complete Load still sends the loaded notification through dakview-web `POST /v1/logistics/dropsheet-notify` first.
+- The Complete Load remote command now requires the carried Select Category `transfer` boolean. When `transfer=true`, it calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` after notification success with body `{ dropsheet_id, mode: "pending" }`.
+- Transfer export uses the active app target as dak-web `X-Db` through `fetchDak` and adds `Y-Db: AZURE`; `repair_missing_target` is intentionally not used by the frontend.
+- If notification succeeds but transfer export fails or returns `results[]` rows skipped with `reason="source_packages_missing"`, the command returns partial success. Select Category warns the operator and still exits to Dropsheets to avoid duplicate loaded emails from a retry.
+- Focused regressions added or updated:
+  - `src/lib/server/dak-loading-complete.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - Red run confirmed missing transfer validation/call forwarding and missing transfer export behavior.
+  - `bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked Select Category and only reported the pre-existing `goto()`/`resolve()` advisory.
+  - `bun run check`
+  - `bun run build`
+- Memory Impact Analysis: update required because Complete Load backend behavior and the transfer endpoint contract changed. Updated current-context, project-state, decisions, architecture, and PRD.
+
 ## 2026-05-01 Dropsheet Transfer Flag Handoff
 
 - Current worktree: `features/trailers`.

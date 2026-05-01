@@ -70,7 +70,7 @@ product:
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
     - Loading uses a viewport-constrained iPad workflow panel with internal part-list scrolling so drop counters remain reachable without page-level scrolling
-    - Dropsheets carries the backend `transfer` boolean into Select Category route data and preserves it through the Loading return handoff
+    - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label export after Complete Load notification
   intentionally_limited:
     - some support pages still rely on DST-backed read models while loading mixes DST, CustomerPortalAPI-PY, and dak-web data
     - Dropsheets trailer picker reads equipment options from dakview-web `X-Db: EQUIPMENT` and updates selected trailer fields through dakview-web `POST /v1/logistics/dropsheet-trailer-update`; the Dropsheets iPad table keeps delivery, drop weight, load number, trailer, completion, loaded timestamp, loader, and go action on one row
@@ -194,7 +194,8 @@ workflows:
       - scanned-item cards show only the barcode or part-list ID in a three-column monospace grid
       - the active drop counter uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
-      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors
+      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: pending`, active-target `X-Db`, and `Y-Db: AZURE`
+      - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors
       - the visible loading label list follows the legacy LocationID contract and shows unscanned rows whose returned LocationID matches the active drop; CategoryID is not used as a loading department guard because valid legacy rows may return CategoryID 0
   support_views:
     status: live
@@ -222,11 +223,14 @@ integrations:
       target_format: X-Db CANTON|FREEPORT|SANDBOX
       target_exceptions:
         - equipment lookups use X-Db EQUIPMENT and pass Canton|Freeport|Sandbox as the `location` query filter
+        - transfer label export uses active-target X-Db plus Y-Db AZURE
   required_endpoints:
     - POST /v1/scan/process-staging
     - POST /api/barcode-update/process-loading-scan-v2
     - GET /v1/scan/department-status
     - GET /v1/lookup-tables/equipments
+    - POST /v1/logistics/dropsheet-notify
+    - POST /v1/logistics/dropsheet-transfer-label-export
   required_environment_variables:
     - PUBLIC_SUPABASE_URL
     - PUBLIC_SUPABASE_ANON_KEY
