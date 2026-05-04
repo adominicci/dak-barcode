@@ -1025,7 +1025,7 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
 		expect(toastWarning).toHaveBeenCalledWith(
-			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load.'
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Post-send sync failed: spUpdateOrderBackToInvoiced failed.'
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
@@ -1063,7 +1063,7 @@ describe('select-category page', () => {
 
 		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: true });
 		expect(toastWarning).toHaveBeenCalledWith(
-			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load.'
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export skipped 1 order because source packages are missing.'
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();

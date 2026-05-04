@@ -1,5 +1,25 @@
 # Current Context
 
+## 2026-05-04 PR54 Review Fixes
+
+- Current worktree: `dev`; PR #54 promotes `dev` to `main`.
+- Complete Load partial-success warnings now append actionable diagnostics when available:
+  - `post_send_sync` errors or affected order numbers
+  - `transferLabelExport.message`
+- Dropsheets trailer lookup now requires an explicit active target. `getTrailers(null|undefined)` throws before calling the remote query so no caller silently receives Canton equipment options.
+- Focused regressions updated:
+  - `src/lib/target-scoped-lookups.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - Red run confirmed both review issues first.
+  - `bun run test:unit -- --run src/lib/target-scoped-lookups.spec.ts`
+  - `bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked Select Category and only reported the pre-existing `goto()`/`resolve()` advisory.
+  - `bun run check`
+  - `bun run test:unit -- --run`
+  - `bun run build`
+- Memory Impact Analysis: update required because repo-tracked runtime behavior changed. Updated current-context and project-state; no product or backend contract changed.
+
 ## 2026-05-01 Transfer Label Export on Complete Load
 
 - Current worktree: `features/label-export`.

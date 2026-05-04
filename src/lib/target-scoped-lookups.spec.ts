@@ -60,13 +60,10 @@ describe('target-scoped lookup wrappers', () => {
 		expect(getTrailersRemote).toHaveBeenCalledWith({ target: 'Canton', targetCacheKey: 'canton' });
 	});
 
-	it('falls back to Canton for trailer location when no target is supplied', () => {
-		const trailerQuery = { source: 'trailers-default' };
-		getTrailersRemote.mockReturnValue(trailerQuery);
+	it('requires a target for trailer lookups', () => {
+		expect(() => getTrailers()).toThrow('Trailer lookup requires an active target.');
 
-		expect(getTrailers()).toBe(trailerQuery);
-
-		expect(getTrailersRemote).toHaveBeenCalledWith({ target: 'Canton', targetCacheKey: 'canton' });
+		expect(getTrailersRemote).not.toHaveBeenCalled();
 	});
 
 	it('returns the drop-area remote query directly without browser caching', () => {
