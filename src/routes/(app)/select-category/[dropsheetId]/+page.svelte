@@ -47,7 +47,7 @@
 		maximumFractionDigits: 0
 	});
 	const COMPLETE_LOAD_PARTIAL_WARNING =
-		'Notifications were already sent. Internal sync still needs attention. Do not resend.';
+		'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load.';
 
 	let { data }: PageProps = $props();
 
@@ -137,6 +137,7 @@
 		if (data.willCall) {
 			searchParams.set('willcall', 'true');
 		}
+		searchParams.set('transfer', String(data.transfer));
 
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});
@@ -307,6 +308,49 @@
 		isCompleteLoadingModalOpen = false;
 	}
 
+	type CompleteLoadPartialWarningSource = {
+		postSendSync?: {
+			orderNumbers: number[];
+			errors: string[];
+		};
+		transferLabelExport?: {
+			message: string;
+		};
+	};
+
+	function hasText(value: string | null | undefined): value is string {
+		return typeof value === 'string' && value.trim().length > 0;
+	}
+
+	function formatPostSendSyncWarning(
+		postSendSync: NonNullable<CompleteLoadPartialWarningSource['postSendSync']>
+	): string {
+		const errors = postSendSync.errors.map((entry) => entry.trim()).filter(hasText);
+
+		if (errors.length > 0) {
+			return `Post-send sync failed: ${errors.join('; ')}.`;
+		}
+
+		if (postSendSync.orderNumbers.length > 0) {
+			return `Post-send sync failed for orders ${postSendSync.orderNumbers.join(', ')}.`;
+		}
+
+		return 'Post-send sync failed.';
+	}
+
+	function buildCompleteLoadPartialWarning(result: CompleteLoadPartialWarningSource): string {
+		const details = [
+			result.postSendSync ? formatPostSendSyncWarning(result.postSendSync) : null,
+			result.transferLabelExport?.message ?? null
+		].filter(hasText);
+
+		if (details.length === 0) {
+			return COMPLETE_LOAD_PARTIAL_WARNING;
+		}
+
+		return `${COMPLETE_LOAD_PARTIAL_WARNING} ${details.join(' ')}`;
+	}
+
 	async function handleCompleteLoading() {
 		if (isCompletingLoad) {
 			return;
@@ -316,11 +360,14 @@
 		completeLoadingError = null;
 
 		try {
-			const result = await completeLoadingEmail({ dropSheetId: data.dropSheetId });
+			const result = await completeLoadingEmail({
+				dropSheetId: data.dropSheetId,
+				transfer: data.transfer
+			});
 			isCompleteLoadingModalOpen = false;
 
 			if (result.partial) {
-				toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
+				toast.warning(buildCompleteLoadPartialWarning(result));
 			}
 
 			await goto(getResolvedReturnHref(data.returnTo, '/dropsheets'));

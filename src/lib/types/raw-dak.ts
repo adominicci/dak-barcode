@@ -21,6 +21,14 @@ export type RawDakLoaderSession = {
 	ended_at?: string | null;
 };
 
+export type RawDakEquipment = {
+	id: string;
+	equipment_name: string;
+	photo_url?: string | null;
+	equipment_category: string;
+	location: string;
+};
+
 export type RawDakDepartmentStatus = {
 	drop_sheet_id?: number | null;
 	dropSheetId?: number | null;

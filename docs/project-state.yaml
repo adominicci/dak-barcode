@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-04-30
+  last_updated_at: 2026-05-04
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-04-30
+  last_verified_at: 2026-05-01
   verified_against:
     - AGENTS.md
     - README.md
@@ -69,15 +69,19 @@ product:
     - profile-based routing with admin target selection and operator warehouse resolution
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
+    - Loading uses a viewport-constrained iPad workflow panel with internal part-list scrolling so drop counters remain reachable without page-level scrolling
+    - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label export after Complete Load notification
   intentionally_limited:
     - some support pages still rely on DST-backed read models while loading mixes DST, CustomerPortalAPI-PY, and dak-web data
+    - Dropsheets trailer picker reads equipment options from dakview-web `X-Db: EQUIPMENT` and updates selected trailer fields through dakview-web `POST /v1/logistics/dropsheet-trailer-update`; the Dropsheets iPad table keeps delivery, drop weight, load number, trailer, completion, loaded timestamp, loader, and go action on one row
 
 architecture:
-  last_verified_at: 2026-04-22
+  last_verified_at: 2026-05-04
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
     - src/lib/server/proxy.ts
+    - src/lib/trailers.cached.ts
     - src/routes/(app)/+layout.server.ts
   confidence: high
   stack:
@@ -99,6 +103,10 @@ architecture:
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
     - imperative reads from SvelteKit remote `query(...)` helpers must use `src/lib/remote-query-read.ts` so the app supports the installed promise-like query contract and future `.run()`-capable contracts
     - target-sensitive lookup wrappers must include a target cache qualifier in the serialized remote `query(...)` input so deployed clients cannot reuse the wrong reactive query instance across target changes
+    - trailer lookup wrappers require an active target and fail before the remote call when no target is available, preventing a silent Canton equipment fallback
+    - Dropsheets trailer lookup targets dakview-web `X-Db: EQUIPMENT` while using the active app target only as the equipment `location` filter
+    - Dropsheets trailer updates target the active dak-web database header and send `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`
+    - Dropsheet list mapping preserves the FastAPI `transfer` boolean and defaults it to false when old payloads omit it
   access_states:
     - anonymous
     - inactive
@@ -138,9 +146,10 @@ design_system:
     - centered modal shell styling
 
 workflows:
-  last_verified_at: 2026-04-30
+  last_verified_at: 2026-05-04
   verified_against:
     - AGENTS.md
+    - src/routes/(app)/select-category/[dropsheetId]/+page.svelte
     - src/routes/(app)/staging/+page.svelte
     - src/routes/(app)/loading/+page.svelte
     - src/lib/workflow/staging-scan-controller.ts
@@ -188,7 +197,8 @@ workflows:
       - scanned-item cards show only the barcode or part-list ID in a three-column monospace grid
       - the active drop counter uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
-      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload and now treats backend post-send sync failures as operator warnings rather than resend-worthy errors
+      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: pending`, active-target `X-Db`, and `Y-Db: AZURE`
+      - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors, and includes available post-send or transfer-export detail in the warning
       - the visible loading label list follows the legacy LocationID contract and shows unscanned rows whose returned LocationID matches the active drop; CategoryID is not used as a loading department guard because valid legacy rows may return CategoryID 0
   support_views:
     status: live
@@ -196,9 +206,11 @@ workflows:
       - Order Status
       - Move Orders
       - Add Loader
+    notes:
+      - Dropsheets trailer picker lists dakview-web equipment rows where `equipment_category=Trailers` and `location` equals the active target; selecting an option updates only the dropsheet trailer equipment fields through dakview-web
 
 integrations:
-  last_verified_at: 2026-04-30
+  last_verified_at: 2026-05-01
   verified_against:
     - docs/architecture.md
     - docs/prd.md
@@ -212,10 +224,16 @@ integrations:
     dak_web:
       transport: same-origin SvelteKit proxy helper
       target_format: X-Db CANTON|FREEPORT|SANDBOX
+      target_exceptions:
+        - equipment lookups use X-Db EQUIPMENT and pass Canton|Freeport|Sandbox as the `location` query filter
+        - transfer label export uses active-target X-Db plus Y-Db AZURE
   required_endpoints:
     - POST /v1/scan/process-staging
     - POST /api/barcode-update/process-loading-scan-v2
     - GET /v1/scan/department-status
+    - GET /v1/lookup-tables/equipments
+    - POST /v1/logistics/dropsheet-notify
+    - POST /v1/logistics/dropsheet-transfer-label-export
   required_environment_variables:
     - PUBLIC_SUPABASE_URL
     - PUBLIC_SUPABASE_ANON_KEY

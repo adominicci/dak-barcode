@@ -218,6 +218,7 @@ const layoutData = {
 	userEmail: 'loader@dakotasteelandtrim.com',
 	userRole: 'loading' as const,
 	willCall: false,
+	transfer: false,
 	percentCompleted: 0.875,
 	departmentLoadersError: null,
 	departmentLoaders: [
@@ -715,6 +716,7 @@ describe('select-category page', () => {
 				dropWeight: 2152.4,
 				percentCompleted: 0.875,
 				returnTo: '/dropsheets?date=2026-03-24',
+				transfer: true,
 				loaders: [
 					{ id: 7, name: 'Alex', isActive: true },
 					{ id: 9, name: 'Casey', isActive: true }
@@ -749,7 +751,7 @@ describe('select-category page', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Wrap/i })).toHaveTextContent('Alex');
 		expect(goto).toHaveBeenCalledWith(
-			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24&dropWeight=2152.4&driverName=David+Schmidt'
+			'/loading?dropsheetId=42&locationId=2&loaderSessionId=88&startedAt=2026-03-24T12%3A00%3A00.000Z&loadNumber=L-042&returnTo=%2Fselect-category%2F42%3FloadNumber%3DL-042%26driverName%3DDavid%2BSchmidt%26dropWeight%3D2152.4%26percentCompleted%3D0.875%26returnTo%3D%252Fdropsheets%253Fdate%253D2026-03-24%26transfer%3Dtrue&dropWeight=2152.4&driverName=David+Schmidt'
 		);
 	});
 
@@ -954,13 +956,40 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('Complete Loading', { exact: true })).toBeInTheDocument();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
-		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42 });
+		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: false });
 		await expect.element(page.getByTestId('complete-loading-confirm-spinner')).toBeInTheDocument();
 		await expect.element(page.getByLabelText('Completing loading')).toBeInTheDocument();
 
 		completionRequest.resolve({ ok: true, partial: false });
 		await Promise.resolve();
 
+		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+	});
+
+	it('passes the carried transfer flag when completing a transfer load', async () => {
+		completeLoadingEmail.mockResolvedValue({ ok: true, partial: false });
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				transfer: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: true });
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 	});
 
@@ -996,7 +1025,45 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
 		expect(toastWarning).toHaveBeenCalledWith(
-			'Notifications were already sent. Internal sync still needs attention. Do not resend.'
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Post-send sync failed: spUpdateOrderBackToInvoiced failed.'
+		);
+		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
+		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
+	});
+
+	it('shows a do-not-resend warning and still exits when transfer label export needs retry', async () => {
+		completeLoadingEmail.mockResolvedValue({
+			ok: true,
+			partial: true,
+			transferLabelExport: {
+				status: 'source_packages_missing',
+				message: 'Transfer label export skipped 1 order because source packages are missing.'
+			}
+		});
+		goto.mockResolvedValue(undefined);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				transfer: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: true });
+		expect(toastWarning).toHaveBeenCalledWith(
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export skipped 1 order because source packages are missing.'
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();

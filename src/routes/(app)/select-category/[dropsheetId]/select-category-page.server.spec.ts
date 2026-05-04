@@ -46,6 +46,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [
 				{ id: 7, name: 'Alex', isActive: true },
 				{ id: 9, name: 'Casey', isActive: true }
@@ -122,6 +123,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: ['Alex', 'Casey'] },
@@ -149,6 +151,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -195,6 +198,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -224,6 +228,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: '/dropsheets?date=2026-03-24',
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -251,6 +256,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -278,6 +284,7 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -307,6 +314,7 @@ describe('select-category page server load', () => {
 			percentCompleted: 1,
 			returnTo: null,
 			willCall: false,
+			transfer: false,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },
@@ -336,6 +344,35 @@ describe('select-category page server load', () => {
 			percentCompleted: null,
 			returnTo: '/home',
 			willCall: true,
+			transfer: false,
+			loaders: [{ id: 7, name: 'Alex', isActive: true }],
+			departmentLoaders: [
+				{ department: 'Wrap', loaderNames: [] },
+				{ department: 'Roll', loaderNames: [] },
+				{ department: 'Parts', loaderNames: [] }
+			],
+			departmentLoadersError: null
+		});
+	});
+
+	it('parses the transfer flag from the dropsheet handoff query string', async () => {
+		getDstLoaders.mockResolvedValue([{ id: 7, name: 'Alex', isActive: true }]);
+		getDakLoadersForDropsheet.mockResolvedValue([]);
+
+		await expect(
+			load({
+				params: { dropsheetId: '42' },
+				url: new URL('https://example.com/select-category/42?loadNumber=L-042&transfer=true')
+			} as never)
+		).resolves.toEqual({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			driverName: null,
+			dropWeight: null,
+			percentCompleted: null,
+			returnTo: null,
+			willCall: false,
+			transfer: true,
 			loaders: [{ id: 7, name: 'Alex', isActive: true }],
 			departmentLoaders: [
 				{ department: 'Wrap', loaderNames: [] },

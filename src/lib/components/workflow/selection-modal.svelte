@@ -3,9 +3,12 @@
 	import { LoaderCircle, RefreshCw, TriangleAlert, X } from '@lucide/svelte';
 
 	type SelectionOption = {
-		id: number;
+		id: number | string;
 		label: string;
 	};
+	type SelectionPickHandler = {
+		bivarianceHack(option: SelectionOption): void;
+	}['bivarianceHack'];
 
 	let {
 		title,
@@ -15,6 +18,9 @@
 		error = null,
 		saving = false,
 		refreshing = false,
+		columns = 4,
+		selectionDisabled = false,
+		selectionDisabledMessage = null,
 		emptyMessage = 'No options available.',
 		onClose,
 		onPick,
@@ -27,9 +33,12 @@
 		error?: string | null;
 		saving?: boolean;
 		refreshing?: boolean;
+		columns?: 3 | 4;
+		selectionDisabled?: boolean;
+		selectionDisabledMessage?: string | null;
 		emptyMessage?: string;
 		onClose: () => void;
-		onPick: (option: SelectionOption) => void;
+		onPick: SelectionPickHandler;
 		onRefresh?: (() => void | Promise<void>) | null;
 	} = $props();
 
@@ -37,6 +46,9 @@
 	let closeButton: HTMLButtonElement | null = null;
 	const BLUE_CARD_CLASSES =
 		'bg-[linear-gradient(135deg,rgba(0,88,188,0.98),rgba(0,112,235,0.98))] text-white shadow-[var(--shadow-primary)]';
+	const optionsGridClasses = $derived(
+		columns === 3 ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4'
+	);
 
 	onMount(() => {
 		closeButton?.focus();
@@ -162,6 +174,12 @@
 				</div>
 			{/if}
 
+			{#if selectionDisabled && selectionDisabledMessage}
+				<div class="mt-4 rounded-[var(--ds-radius-card)] bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800">
+					{selectionDisabledMessage}
+				</div>
+			{/if}
+
 			<div
 				data-testid="selection-modal-scroll-area"
 				class="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
@@ -175,11 +193,11 @@
 						<p class="text-lg font-semibold tracking-tight text-slate-950">{emptyMessage}</p>
 					</div>
 				{:else}
-					<div data-testid="selection-modal-options-grid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+					<div data-testid="selection-modal-options-grid" class={optionsGridClasses}>
 						{#each options as option (option.id)}
 							<button
 								type="button"
-								disabled={saving}
+								disabled={saving || selectionDisabled}
 								class={`group flex min-h-20 items-center justify-center rounded-[var(--ds-radius-card)] px-4 py-4 text-center text-lg font-semibold tracking-tight transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${BLUE_CARD_CLASSES}`}
 								onclick={() => onPick(option)}
 							>

@@ -201,6 +201,7 @@ describe("dst query helpers", () => {
         driverName: "Dylan",
         allLoaded: false,
         loaderName: "Alex",
+        transfer: false,
       },
     ]);
 
