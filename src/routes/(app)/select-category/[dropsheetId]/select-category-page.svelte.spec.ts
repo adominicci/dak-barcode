@@ -1151,7 +1151,7 @@ describe('select-category page', () => {
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it('keeps the completion modal open and re-enables controls when transfer label export throws', async () => {
+	it('closes the completion modal and prevents duplicate notifications when transfer label export throws after email send', async () => {
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockRejectedValue(new Error('Transfer label export failed.'));
 
@@ -1174,11 +1174,14 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Complete Load' }).click();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
-		await expect.element(page.getByTestId('complete-loading-modal')).toBeInTheDocument();
-		await expect.element(page.getByTestId('complete-loading-error')).toHaveTextContent(
-			'Transfer label export failed.'
+		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
+		expect(toastWarning).toHaveBeenCalledWith(
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export failed.'
 		);
-		await expect.element(page.getByRole('button', { name: 'Confirm', exact: true })).toBeEnabled();
 		expect(goto).not.toHaveBeenCalled();
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
+		expect(sendLoadedNotification).toHaveBeenCalledOnce();
 	});
 });

@@ -66,6 +66,7 @@
 	let isCompletingLoad = $state(false);
 	let completeLoadingPhase = $state<CompleteLoadingPhase>('idle');
 	let completeLoadingError = $state<string | null>(null);
+	let completeLoadingNotificationSent = $state(false);
 	let submitError = $state<string | null>(null);
 	let isWillCallSignatureModalOpen = $state(false);
 	let isLoadingWillCallSignature = $state(false);
@@ -311,6 +312,11 @@
 	}
 
 	function openCompleteLoadingModal() {
+		if (completeLoadingNotificationSent) {
+			toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
+			return;
+		}
+
 		completeLoadingError = null;
 		completeLoadingPhase = 'idle';
 		isCompleteLoadingModalOpen = true;
@@ -380,6 +386,7 @@
 
 		try {
 			const notificationResult = await sendLoadedNotification({ dropSheetId: data.dropSheetId });
+			completeLoadingNotificationSent = true;
 			const result: CompleteLoadPartialWarningSource = {};
 
 			if (notificationResult.postSendSync) {
@@ -402,8 +409,14 @@
 
 			await goto(data.returnTo ?? resolve('/dropsheets'));
 		} catch (error) {
-			completeLoadingError =
-				error instanceof Error ? error.message : 'Unable to complete loading.';
+			const message = error instanceof Error ? error.message : 'Unable to complete loading.';
+
+			if (completeLoadingNotificationSent) {
+				isCompleteLoadingModalOpen = false;
+				toast.warning(`${COMPLETE_LOAD_PARTIAL_WARNING} ${message}`);
+			} else {
+				completeLoadingError = message;
+			}
 		} finally {
 			isCompletingLoad = false;
 			completeLoadingPhase = 'idle';
