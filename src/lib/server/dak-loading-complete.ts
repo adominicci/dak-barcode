@@ -4,17 +4,26 @@ import { fetchDak } from './proxy';
 export const DAK_LOADING_COMPLETE_ROUTE = '/v1/logistics/dropsheet-notify' as const;
 export const DAK_TRANSFER_LABEL_EXPORT_ROUTE =
 	'/v1/logistics/dropsheet-transfer-label-export' as const;
+const COMPLETE_LOAD_NOTIFY_TIMEOUT_MS = 20_000;
+const TRANSFER_LABEL_EXPORT_TIMEOUT_MS = 35_000;
+
+const dropSheetIdSchema = v.pipe(
+	v.number(),
+	v.integer('Expected a whole-number drop sheet id'),
+	v.minValue(1, 'Expected a positive drop sheet id')
+);
+
+export const loadingCompleteDropSheetInputSchema = v.object({
+	dropSheetId: dropSheetIdSchema
+});
 
 export const loadingCompleteInputSchema = v.object({
-	dropSheetId: v.pipe(
-		v.number(),
-		v.integer('Expected a whole-number drop sheet id'),
-		v.minValue(1, 'Expected a positive drop sheet id')
-	),
+	dropSheetId: dropSheetIdSchema,
 	transfer: v.boolean()
 });
 
 type LoadingCompleteInput = v.InferOutput<typeof loadingCompleteInputSchema>;
+type LoadedNotificationInput = v.InferOutput<typeof loadingCompleteDropSheetInputSchema>;
 type PostSendSyncStatus = 'failed';
 type TransferLabelExportWarningStatus = 'failed' | 'orders_skipped' | 'source_packages_missing';
 
@@ -28,6 +37,10 @@ export type DakLoadingCompletePostSendSyncFailure = {
 export type DakLoadingCompleteTransferLabelExportWarning = {
 	status: TransferLabelExportWarningStatus;
 	message: string;
+};
+
+export type DakLoadedNotificationResult = {
+	postSendSync: DakLoadingCompletePostSendSyncFailure | null;
 };
 
 export type DakLoadingCompleteResult =
@@ -151,7 +164,7 @@ function formatUnknownTransferExportError(error: unknown): string {
 	return 'Transfer label export failed.';
 }
 
-async function completeTransferLabelExport(
+export async function exportDakTransferLabels(
 	dropSheetId: number
 ): Promise<DakLoadingCompleteTransferLabelExportWarning | null> {
 	let response: Response;
@@ -162,12 +175,15 @@ async function completeTransferLabelExport(
 			jsonInit(
 				{
 					dropsheet_id: dropSheetId,
-					mode: 'pending'
+					mode: 'repair_missing_target'
 				},
 				{
 					'Y-Db': 'AZURE'
 				}
-			)
+			),
+			{
+				timeoutMs: TRANSFER_LABEL_EXPORT_TIMEOUT_MS
+			}
 		);
 	} catch (error) {
 		return {
@@ -205,16 +221,19 @@ async function completeTransferLabelExport(
 	return null;
 }
 
-export async function completeDakLoadingEmail(
-	input: LoadingCompleteInput
-): Promise<DakLoadingCompleteResult> {
+export async function sendDakLoadedNotification(
+	dropSheetId: LoadedNotificationInput['dropSheetId']
+): Promise<DakLoadedNotificationResult> {
 	const response = await fetchDak(
 		DAK_LOADING_COMPLETE_ROUTE,
 		jsonInit({
-			dropsheet_id: input.dropSheetId,
+			dropsheet_id: dropSheetId,
 			type: 'loaded',
 			send_email_to: ''
-		})
+		}),
+		{
+			timeoutMs: COMPLETE_LOAD_NOTIFY_TIMEOUT_MS
+		}
 	);
 
 	await requireOkLoadingNotification(response);
@@ -222,8 +241,15 @@ export async function completeDakLoadingEmail(
 	const payload = await readJsonPayload(response);
 	const postSendSync =
 		isRecord(payload) ? readPostSendSyncFailure(payload.post_send_sync) : null;
+	return { postSendSync };
+}
+
+export async function completeDakLoadingEmail(
+	input: LoadingCompleteInput
+): Promise<DakLoadingCompleteResult> {
+	const { postSendSync } = await sendDakLoadedNotification(input.dropSheetId);
 	const transferLabelExport = input.transfer
-		? await completeTransferLabelExport(input.dropSheetId)
+		? await exportDakTransferLabels(input.dropSheetId)
 		: null;
 
 	if (postSendSync && transferLabelExport) {

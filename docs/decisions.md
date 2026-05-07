@@ -2,6 +2,17 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-07 - Complete Load splits notify and repair transfer labels visibly
+
+- Tags: backend-contract, loading, complete-load, transfer, ux
+- Decision: Complete Load now runs two awaited remote commands: `sendLoadedNotification` posts dakview-web `POST /v1/logistics/dropsheet-notify`, then `exportTransferLabels` posts `POST /v1/logistics/dropsheet-transfer-label-export` only when Select Category has `transfer=true`. The transfer export uses `{ dropsheet_id, mode: "repair_missing_target" }`, active-target `X-Db`, and `Y-Db: AZURE`.
+- Decision: The Complete Load modal stays open while processing, disables controls, shows `Sending E-mails. Please wait...` during notify, then switches to `This is a transfer order. Creating labels. Please wait...` during transfer export.
+- Rationale: The backend can repair source orders already marked `ExportedPackages = 1` but missing Azure proxy label rows. Splitting the frontend calls makes the long-running flow understandable to operators without moving to unsafe in-process fire-and-forget work.
+- Impacted areas: `src/lib/server/dak-loading-complete.ts`, `src/lib/loading-complete.remote.ts`, `src/lib/server/proxy.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`
+- Supersedes: frontend transfer export using `mode: "pending"` from the single Complete Load command
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; backend contract and retrieval memory updated in this turn
+
 ## 2026-05-01 - Transfer Complete Load exports labels through dedicated endpoint
 
 - Tags: backend-contract, loading, complete-load, transfer
