@@ -17,11 +17,19 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 }
 
 function getFetchCall() {
-	return fetchDak.mock.calls.at(-1) as [string, RequestInit | undefined];
+	return fetchDak.mock.calls.at(-1) as [
+		string,
+		RequestInit | undefined,
+		{ timeoutMs?: number } | undefined
+	];
 }
 
 function getFetchCallAt(index: number) {
-	return fetchDak.mock.calls.at(index) as [string, RequestInit | undefined];
+	return fetchDak.mock.calls.at(index) as [
+		string,
+		RequestInit | undefined,
+		{ timeoutMs?: number } | undefined
+	];
 }
 
 beforeEach(() => {
@@ -51,11 +59,12 @@ describe('dak loading complete helpers', () => {
 		});
 
 		expect(fetchDak).toHaveBeenCalledOnce();
-		const [path, init] = getFetchCall();
+		const [path, init, options] = getFetchCall();
 		const headers = new Headers(init?.headers);
 
 		expect(path).toBe('/v1/logistics/dropsheet-notify');
 		expect(init?.method).toBe('POST');
+		expect(options).toEqual({ timeoutMs: 20_000 });
 		expect(headers.get('Content-Type')).toBe('application/json');
 		expect(JSON.parse(String(init?.body))).toEqual({
 			dropsheet_id: 42,
@@ -83,19 +92,21 @@ describe('dak loading complete helpers', () => {
 		});
 
 		expect(fetchDak).toHaveBeenCalledTimes(2);
-		const [notifyPath] = getFetchCallAt(0);
-		const [exportPath, exportInit] = getFetchCallAt(1);
+		const [notifyPath, , notifyOptions] = getFetchCallAt(0);
+		const [exportPath, exportInit, exportOptions] = getFetchCallAt(1);
 		const exportHeaders = new Headers(exportInit?.headers);
 
 		expect(notifyPath).toBe('/v1/logistics/dropsheet-notify');
+		expect(notifyOptions).toEqual({ timeoutMs: 20_000 });
 		expect(exportPath).toBe('/v1/logistics/dropsheet-transfer-label-export');
 		expect(exportInit?.method).toBe('POST');
+		expect(exportOptions).toEqual({ timeoutMs: 35_000 });
 		expect(exportHeaders.get('Content-Type')).toBe('application/json');
 		expect(exportHeaders.get('Y-Db')).toBe('AZURE');
 		expect(exportHeaders.get('X-Db')).toBeNull();
 		expect(JSON.parse(String(exportInit?.body))).toEqual({
 			dropsheet_id: 42,
-			mode: 'pending'
+			mode: 'repair_missing_target'
 		});
 	});
 

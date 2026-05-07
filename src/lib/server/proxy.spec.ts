@@ -591,4 +591,44 @@ describe('fetchDak', () => {
 		expect(abortableFetch).toHaveBeenCalledOnce();
 		vi.useRealTimers();
 	});
+
+	it('honors per-call timeout overrides for long-running DAK requests', async () => {
+		vi.useFakeTimers();
+		let settled = false;
+		const abortableFetch = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () => {
+						reject(new DOMException('The operation was aborted.', 'AbortError'));
+					});
+				})
+		);
+		const { event } = createRequestEventMock();
+		event.fetch = abortableFetch as typeof event.fetch;
+
+		getRequestEvent.mockReturnValue(event);
+
+		const { fetchDak } = await import('./proxy');
+		const request = fetchDak('/v1/logistics/dropsheet-transfer-label-export', undefined, {
+			timeoutMs: 12_000
+		});
+		const rejection = request.catch((error: unknown) => {
+			settled = true;
+			return error;
+		});
+
+		await vi.advanceTimersByTimeAsync(8_000);
+		expect(settled).toBe(false);
+
+		await vi.advanceTimersByTimeAsync(4_000);
+
+		await expect(rejection).resolves.toMatchObject({
+			status: 504,
+			body: {
+				message: 'DAK backend request timed out.'
+			}
+		});
+		expect(abortableFetch).toHaveBeenCalledOnce();
+		vi.useRealTimers();
+	});
 });

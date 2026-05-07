@@ -229,10 +229,12 @@ the post-scan Loading detail and label refresh rows.
 
 Complete Load uses `dak-web` `POST /v1/logistics/dropsheet-notify` for the
 loaded notification. When the Select Category handoff has `transfer=true`, the
-same remote command then calls
-`POST /v1/logistics/dropsheet-transfer-label-export` with `mode: "pending"`,
-the active target as `X-Db`, and `Y-Db: AZURE`. Post-notification transfer
-export failures are warnings so operators do not resend loaded emails.
+UI then calls a second remote command for
+`POST /v1/logistics/dropsheet-transfer-label-export` with
+`mode: "repair_missing_target"`, the active target as `X-Db`, and
+`Y-Db: AZURE`. The modal stays open and shows separate email and transfer-label
+phases while the commands run. Post-notification transfer export failures are
+warnings so operators do not resend loaded emails.
 
 ---
 

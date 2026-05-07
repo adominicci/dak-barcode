@@ -55,7 +55,8 @@ type DepartmentLoaderGroup = {
 const {
 	goto,
 	resolve,
-	completeLoadingEmail,
+	exportTransferLabels,
+	sendLoadedNotification,
 	getDropsheetCategoryAvailability,
 	getDropsheetStatus,
 	getWillCallSignature,
@@ -69,7 +70,8 @@ const {
 	() => ({
 		goto: vi.fn(),
 		resolve: vi.fn((href: string) => href),
-		completeLoadingEmail: vi.fn(),
+		exportTransferLabels: vi.fn(),
+		sendLoadedNotification: vi.fn(),
 		getDropsheetCategoryAvailability: vi.fn<(dropSheetId: number) => CategoryAvailabilityQueryState>(),
 		getDropsheetStatus: vi.fn<(dropSheetId: number) => DepartmentStatusQueryState>(),
 		getWillCallSignature: vi.fn(),
@@ -91,7 +93,8 @@ vi.mock('$app/paths', () => ({
 }));
 
 vi.mock('$lib/loading-complete.remote', () => ({
-	completeLoadingEmail
+	exportTransferLabels,
+	sendLoadedNotification
 }));
 
 vi.mock('$lib/dropsheets.remote', () => ({
@@ -233,7 +236,8 @@ describe('select-category page', () => {
 		goto.mockReset();
 		resolve.mockReset();
 		resolve.mockImplementation((href: string) => href);
-		completeLoadingEmail.mockReset();
+		exportTransferLabels.mockReset();
+		sendLoadedNotification.mockReset();
 		getDropsheetCategoryAvailability.mockReset();
 		getDropsheetStatus.mockReset();
 		getLoaders.mockReset();
@@ -931,9 +935,10 @@ describe('select-category page', () => {
 		await expect.element(page.getByRole('button', { name: 'Complete Load' })).toHaveClass(/py-2\.5/);
 	});
 
-	it('opens the completion modal, shows the shared spinner while pending, and returns to dropsheets on success', async () => {
-		const completionRequest = createDeferred<{ ok: true; partial: false }>();
-		completeLoadingEmail.mockReturnValue(completionRequest.promise);
+	it('opens the completion modal, shows the email phase while pending, and returns on success', async () => {
+		const completionRequest = createDeferred<{ postSendSync: null }>();
+		sendLoadedNotification.mockReturnValue(completionRequest.promise);
+		exportTransferLabels.mockResolvedValue(null);
 		goto.mockResolvedValue(undefined);
 
 		render(SelectCategoryPage, {
@@ -956,18 +961,24 @@ describe('select-category page', () => {
 		await expect.element(page.getByText('Complete Loading', { exact: true })).toBeInTheDocument();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
-		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: false });
+		expect(sendLoadedNotification).toHaveBeenCalledWith({ dropSheetId: 42 });
+		expect(exportTransferLabels).not.toHaveBeenCalled();
+		await expect.element(page.getByText('Sending E-mails. Please wait...')).toBeInTheDocument();
 		await expect.element(page.getByTestId('complete-loading-confirm-spinner')).toBeInTheDocument();
-		await expect.element(page.getByLabelText('Completing loading')).toBeInTheDocument();
+		await expect.element(page.getByLabelText('Sending E-mails. Please wait...')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: /Confirm/ })).toBeDisabled();
 
-		completionRequest.resolve({ ok: true, partial: false });
+		completionRequest.resolve({ postSendSync: null });
 		await Promise.resolve();
 
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 	});
 
-	it('passes the carried transfer flag when completing a transfer load', async () => {
-		completeLoadingEmail.mockResolvedValue({ ok: true, partial: false });
+	it('runs transfer label export after the email phase for transfer loads', async () => {
+		const notificationRequest = createDeferred<{ postSendSync: null }>();
+		const exportRequest = createDeferred<null>();
+		sendLoadedNotification.mockReturnValue(notificationRequest.promise);
+		exportTransferLabels.mockReturnValue(exportRequest.promise);
 		goto.mockResolvedValue(undefined);
 
 		render(SelectCategoryPage, {
@@ -989,14 +1000,27 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Complete Load' }).click();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
-		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: true });
+		expect(sendLoadedNotification).toHaveBeenCalledWith({ dropSheetId: 42 });
+		await expect.element(page.getByText('Sending E-mails. Please wait...')).toBeInTheDocument();
+
+		notificationRequest.resolve({ postSendSync: null });
+		await vi.waitFor(() => expect(exportTransferLabels).toHaveBeenCalledWith({ dropSheetId: 42 }));
+
+		await expect
+			.element(page.getByText('This is a transfer order. Creating labels. Please wait...'))
+			.toBeInTheDocument();
+		await expect
+			.element(page.getByLabelText('This is a transfer order. Creating labels. Please wait...'))
+			.toBeInTheDocument();
+
+		exportRequest.resolve(null);
+		await Promise.resolve();
+
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 	});
 
 	it('shows a do-not-resend warning and still exits when post-send sync fails after notifications were sent', async () => {
-		completeLoadingEmail.mockResolvedValue({
-			ok: true,
-			partial: true,
+		sendLoadedNotification.mockResolvedValue({
 			postSendSync: {
 				status: 'failed',
 				orderNumbers: [41012026],
@@ -1004,6 +1028,7 @@ describe('select-category page', () => {
 				retryRecommended: false
 			}
 		});
+		exportTransferLabels.mockResolvedValue(null);
 		goto.mockResolvedValue(undefined);
 
 		render(SelectCategoryPage, {
@@ -1024,6 +1049,8 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Complete Load' }).click();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
+		expect(sendLoadedNotification).toHaveBeenCalledWith({ dropSheetId: 42 });
+		expect(exportTransferLabels).not.toHaveBeenCalled();
 		expect(toastWarning).toHaveBeenCalledWith(
 			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Post-send sync failed: spUpdateOrderBackToInvoiced failed.'
 		);
@@ -1032,13 +1059,10 @@ describe('select-category page', () => {
 	});
 
 	it('shows a do-not-resend warning and still exits when transfer label export needs retry', async () => {
-		completeLoadingEmail.mockResolvedValue({
-			ok: true,
-			partial: true,
-			transferLabelExport: {
+		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
+		exportTransferLabels.mockResolvedValue({
 				status: 'source_packages_missing',
 				message: 'Transfer label export skipped 1 order because source packages are missing.'
-			}
 		});
 		goto.mockResolvedValue(undefined);
 
@@ -1061,7 +1085,8 @@ describe('select-category page', () => {
 		await page.getByRole('button', { name: 'Complete Load' }).click();
 		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 
-		expect(completeLoadingEmail).toHaveBeenCalledWith({ dropSheetId: 42, transfer: true });
+		expect(sendLoadedNotification).toHaveBeenCalledWith({ dropSheetId: 42 });
+		expect(exportTransferLabels).toHaveBeenCalledWith({ dropSheetId: 42 });
 		expect(toastWarning).toHaveBeenCalledWith(
 			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export skipped 1 order because source packages are missing.'
 		);
@@ -1071,7 +1096,8 @@ describe('select-category page', () => {
 
 	it('reuses an already-resolved returnTo path when exiting complete load', async () => {
 		resolve.mockImplementation((href: string) => `/base${href}`);
-		completeLoadingEmail.mockResolvedValue({ ok: true, partial: false });
+		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
+		exportTransferLabels.mockResolvedValue(null);
 		goto.mockResolvedValue(undefined);
 
 		render(SelectCategoryPage, {
@@ -1096,7 +1122,8 @@ describe('select-category page', () => {
 	});
 
 	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {
-		completeLoadingEmail.mockRejectedValue(new Error('500 Internal Server Error: email dispatch failed'));
+		sendLoadedNotification.mockRejectedValue(new Error('500 Internal Server Error: email dispatch failed'));
+		exportTransferLabels.mockResolvedValue(null);
 
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
@@ -1120,6 +1147,38 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('complete-loading-error')).toHaveTextContent(
 			'500 Internal Server Error: email dispatch failed'
 		);
+		await expect.element(page.getByRole('button', { name: 'Confirm', exact: true })).toBeEnabled();
+		expect(goto).not.toHaveBeenCalled();
+	});
+
+	it('keeps the completion modal open and re-enables controls when transfer label export throws', async () => {
+		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
+		exportTransferLabels.mockRejectedValue(new Error('Transfer label export failed.'));
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				transfer: true,
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await page.getByRole('button', { name: 'Complete Load' }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+		await expect.element(page.getByTestId('complete-loading-modal')).toBeInTheDocument();
+		await expect.element(page.getByTestId('complete-loading-error')).toHaveTextContent(
+			'Transfer label export failed.'
+		);
+		await expect.element(page.getByRole('button', { name: 'Confirm', exact: true })).toBeEnabled();
 		expect(goto).not.toHaveBeenCalled();
 	});
 });
