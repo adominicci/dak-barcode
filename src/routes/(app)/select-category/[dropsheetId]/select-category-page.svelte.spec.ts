@@ -1061,8 +1061,8 @@ describe('select-category page', () => {
 	it('shows a do-not-resend warning and still exits when transfer label export needs retry', async () => {
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockResolvedValue({
-				status: 'source_packages_missing',
-				message: 'Transfer label export skipped 1 order because source packages are missing.'
+			status: 'source_packages_missing',
+			message: 'Transfer label export skipped 1 order because source packages are missing.'
 		});
 		goto.mockResolvedValue(undefined);
 
