@@ -1,5 +1,21 @@
 # Current Context
 
+## 2026-05-08 Loading Location Label Scope Fix
+
+- Current worktree: `dev`; OpenSpec change `fix-loading-location-label-scope`.
+- Root cause: Loading parsed the selected route location from Select Category but later used the returned drop-detail `LocationID` for union-label lookup/filtering and scan/retry payloads.
+- Loading now treats `loadingEntry.locationId` as authoritative for label query keys, `getLoadViewUnion`, visible unscanned label filtering, direct scan requests, retry requests, and fallback refresh/log context.
+- Legacy FlutterFlow confirmation: `LoadingWidget` uses widget `locationID` for `LoadLabelsUnionViewCall`; Select Category sends Wrap `2`, Parts `3`, and Roll `1`.
+- Focused regressions added in `src/routes/(app)/loading/loading-page.svelte.spec.ts` for URL Roll `locationId=1` with detail row Wrap `locationId=2`, direct scan payload, and retry payload.
+- Verification completed:
+  - red focused regression run confirmed the old behavior sent/read `locationId=2`
+  - `bunx vitest run 'src/routes/(app)/loading/loading-page.svelte.spec.ts' --testNamePattern 'selected route location|Roll labels'`
+  - `bunx vitest run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked `src/routes/(app)/loading/+page.svelte` with no blocking issues
+  - `bun run check`
+  - `bun run test:unit -- --run`
+- Memory Impact Analysis: update required because durable Loading workflow behavior changed. Updated current-context, project-state, and decisions.
+
 ## 2026-05-07 Complete Load Transfer Label Repair UX
 
 - Current worktree: `features/complete-load-transfer-label-ux`.
