@@ -1,5 +1,43 @@
 # Current Context
 
+## 2026-05-08 Loading Location Label Scope Fix
+
+- Current worktree: `dev`; OpenSpec change `fix-loading-location-label-scope`.
+- Root cause: Loading parsed the selected route location from Select Category but later used the returned drop-detail `LocationID` for union-label lookup/filtering and scan/retry payloads.
+- Loading now treats `loadingEntry.locationId` as authoritative for label query keys, `getLoadViewUnion`, visible unscanned label filtering, direct scan requests, retry requests, and fallback refresh/log context.
+- Legacy FlutterFlow confirmation: `LoadingWidget` uses widget `locationID` for `LoadLabelsUnionViewCall`; Select Category sends Wrap `2`, Parts `3`, and Roll `1`.
+- Focused regressions added in `src/routes/(app)/loading/loading-page.svelte.spec.ts` for URL Roll `locationId=1` with detail row Wrap `locationId=2`, direct scan payload, and retry payload.
+- Verification completed:
+  - red focused regression run confirmed the old behavior sent/read `locationId=2`
+  - `bunx vitest run 'src/routes/(app)/loading/loading-page.svelte.spec.ts' --testNamePattern 'selected route location|Roll labels'`
+  - `bunx vitest run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - Svelte MCP autofixer checked `src/routes/(app)/loading/+page.svelte` with no blocking issues
+  - `bun run check`
+  - `bun run test:unit -- --run`
+- Memory Impact Analysis: update required because durable Loading workflow behavior changed. Updated current-context, project-state, and decisions.
+
+## 2026-05-07 Complete Load Transfer Label Repair UX
+
+- Current worktree: `features/complete-load-transfer-label-ux`.
+- Complete Load now uses two awaited SvelteKit remote commands instead of one combined command:
+  - `sendLoadedNotification` posts dakview-web `POST /v1/logistics/dropsheet-notify`.
+  - `exportTransferLabels` posts dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` only for `transfer=true`.
+- Transfer label export now sends `{ dropsheet_id, mode: "repair_missing_target" }`, active-target `X-Db`, and `Y-Db: AZURE` so already-flagged source orders can repair missing Azure proxy labels.
+- The Select Category Complete Load modal stays open while processing, disables controls, shows `Sending E-mails. Please wait...`, and switches to `This is a transfer order. Creating labels. Please wait...` during transfer export.
+- `fetchDak` keeps the default 8s timeout but accepts a per-call `timeoutMs`; Complete Load notify uses 20s and transfer export uses 35s to surface Heroku router errors instead of timing out locally at 8s.
+- Focused regressions updated:
+  - `src/lib/server/dak-loading-complete.spec.ts`
+  - `src/lib/server/proxy.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - Red run confirmed old pending-mode/export-single-command behavior and missing timeout override.
+  - Targeted frontend tests passed after implementation.
+  - Svelte MCP autofixer still reports the known `goto()`/`resolve()` advisory because `returnTo` may already be resolved.
+  - `bun run check`
+  - `bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts src/lib/server/proxy.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - `bun run build`
+- Memory Impact Analysis: update required because Complete Load runtime behavior and backend contract changed. Updated current-context, project-state, decisions, and architecture.
+
 ## 2026-05-04 PR54 Review Fixes
 
 - Current worktree: `dev`; PR #54 promotes `dev` to `main`.

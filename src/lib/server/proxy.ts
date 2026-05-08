@@ -22,6 +22,7 @@ export type ProxyAuthContext = {
 
 export type FetchDakOptions = {
 	dbTarget?: DakDatabaseTarget;
+	timeoutMs?: number;
 };
 
 type ProxyRequestEvent = Pick<RequestEvent, 'fetch' | 'locals'>;
@@ -89,7 +90,8 @@ async function fetchWithTimeout(
 	event: Pick<ProxyRequestEvent, 'fetch'>,
 	input: URL,
 	init: RequestInit | undefined,
-	upstreamLabel: 'DAK backend' | 'DST backend'
+	upstreamLabel: 'DAK backend' | 'DST backend',
+	timeoutMs = UPSTREAM_TIMEOUT_MS
 ) {
 	const controller = new AbortController();
 	const signal = init?.signal
@@ -99,7 +101,7 @@ async function fetchWithTimeout(
 	const timeoutId = setTimeout(() => {
 		timedOut = true;
 		controller.abort();
-	}, UPSTREAM_TIMEOUT_MS);
+	}, timeoutMs);
 
 	try {
 		return await event.fetch(input, {
@@ -157,6 +159,7 @@ export async function fetchDak(path: string, init?: RequestInit, options: FetchD
 			...init,
 			headers
 		},
-		'DAK backend'
+		'DAK backend',
+		options.timeoutMs
 	);
 }

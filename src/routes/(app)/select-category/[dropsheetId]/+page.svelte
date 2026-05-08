@@ -19,7 +19,7 @@
 	import SelectionModal from '$lib/components/workflow/selection-modal.svelte';
 	import LoadSummaryStrip from '$lib/components/workflow/load-summary-strip.svelte';
 	import WillCallSignatureModal from '$lib/components/workflow/will-call-signature-modal.svelte';
-	import { completeLoadingEmail } from '$lib/loading-complete.remote';
+	import { exportTransferLabels, sendLoadedNotification } from '$lib/loading-complete.remote';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getLoaders } from '$lib/loaders.cached';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
@@ -42,12 +42,19 @@
 		testId: string;
 	};
 
+	type CompleteLoadingPhase = 'idle' | 'sending_emails' | 'creating_labels';
+
 	const PERCENT_FORMATTER = new Intl.NumberFormat('en-US', {
 		style: 'percent',
 		maximumFractionDigits: 0
 	});
 	const COMPLETE_LOAD_PARTIAL_WARNING =
 		'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load.';
+	const COMPLETE_LOAD_CONFIRMATION_DESCRIPTION =
+		'Are you sure you want to complete this load? If you complete the load it will also send the email to the customer.';
+	const COMPLETE_LOAD_EMAIL_PHASE_DESCRIPTION = 'Sending E-mails. Please wait...';
+	const COMPLETE_LOAD_LABEL_PHASE_DESCRIPTION =
+		'This is a transfer order. Creating labels. Please wait...';
 
 	let { data }: PageProps = $props();
 
@@ -57,7 +64,9 @@
 	let isLoaderModalOpen = $state(false);
 	let isCompleteLoadingModalOpen = $state(false);
 	let isCompletingLoad = $state(false);
+	let completeLoadingPhase = $state<CompleteLoadingPhase>('idle');
 	let completeLoadingError = $state<string | null>(null);
+	let completeLoadingNotificationSent = $state(false);
 	let submitError = $state<string | null>(null);
 	let isWillCallSignatureModalOpen = $state(false);
 	let isLoadingWillCallSignature = $state(false);
@@ -144,6 +153,18 @@
 	const selectedLoaderLabel = $derived(currentLoader?.loaderName ?? 'Select loader');
 	const canCompleteLoad = $derived(data.percentCompleted === 1);
 	const isCompleteLoadReady = $derived(categoryAvailability?.allLoaded === true);
+	const completeLoadingDescription = $derived(
+		completeLoadingPhase === 'sending_emails'
+			? COMPLETE_LOAD_EMAIL_PHASE_DESCRIPTION
+			: completeLoadingPhase === 'creating_labels'
+				? COMPLETE_LOAD_LABEL_PHASE_DESCRIPTION
+				: COMPLETE_LOAD_CONFIRMATION_DESCRIPTION
+	);
+	const completeLoadingPendingLabel = $derived(
+		completeLoadingPhase === 'creating_labels'
+			? COMPLETE_LOAD_LABEL_PHASE_DESCRIPTION
+			: COMPLETE_LOAD_EMAIL_PHASE_DESCRIPTION
+	);
 	const completeLoadAccentClasses = $derived(
 		isCompleteLoadReady
 			? 'border-emerald-500/80 text-emerald-600 bg-emerald-50/80'
@@ -202,10 +223,6 @@
 			default:
 				return 'ds-status-neutral';
 		}
-	}
-
-	function getResolvedReturnHref(returnTo: string | null | undefined, fallbackPath: '/dropsheets') {
-		return returnTo ?? resolve(fallbackPath);
 	}
 
 	function getDepartmentStatus(
@@ -295,7 +312,13 @@
 	}
 
 	function openCompleteLoadingModal() {
+		if (completeLoadingNotificationSent) {
+			toast.warning(COMPLETE_LOAD_PARTIAL_WARNING);
+			return;
+		}
+
 		completeLoadingError = null;
+		completeLoadingPhase = 'idle';
 		isCompleteLoadingModalOpen = true;
 	}
 
@@ -305,6 +328,7 @@
 		}
 
 		completeLoadingError = null;
+		completeLoadingPhase = 'idle';
 		isCompleteLoadingModalOpen = false;
 	}
 
@@ -358,24 +382,44 @@
 
 		isCompletingLoad = true;
 		completeLoadingError = null;
+		completeLoadingPhase = 'sending_emails';
 
 		try {
-			const result = await completeLoadingEmail({
-				dropSheetId: data.dropSheetId,
-				transfer: data.transfer
-			});
+			const notificationResult = await sendLoadedNotification({ dropSheetId: data.dropSheetId });
+			completeLoadingNotificationSent = true;
+			const result: CompleteLoadPartialWarningSource = {};
+
+			if (notificationResult.postSendSync) {
+				result.postSendSync = notificationResult.postSendSync;
+			}
+
+			if (data.transfer) {
+				completeLoadingPhase = 'creating_labels';
+				const transferLabelExport = await exportTransferLabels({ dropSheetId: data.dropSheetId });
+				if (transferLabelExport) {
+					result.transferLabelExport = transferLabelExport;
+				}
+			}
+
 			isCompleteLoadingModalOpen = false;
 
-			if (result.partial) {
+			if (result.postSendSync || result.transferLabelExport) {
 				toast.warning(buildCompleteLoadPartialWarning(result));
 			}
 
-			await goto(getResolvedReturnHref(data.returnTo, '/dropsheets'));
+			await goto(data.returnTo ?? resolve('/dropsheets'));
 		} catch (error) {
-			completeLoadingError =
-				error instanceof Error ? error.message : 'Unable to complete loading.';
+			const message = error instanceof Error ? error.message : 'Unable to complete loading.';
+
+			if (completeLoadingNotificationSent) {
+				isCompleteLoadingModalOpen = false;
+				toast.warning(`${COMPLETE_LOAD_PARTIAL_WARNING} ${message}`);
+			} else {
+				completeLoadingError = message;
+			}
 		} finally {
 			isCompletingLoad = false;
+			completeLoadingPhase = 'idle';
 		}
 	}
 
@@ -735,8 +779,9 @@
 			{#if canCompleteLoad}
 				<button
 					type="button"
-					class="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-[var(--ds-radius-card)] bg-ds-blue-500 px-3 py-2.5 text-white transition hover:brightness-[1.03] active:scale-[0.97]"
+					class="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-[var(--ds-radius-card)] bg-ds-blue-500 px-3 py-2.5 text-white transition hover:brightness-[1.03] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:brightness-100 disabled:active:scale-100"
 					onclick={openCompleteLoadingModal}
+					disabled={isCompletingLoad}
 				>
 					<span
 						class={`flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] ${completeLoadAccentClasses}`}
@@ -776,9 +821,9 @@
 	<ConfirmationModal
 		testId="complete-loading-modal"
 		title="Complete Loading"
-		description="Are you sure you want to complete this load? If you complete the load it will also send the email to the customer."
+		description={completeLoadingDescription}
 		confirmLabel="Confirm"
-		pendingLabel="Completing loading"
+		pendingLabel={completeLoadingPendingLabel}
 		cancelLabel="Cancel"
 		pending={isCompletingLoad}
 		error={completeLoadingError}

@@ -110,6 +110,7 @@
 		currentLoader
 	});
 	const shouldRedirectHome = $derived(loadingEntry === null || !hasWorkflowContext);
+	const activeLoadingLocationId = $derived(loadingEntry?.locationId ?? null);
 	const loaderInfoState = $derived.by(() => {
 		if (!(loadingEntry && hasWorkflowContext)) {
 			return {
@@ -177,7 +178,7 @@
 	const departmentStatusEntries = $derived(getLoadingDepartmentStatusEntries(departmentStatus));
 	const loadNumber = $derived(selectedDropDetail?.loadNumber ?? loadingEntry?.loadNumber ?? null);
 	const dropLabelsState = $derived.by(() => {
-		if (!selectedDropDetail) {
+		if (!selectedDropDetail || activeLoadingLocationId === null) {
 			return {
 				current: [],
 				error: null,
@@ -189,7 +190,7 @@
 		const labelsKey = getDropLabelsQueryKey({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
-			locationId: selectedDropDetail.locationId
+			locationId: activeLoadingLocationId
 		});
 		const refreshedDropLabels = refreshedDropLabelsByKey[labelsKey];
 		if (refreshedDropLabels) {
@@ -204,7 +205,7 @@
 		const query = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
-			locationId: selectedDropDetail.locationId
+			locationId: activeLoadingLocationId
 		});
 		return {
 			current: query.current ?? [],
@@ -216,10 +217,8 @@
 	const dropLabels = $derived(dropLabelsState.current);
 	const isLoadingDropLabels = $derived(dropLabelsState.loading && dropLabels.length === 0);
 	const unscannedDropLabels = $derived(
-		selectedDropDetail
-			? dropLabels.filter(
-					(label) => !label.scanned && label.locationId === selectedDropDetail.locationId
-				)
+		activeLoadingLocationId !== null
+			? dropLabels.filter((label) => !label.scanned && label.locationId === activeLoadingLocationId)
 			: []
 	);
 	const unscannedPartListIds = $derived(
@@ -525,6 +524,7 @@
 			!loadingScanController ||
 			!loaderInfo ||
 			selectedDropDetail === null ||
+			activeLoadingLocationId === null ||
 			isLocationModalOpen ||
 			pendingTimedOutScan !== null
 		) {
@@ -538,14 +538,18 @@
 			loadNumber: selectedDropDetail.loadNumber,
 			loaderName: loaderInfo.loaderName,
 			dropSheetId: selectedDropDetail.dropSheetId,
-			locationId: selectedDropDetail.locationId,
+			locationId: activeLoadingLocationId,
 			sequence: selectedDropDetail.sequence,
 			selectedDropIndex: dropNavigation.selectedIndex
 		};
 	}
 
 	async function refreshActiveDropData(result: ScanResult) {
-		if (selectedDropDetail === null || !dropDetailsState.refresh) {
+		if (
+			selectedDropDetail === null ||
+			activeLoadingLocationId === null ||
+			!dropDetailsState.refresh
+		) {
 			return;
 		}
 
@@ -568,7 +572,7 @@
 		const activeUnionQuery = getLoadViewUnion({
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
-			locationId: selectedDropDetail.locationId
+			locationId: activeLoadingLocationId
 		});
 
 		const detailRefreshStartedAt = getLoadingScanTimestamp();
@@ -578,7 +582,7 @@
 			} finally {
 				logLoadingScanTiming('detail-refresh', detailRefreshStartedAt, {
 					dropSheetId: selectedDropDetail.dropSheetId,
-					locationId: selectedDropDetail.locationId
+					locationId: activeLoadingLocationId
 				});
 			}
 		})();
@@ -590,7 +594,7 @@
 				logLoadingScanTiming('union-refresh', unionRefreshStartedAt, {
 					loadNumber: selectedDropDetail.loadNumber,
 					sequence: selectedDropDetail.sequence,
-					locationId: selectedDropDetail.locationId
+					locationId: activeLoadingLocationId
 				});
 			}
 		})();
@@ -685,7 +689,12 @@
 	}
 
 	async function retryPendingScanWithDropArea(dropAreaId: number) {
-		if (!loadingScanController || !loaderInfo || selectedDropDetail === null) {
+		if (
+			!loadingScanController ||
+			!loaderInfo ||
+			selectedDropDetail === null ||
+			activeLoadingLocationId === null
+		) {
 			return false;
 		}
 
@@ -695,7 +704,7 @@
 			loadNumber: selectedDropDetail.loadNumber,
 			loaderName: loaderInfo.loaderName,
 			dropSheetId: selectedDropDetail.dropSheetId,
-			locationId: selectedDropDetail.locationId,
+			locationId: activeLoadingLocationId,
 			sequence: selectedDropDetail.sequence,
 			selectedDropIndex: dropNavigation.selectedIndex
 		});
