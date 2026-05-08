@@ -659,6 +659,49 @@ describe('loading page', () => {
 		}
 	);
 
+	it('uses the selected route location for Roll labels when the drop detail row has a Wrap location', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=1&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Roll');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Roll' })));
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					locationId: 2,
+					sequence: 1,
+					dropSheetCustomerId: 84,
+					customerName: 'Acme Metals'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					partListId: 'ROLL-LOCATION',
+					locationId: 1,
+					scanned: false
+				}),
+				createUnionLabel({
+					partListId: 'WRAP-LOCATION',
+					locationId: 2,
+					scanned: false
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('ROLL-LOCATION')).toBeInTheDocument();
+		await expect.element(page.getByText('WRAP-LOCATION')).not.toBeInTheDocument();
+		expect(getLoadViewUnion).toHaveBeenCalledWith({
+			loadNumber: 'L-042',
+			sequence: 1,
+			locationId: 1
+		});
+	});
+
 	it('focuses the scan barcode input when the loading context is ready', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
@@ -876,6 +919,47 @@ describe('loading page', () => {
 		expect(toastSuccess).not.toHaveBeenCalled();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('submits loading scans with the selected route location when the drop detail row has a different location', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=1&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Roll');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Roll' })));
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					locationId: 2
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					locationId: 1
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledWith(expect.objectContaining({
+				scannedText: 'LP-100',
+				department: 'Roll',
+				dropAreaId: null,
+				loadNumber: 'L-042',
+				loaderName: 'Alex',
+				dropSheetId: 42,
+				locationId: 1,
+				sequence: 1,
+				selectedDropIndex: 0
+			}));
+		});
 	});
 
 	it('shows queue status, accepts 50 queued scans, and records the 51st queued scan as an issue', async () => {
@@ -1306,6 +1390,61 @@ describe('loading page', () => {
 			dropAreaId: 42,
 			dropAreaLabel: 'D13'
 		});
+	});
+
+	it('retries loading scans with the selected route location when the drop detail row has a different location', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=1&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Roll');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Roll' })));
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					locationId: 2
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					locationId: 1
+				})
+			])
+		);
+		processLoadingScan
+			.mockResolvedValueOnce(
+				createScanResult({
+					scanType: null,
+					status: 'needs-location',
+					message: 'Scan a driver location next.',
+					needsLocation: true
+				})
+			)
+			.mockResolvedValueOnce(createScanResult());
+
+		render(LoadingPage);
+
+		await submitMainScan('LP-100');
+		await expect.element(page.getByTestId('staging-location-modal')).toBeInTheDocument();
+		await page.getByLabelText('Scan new location').fill('42');
+		await page.getByRole('button', { name: 'Set location' }).click();
+
+		await vi.waitFor(() => {
+			expect(processLoadingScan).toHaveBeenCalledTimes(2);
+		});
+		expect(processLoadingScan).toHaveBeenNthCalledWith(2, expect.objectContaining({
+			scannedText: 'LP-100',
+			department: 'Roll',
+			dropAreaId: 42,
+			loadNumber: 'L-042',
+			loaderName: 'Alex',
+			dropSheetId: 42,
+			locationId: 1,
+			sequence: 1,
+			selectedDropIndex: 0
+		}));
 	});
 
 	it('accepts scanned driver locations in Loading even when they do not support the selected department', async () => {

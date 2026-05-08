@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-08 - Loading route location remains authoritative for labels and scans
+
+- Tags: product, loading, legacy-dst, reliability
+- Decision: Loading uses the route `locationId` selected from Select Category as authoritative for union-label query keys, `getLoadViewUnion`, visible label filtering, scan payloads, retry payloads, and fallback refresh metadata. Returned drop-detail `LocationID` no longer overrides it.
+- Rationale: Operators saw Wrap labels while in Roll. Legacy FlutterFlow passes widget `locationID` through the label lookup, and the selected route location is the reliable department/location handoff. Detail rows can carry a different `LocationID`.
+- Impacted areas: `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes/refines: `2026-04-29 - Filter Loading labels by legacy LocationID, not CategoryID` by clarifying that the active loading location is the selected route location, not the returned detail-row location.
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes; retrieval memory updated in this turn
+
 ## 2026-05-07 - Complete Load splits notify and repair transfer labels visibly
 
 - Tags: backend-contract, loading, complete-load, transfer, ux
