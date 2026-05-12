@@ -55,8 +55,9 @@ This repository is the new **frontend-only** SvelteKit rebuild of the DST Stage 
 Important folders:
 
 - `docs/` — product, architecture, design system source of truth for this repo, including `docs/ui-reference/` for sample-driven UI guidance
+- `docs/access_fe/` — read-only extraction of the original Microsoft Access barcode app; this is the oldest and most trusted legacy behavior source for Stage & Load workflows
 - `agile_plan/` — implementation sequencing and milestone planning
-- `legacy_flutterflow_fe/` — read-only reference for the old FlutterFlow app; use it to confirm workflow edge cases and exact legacy behavior
+- `legacy_flutterflow_fe/` — read-only reference for the later FlutterFlow app; use it as a secondary legacy source after checking Access
 
 This repo does **not** own the new `dak-web` scan endpoints. Backend work happens in a separate FastAPI repository and is tracked here only as an external dependency.
 
@@ -309,7 +310,9 @@ Required external backend endpoints:
 ## Engineering Notes
 
 - Treat `legacy_flutterflow_fe/` as behavioral reference, not reusable source code
-- If the legacy code and older docs disagree, trust the confirmed legacy behavior plus the latest project decisions
+- Treat `docs/access_fe/` as the primary legacy authority because the Microsoft Access app came first and is known to match production behavior. For parity questions, read Access first, then compare FlutterFlow and the current SvelteKit implementation.
+- If Access, FlutterFlow, and older docs disagree, trust confirmed Access behavior plus the latest project decisions. Stop and ask before guessing when the Access extraction does not expose the needed SQL/query/source.
+- Access loading counters are bound to SQL Server query results, not calculated in the form. For Loading `LABELS`, `SCANNED`, and `LEFT`/`NeedPick`, inspect `docs/access_fe/forms/frmScanPick.txt`, `docs/access_fe/forms/frmSelectCategoryPIck.txt`, and `docs/access_fe/modules/basWSIFunctions.bas`; the Access flow rebuilds `qryPassThroughPick` from `dbo.LoadViewDetail(DropSheetID, LocationID)` and binds the current row fields.
 - Update Linear when scope or architecture changes during discovery
 
 ---
