@@ -13,6 +13,7 @@
 	} from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import { getLoaders } from '$lib/loaders.cached';
+	import { getActiveLoaderOptions } from '$lib/loader-options';
 	import { getTrailers } from '$lib/trailers.cached';
 	import { updateDropsheetTrailer } from '$lib/trailers.remote';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -99,15 +100,7 @@
 	});
 
 	const dropsheets = $derived(dropsheetsState.current);
-	const activeLoaders = $derived(
-		loadersState.current.filter((loader) => loader.isActive)
-	);
-	const loaderOptions = $derived(
-		activeLoaders.map((loader) => ({
-			id: loader.id,
-			label: loader.name
-		}))
-	);
+	const loaderOptions = $derived(getActiveLoaderOptions(loadersState.current));
 	const trailerOptions = $derived(
 		trailersState.current.map((trailer) => ({
 			id: trailer.id,

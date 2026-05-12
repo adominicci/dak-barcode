@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-05-08
+  last_updated_at: 2026-05-12
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -62,6 +62,7 @@ product:
     - Home is the stable re-entry page for active sessions
     - Staging does not require a loader
     - Loading requires explicit loader selection before entry
+    - operational loader pickers expose only loaders whose lookup row has `isActive: true`
     - non-admin warehouse selection is resolved from the Supabase profile
     - only admin users may access the location or environment selector
   implemented_surfaces:
@@ -111,6 +112,7 @@ architecture:
     - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export; transfer export uses `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
     - `fetchDak` defaults to an 8s timeout but supports per-call timeout overrides for long-running Complete Load notify/export calls
     - Loading label lookup, visible label filtering, scan payloads, retry payloads, and fallback refresh keys use the Select Category route `locationId` as authoritative; returned drop-detail `LocationID` must not override the selected loading location
+    - Dropsheets and Select Category Loading entry use shared active-loader option derivation so inactive loader rows are not selectable for new assignments or sessions
   access_states:
     - anonymous
     - inactive
@@ -202,6 +204,7 @@ workflows:
       - scanned-item cards show only the barcode or part-list ID in a three-column monospace grid
       - the active drop counter uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
+      - Select Category displays Complete Load only when category availability reports `allLoaded=true` and every dropsheet department status is closed as `NA` or `DONE`; any due, pending, blank, null, or unavailable status hides the action
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
       - Complete Load keeps the confirmation modal open while the two calls run, disables controls, shows the email-sending phase first, and switches to the transfer-label phase only when `transfer=true`
       - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors, and includes available post-send or transfer-export detail in the warning

@@ -2,6 +2,25 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-12 - Complete Load requires allLoaded and closed department statuses
+
+- Tags: product, loading, select-category, complete-load, reliability
+- Decision: Select Category displays `Complete Load` only when category availability reports `allLoaded=true` and every dropsheet department status is closed as `NA` or `DONE`. Any `DUE`, `READY`, `WAIT`, `STOP`, `BOT`, `BOL`, blank/null, or unavailable status data hides the action.
+- Rationale: Percent complete can reach 100 while a department still reports `DUE`. Operators must not be offered the completion action unless both the all-loaded flag and department statuses prove the load is closed out.
+- Impacted areas: `src/lib/complete-load-readiness.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- Supersedes: using `percentCompleted === 1` as the Complete Load display gate.
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
+## 2026-05-12 - Operational loader pickers use active loaders only
+
+- Tags: product, loading, dropsheets, loader-picker, legacy-dst
+- Decision: Operator-facing loader picker options for Dropsheets and Select Category Loading entry are derived from loader lookup rows where `isActive === true`. Inactive loader rows may remain visible as historical assigned values, but they are not selectable for new dropsheet assignments or new Loading sessions.
+- Rationale: Dropsheets already matched the expected behavior, while Select Category exposed old inactive names in the Loading modal. Legacy Access also builds the loader popup from `tlkLoader Where IsActive=True`.
+- Impacted areas: `src/lib/loader-options.ts`, `src/routes/(app)/dropsheets/+page.svelte`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-05-08 - Loading route location remains authoritative for labels and scans
 
 - Tags: product, loading, legacy-dst, reliability

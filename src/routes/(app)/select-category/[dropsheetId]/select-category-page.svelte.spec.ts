@@ -151,6 +151,48 @@ function createCategoryAvailabilityQuery(
 	};
 }
 
+function createClosedDepartmentStatus(
+	overrides: Partial<NonNullable<DepartmentStatusQueryState['current']>> = {}
+): NonNullable<DepartmentStatusQueryState['current']> {
+	return {
+		scope: 'dropsheet',
+		subjectId: 42,
+		slit: 'DONE',
+		trim: 'NA',
+		wrap: 'DONE',
+		roll: 'DONE',
+		parts: 'DONE',
+		soffit: 'NA',
+		...overrides
+	};
+}
+
+function createLoadedCategoryAvailability(
+	overrides: Partial<NonNullable<CategoryAvailabilityQueryState['current']>> = {}
+): NonNullable<CategoryAvailabilityQueryState['current']> {
+	return {
+		dropSheetId: 42,
+		wrapHasLabels: 6,
+		wrapScannedPercent: 1,
+		rollHasLabels: 4,
+		rollScannedPercent: 1,
+		partsHasLabels: 3,
+		partsScannedPercent: 1,
+		allLoaded: true,
+		...overrides
+	};
+}
+
+function mockCompleteLoadReady(
+	statusOverrides: Partial<NonNullable<DepartmentStatusQueryState['current']>> = {},
+	availabilityOverrides: Partial<NonNullable<CategoryAvailabilityQueryState['current']>> = {}
+) {
+	getDropsheetStatus.mockReturnValue(createStatusQuery(createClosedDepartmentStatus(statusOverrides)));
+	getDropsheetCategoryAvailability.mockReturnValue(
+		createCategoryAvailabilityQuery(createLoadedCategoryAvailability(availabilityOverrides))
+	);
+}
+
 function createLoadersQuery(
 	current: NonNullable<LoaderQueryState['current']>,
 	overrides: Partial<LoaderQueryState> = {}
@@ -759,6 +801,76 @@ describe('select-category page', () => {
 		);
 	});
 
+	it('opens the loader modal with active loaders only', async () => {
+		getLoaders.mockReturnValue(
+			createLoadersQuery([
+				{ id: 7, name: 'Kaleb', isActive: true },
+				{ id: 8, name: 'Austin', isActive: false },
+				{ id: 9, name: 'Alick', isActive: true }
+			])
+		);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [
+					{ id: 7, name: 'Kaleb', isActive: true },
+					{ id: 8, name: 'Austin', isActive: false },
+					{ id: 9, name: 'Alick', isActive: true }
+				]
+			}
+		});
+
+		await page.getByRole('button', { name: /Roll/i }).click();
+
+		await expect.element(page.getByRole('dialog', { name: 'Select loader for Roll' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Kaleb' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Alick' })).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Austin' })).not.toBeInTheDocument();
+	});
+
+	it('shows the active-loader empty state when every returned loader is inactive', async () => {
+		getLoaders.mockReturnValue(
+			createLoadersQuery([
+				{ id: 8, name: 'Austin', isActive: false },
+				{ id: 10, name: 'Troy', isActive: false }
+			])
+		);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [
+					{ id: 8, name: 'Austin', isActive: false },
+					{ id: 10, name: 'Troy', isActive: false }
+				]
+			}
+		});
+
+		await page.getByRole('button', { name: /Roll/i }).click();
+
+		await expect.element(page.getByRole('dialog', { name: 'Select loader for Roll' })).toBeInTheDocument();
+		await expect.element(page.getByText('No active loaders are available.')).toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Austin' })).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Troy' })).not.toBeInTheDocument();
+	});
+
 	it('sanitizes loader picker framework errors before rendering the modal banner', async () => {
 		getLoaders.mockReturnValue(
 			createLoadersQuery(
@@ -874,7 +986,9 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('select-category-loader-roster')).toBeInTheDocument();
 	});
 
-	it('keeps complete load inside the compact action row when percent completed reaches one', async () => {
+	it('keeps complete load inside the compact action row when all departments are closed', async () => {
+		mockCompleteLoadReady();
+
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
 			form: null,
@@ -909,7 +1023,81 @@ describe('select-category page', () => {
 			.toHaveTextContent('Complete Load');
 	});
 
+	it('hides complete load when a department is DUE even if allLoaded is true', async () => {
+		mockCompleteLoadReady({ roll: 'DUE' });
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('select-category-utility-actions')).toHaveClass(/sm:grid-cols-2/);
+	});
+
+	it('hides complete load when a department has a non-closed status', async () => {
+		mockCompleteLoadReady({ roll: 'READY' });
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).not.toBeInTheDocument();
+	});
+
+	it('hides complete load when department status data is unavailable', async () => {
+		getDropsheetStatus.mockReturnValue({
+			current: null,
+			loading: false,
+			error: null,
+			refresh: vi.fn()
+		});
+		getDropsheetCategoryAvailability.mockReturnValue(
+			createCategoryAvailabilityQuery(createLoadedCategoryAvailability())
+		);
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 1,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).not.toBeInTheDocument();
+	});
+
 	it('shows will-call support actions and complete load as four compact buttons in one row', async () => {
+		mockCompleteLoadReady();
+
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
 			form: null,
@@ -936,6 +1124,7 @@ describe('select-category page', () => {
 	});
 
 	it('opens the completion modal, shows the email phase while pending, and returns on success', async () => {
+		mockCompleteLoadReady();
 		const completionRequest = createDeferred<{ postSendSync: null }>();
 		sendLoadedNotification.mockReturnValue(completionRequest.promise);
 		exportTransferLabels.mockResolvedValue(null);
@@ -975,6 +1164,7 @@ describe('select-category page', () => {
 	});
 
 	it('runs transfer label export after the email phase for transfer loads', async () => {
+		mockCompleteLoadReady();
 		const notificationRequest = createDeferred<{ postSendSync: null }>();
 		const exportRequest = createDeferred<null>();
 		sendLoadedNotification.mockReturnValue(notificationRequest.promise);
@@ -1020,6 +1210,7 @@ describe('select-category page', () => {
 	});
 
 	it('shows a do-not-resend warning and still exits when post-send sync fails after notifications were sent', async () => {
+		mockCompleteLoadReady();
 		sendLoadedNotification.mockResolvedValue({
 			postSendSync: {
 				status: 'failed',
@@ -1059,6 +1250,7 @@ describe('select-category page', () => {
 	});
 
 	it('shows a do-not-resend warning and still exits when transfer label export needs retry', async () => {
+		mockCompleteLoadReady();
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockResolvedValue({
 			status: 'source_packages_missing',
@@ -1095,6 +1287,7 @@ describe('select-category page', () => {
 	});
 
 	it('reuses an already-resolved returnTo path when exiting complete load', async () => {
+		mockCompleteLoadReady();
 		resolve.mockImplementation((href: string) => `/base${href}`);
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockResolvedValue(null);
@@ -1122,6 +1315,7 @@ describe('select-category page', () => {
 	});
 
 	it('keeps the completion modal open and shows the status code plus description when the request fails', async () => {
+		mockCompleteLoadReady();
 		sendLoadedNotification.mockRejectedValue(new Error('500 Internal Server Error: email dispatch failed'));
 		exportTransferLabels.mockResolvedValue(null);
 
@@ -1152,6 +1346,7 @@ describe('select-category page', () => {
 	});
 
 	it('closes the completion modal and prevents duplicate notifications when transfer label export throws after email send', async () => {
+		mockCompleteLoadReady();
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockRejectedValue(new Error('Transfer label export failed.'));
 

@@ -1,5 +1,40 @@
 # Current Context
 
+## 2026-05-12 Complete Load Readiness Gate
+
+- Current worktree: `features/complete-load-readiness`; OpenSpec change archived as `openspec/changes/archive/2026-05-12-gate-complete-load-by-department-status`.
+- Root cause: Select Category showed `Complete Load` when `percentCompleted === 1`, even if a department status still showed `DUE`.
+- Complete Load visibility now uses `categoryAvailability.allLoaded === true` plus all six dropsheet department statuses closed as `NA` or `DONE`; any `DUE`, `READY`, `WAIT`, `STOP`, `BOT`, `BOL`, blank/null, or unavailable status data hides the action.
+- Existing Complete Load modal, notification, transfer-label export, warning, and return behavior remains unchanged after the action is legitimately visible.
+- Focused regressions added/updated:
+  - `src/lib/complete-load-readiness.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed missing helper and current rendering with `DUE`/non-closed/unavailable status
+  - Svelte MCP docs/autofixer checked the touched Svelte derived/conditional rendering path
+  - `bun run test:unit -- --run src/lib/complete-load-readiness.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+  - `bun run check`
+  - `openspec validate --all --strict`
+- OpenSpec archived to `openspec/changes/archive/2026-05-12-gate-complete-load-by-department-status` after syncing delta spec to `openspec/specs/complete-load-readiness/spec.md`.
+- Memory Impact Analysis: update required because durable Loading completion behavior changed. Updated current-context, project-state, and decisions.
+
+## 2026-05-12 Active Loader Picker Alignment
+
+- Current worktree: `dev`; OpenSpec change `align-loading-loader-picker-active-list`.
+- Root cause: Dropsheets filtered loader picker options to active loaders, but Select Category's Loading entry modal mapped the full loader lookup and exposed inactive/old names.
+- Added shared `getActiveLoaderOptions` so Dropsheets and Select Category derive picker options from the same `isActive === true` rule.
+- Focused regressions added:
+  - `src/lib/loader-options.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed missing helper and inactive loader names appearing in the Select Category loader modal
+  - Svelte MCP autofixer checked touched Dropsheets and Select Category Svelte snippets with no issues
+  - `bun run test:unit -- --run src/lib/loader-options.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+  - `bun run check`
+  - `openspec validate --all --strict`
+- OpenSpec archived to `openspec/changes/archive/2026-05-12-align-loading-loader-picker-active-list` after syncing delta spec to `openspec/specs/active-loading-loader-selection/spec.md`.
+- Memory Impact Analysis: update required because durable operational loader-picker behavior changed. Updated current-context, project-state, and decisions.
+
 ## 2026-05-08 Loading Location Label Scope Fix
 
 - Current worktree: `dev`; OpenSpec change `fix-loading-location-label-scope`.
