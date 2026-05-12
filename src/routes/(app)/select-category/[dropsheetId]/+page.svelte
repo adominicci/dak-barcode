@@ -11,6 +11,7 @@
 		Truck
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
+	import { isCompleteLoadReadyForDisplay } from '$lib/complete-load-readiness';
 	import { getOperatorErrorMessage } from '$lib/operator-error';
 	import { readRemoteQuery } from '$lib/remote-query-read';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
@@ -22,6 +23,7 @@
 	import { exportTransferLabels, sendLoadedNotification } from '$lib/loading-complete.remote';
 	import { getDropsheetCategoryAvailability, getDropsheetStatus } from '$lib/dropsheets.remote';
 	import { getLoaders } from '$lib/loaders.cached';
+	import { getActiveLoaderOptions } from '$lib/loader-options';
 	import { getNumberOfDrops } from '$lib/load-view.remote';
 	import { upsertLoaderSession } from '$lib/loader-session.remote';
 	import { getWillCallSignature } from '$lib/will-call.remote';
@@ -121,12 +123,7 @@
 	const visibleDepartments = $derived(
 		getVisibleDepartments(LOADING_ENTRY_DEPARTMENTS, categoryAvailability)
 	);
-	const loaderOptions = $derived(
-		loadersState.current.map((loader) => ({
-			id: loader.id,
-			label: loader.name
-		}))
-	);
+	const loaderOptions = $derived(getActiveLoaderOptions(loadersState.current));
 	const selectCategoryReturnHref = $derived.by(() => {
 		const searchParams = new URLSearchParams();
 
@@ -151,8 +148,9 @@
 		return resolve(`/select-category/${data.dropSheetId}?${searchParams.toString()}`);
 	});
 	const selectedLoaderLabel = $derived(currentLoader?.loaderName ?? 'Select loader');
-	const canCompleteLoad = $derived(data.percentCompleted === 1);
-	const isCompleteLoadReady = $derived(categoryAvailability?.allLoaded === true);
+	const canCompleteLoad = $derived(
+		isCompleteLoadReadyForDisplay(categoryAvailability, currentStatus)
+	);
 	const completeLoadingDescription = $derived(
 		completeLoadingPhase === 'sending_emails'
 			? COMPLETE_LOAD_EMAIL_PHASE_DESCRIPTION
@@ -166,7 +164,7 @@
 			: COMPLETE_LOAD_EMAIL_PHASE_DESCRIPTION
 	);
 	const completeLoadAccentClasses = $derived(
-		isCompleteLoadReady
+		canCompleteLoad
 			? 'border-emerald-500/80 text-emerald-600 bg-emerald-50/80'
 			: 'border-rose-500/80 text-rose-600 bg-rose-50/80'
 	);
