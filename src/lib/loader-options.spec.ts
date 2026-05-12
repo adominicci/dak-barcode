@@ -15,4 +15,13 @@ describe('loader picker options', () => {
 			{ id: 9, label: 'Alick' }
 		]);
 	});
+
+	it('returns an empty array when all loaders are inactive', () => {
+		expect(
+			getActiveLoaderOptions([
+				{ id: 8, name: 'Austin', isActive: false },
+				{ id: 10, name: 'Troy', isActive: false }
+			])
+		).toEqual([]);
+	});
 });
