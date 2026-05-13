@@ -35,8 +35,22 @@ describe('dak equipment lookup helpers', () => {
 		fetchDak.mockResolvedValue(
 			jsonResponse([
 				{
+					id: ' ',
+					equipment_name: 'Missing ID Trailer',
+					photo_url: null,
+					equipment_category: 'Trailers',
+					location: 'Freeport'
+				},
+				{
 					id: '1754339873475x672952932394336300',
 					equipment_name: '16208-Transfer Trailer',
+					photo_url: null,
+					equipment_category: 'Trailers',
+					location: 'Freeport'
+				},
+				{
+					id: '1754339873475x672952932394336301',
+					equipment_name: '',
 					photo_url: null,
 					equipment_category: 'Trailers',
 					location: 'Freeport'
@@ -93,6 +107,38 @@ describe('dak equipment lookup helpers', () => {
 			trailer_name: '16208-Transfer Trailer',
 			trailer_url: null
 		});
+	});
+
+	it('warns and returns an empty trailer list when every equipment row is unusable', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		fetchDak.mockResolvedValue(
+			jsonResponse([
+				{
+					id: '',
+					equipment_name: 'Missing ID Trailer',
+					photo_url: null,
+					equipment_category: 'Trailers',
+					location: 'Freeport'
+				},
+				{
+					id: '1754339873475x672952932394336301',
+					equipment_name: ' ',
+					photo_url: null,
+					equipment_category: 'Trailers',
+					location: 'Freeport'
+				}
+			])
+		);
+
+		const { getDakEquipmentTrailers } = await import('./dak-equipment');
+
+		await expect(getDakEquipmentTrailers('Freeport')).resolves.toEqual([]);
+		expect(warn).toHaveBeenCalledWith(
+			'Skipped 2 unusable trailer equipment record(s) from /v1/lookup-tables/equipments.',
+			{ location: 'Freeport', totalRecords: 2, usableRecords: 0 }
+		);
+
+		warn.mockRestore();
 	});
 
 	it('fails clearly when dak-web returns an invalid equipment list', async () => {

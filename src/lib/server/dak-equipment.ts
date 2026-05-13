@@ -83,12 +83,8 @@ function expectListResponse<T>(body: unknown, path: string): T[] {
 	return body as T[];
 }
 
-function expectEquipmentRecord(record: unknown, path: string): RawDakEquipment {
-	if (!isRecord(record) || !isNonEmptyString(record.id) || !isNonEmptyString(record.equipment_name)) {
-		throw new Error(`DAK route ${path} returned no usable equipment record.`);
-	}
-
-	return record as RawDakEquipment;
+function isUsableEquipmentRecord(record: unknown): record is RawDakEquipment {
+	return isRecord(record) && isNonEmptyString(record.id) && isNonEmptyString(record.equipment_name);
 }
 
 function mapDakEquipmentTrailer(raw: RawDakEquipment): Trailer {
@@ -105,10 +101,18 @@ export async function getDakEquipmentTrailers(location: FrontendTarget): Promise
 		location
 	});
 	const body = await readDakEquipmentJson(path);
+	const records = expectListResponse<unknown>(body, DAK_EQUIPMENT_LOOKUP_ROUTE);
+	const trailers = records.filter(isUsableEquipmentRecord).map(mapDakEquipmentTrailer);
+	const skippedCount = records.length - trailers.length;
 
-	return expectListResponse<RawDakEquipment>(body, DAK_EQUIPMENT_LOOKUP_ROUTE).map((entry) =>
-		mapDakEquipmentTrailer(expectEquipmentRecord(entry, DAK_EQUIPMENT_LOOKUP_ROUTE))
-	);
+	if (skippedCount > 0) {
+		console.warn(
+			`Skipped ${skippedCount} unusable trailer equipment record(s) from ${DAK_EQUIPMENT_LOOKUP_ROUTE}.`,
+			{ location, totalRecords: records.length, usableRecords: trailers.length }
+		);
+	}
+
+	return trailers;
 }
 
 export async function updateDakDropSheetTrailer(
