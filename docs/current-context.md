@@ -1,10 +1,24 @@
 # Current Context
 
+## 2026-05-13 Complete Load Progress Gate Fix
+
+- Current worktree: `features/complete-load-percent-gate`.
+- Root cause: the 2026-05-12 readiness gate used category availability `allLoaded`, but that flag can remain false before the operator presses `Complete Load`; the live loading categories and Dropsheets row can already be 100%.
+- Complete Load visibility now treats the load as fully scanned when every live loading category with labels is at 100%; if live category availability is unavailable or contains no loading categories with labels, it falls back to carried `percentCompleted >= 1`.
+- The closed-status rule remains unchanged: all six dropsheet department statuses must be `NA` or `DONE`; any due, pending, blank, null, or unavailable department status hides the action.
+- Focused regressions added/updated:
+  - `src/lib/complete-load-readiness.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed the button was hidden when live category progress was 100% and `allLoaded=false`
+  - `bun run test:unit -- --run src/lib/complete-load-readiness.spec.ts 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts'`
+- Memory Impact Analysis: update required because durable Complete Load readiness behavior changed. Updated current-context, project-state, decisions, and complete-load-readiness spec.
+
 ## 2026-05-12 Complete Load Readiness Gate
 
 - Current worktree: `features/complete-load-readiness`; OpenSpec change archived as `openspec/changes/archive/2026-05-12-gate-complete-load-by-department-status`.
 - Root cause: Select Category showed `Complete Load` when `percentCompleted === 1`, even if a department status still showed `DUE`.
-- Complete Load visibility now uses `categoryAvailability.allLoaded === true` plus all six dropsheet department statuses closed as `NA` or `DONE`; any `DUE`, `READY`, `WAIT`, `STOP`, `BOT`, `BOL`, blank/null, or unavailable status data hides the action.
+- Superseded by the 2026-05-13 Complete Load progress gate fix: Complete Load visibility uses live loading-category progress instead of the category availability `allLoaded` flag, while still requiring all six dropsheet department statuses closed as `NA` or `DONE`.
 - Existing Complete Load modal, notification, transfer-label export, warning, and return behavior remains unchanged after the action is legitimately visible.
 - Focused regressions added/updated:
   - `src/lib/complete-load-readiness.spec.ts`

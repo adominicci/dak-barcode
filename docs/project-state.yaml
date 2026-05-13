@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-05-12
+  last_updated_at: 2026-05-13
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -204,7 +204,7 @@ workflows:
       - scanned-item cards show only the barcode or part-list ID in a three-column monospace grid
       - the active drop counter uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
-      - Select Category displays Complete Load only when category availability reports `allLoaded=true` and every dropsheet department status is closed as `NA` or `DONE`; any due, pending, blank, null, or unavailable status hides the action
+      - Select Category displays Complete Load only when every live loading category with labels is scanned to 100% and every dropsheet department status is closed as `NA` or `DONE`; if live category availability is unavailable or contains no loading categories with labels, carried dropsheet `percentCompleted >= 1` may be used as the loaded signal; any due, pending, blank, null, or unavailable department status hides the action
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
       - Complete Load keeps the confirmation modal open while the two calls run, disables controls, shows the email-sending phase first, and switches to the transfer-label phase only when `transfer=true`
       - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors, and includes available post-send or transfer-export detail in the warning
