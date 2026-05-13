@@ -5,7 +5,7 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 ## 2026-05-13 - Complete Load uses live loading progress, not AllLoaded flag
 
 - Tags: product, loading, select-category, complete-load, reliability
-- Decision: Select Category displays `Complete Load` only when every live loading category with labels is scanned to 100% and every dropsheet department status is closed as `NA` or `DONE`. If live category availability is unavailable, the carried dropsheet `percentCompleted >= 1` value may be used as the loaded signal.
+- Decision: Select Category displays `Complete Load` only when every live loading category with labels is scanned to 100% and every dropsheet department status is closed as `NA` or `DONE`. If live category availability is unavailable or contains no loading categories with labels, the carried dropsheet `percentCompleted >= 1` value may be used as the loaded signal.
 - Rationale: The category availability `allLoaded` flag can remain false before the operator presses `Complete Load`, even when the load is operationally fully loaded and all departments are closed. Using that flag hid the action on valid completed loads.
 - Impacted areas: `src/lib/complete-load-readiness.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `openspec/specs/complete-load-readiness/spec.md`, `docs/project-state.yaml`, `docs/current-context.md`
 - Supersedes: requiring category availability `allLoaded=true` as the loaded signal for Complete Load visibility.

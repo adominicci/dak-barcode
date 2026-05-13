@@ -4,7 +4,7 @@
 
 - Current worktree: `features/complete-load-percent-gate`.
 - Root cause: the 2026-05-12 readiness gate used category availability `allLoaded`, but that flag can remain false before the operator presses `Complete Load`; the live loading categories and Dropsheets row can already be 100%.
-- Complete Load visibility now treats the load as fully scanned when every live loading category with labels is at 100%; if live category availability is unavailable, it falls back to carried `percentCompleted >= 1`.
+- Complete Load visibility now treats the load as fully scanned when every live loading category with labels is at 100%; if live category availability is unavailable or contains no loading categories with labels, it falls back to carried `percentCompleted >= 1`.
 - The closed-status rule remains unchanged: all six dropsheet department statuses must be `NA` or `DONE`; any due, pending, blank, null, or unavailable department status hides the action.
 - Focused regressions added/updated:
   - `src/lib/complete-load-readiness.spec.ts`

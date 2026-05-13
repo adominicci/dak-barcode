@@ -7,7 +7,7 @@ Ensure Select Category displays the Complete Load action only when the load is f
 ### Requirement: Complete Load is displayed only when loading progress is complete and all departments are closed
 The system SHALL display the Select Category `Complete Load` action only when every live loading category with labels is scanned to 100% and every dropsheet department status is either `NA` or `DONE`.
 
-If live category availability is unavailable, the system MAY use the carried dropsheet `percentCompleted >= 1` value as the loaded signal.
+If live category availability is unavailable or contains no loading categories with labels, the system MAY use the carried dropsheet `percentCompleted >= 1` value as the loaded signal.
 
 #### Scenario: All loaded and every department closed
 - **WHEN** every live loading category with labels is scanned to 100%
@@ -18,6 +18,12 @@ If live category availability is unavailable, the system MAY use the carried dro
 - **WHEN** every live loading category with labels is scanned to 100%
 - **AND** every department status is `NA` or `DONE`
 - **AND** the dropsheet category availability `allLoaded` flag is false
+- **THEN** the Select Category page SHALL display `Complete Load`
+
+#### Scenario: Live category availability has no labeled categories
+- **WHEN** live category availability contains no loading categories with labels
+- **AND** the carried dropsheet `percentCompleted` value is at least 1
+- **AND** every department status is `NA` or `DONE`
 - **THEN** the Select Category page SHALL display `Complete Load`
 
 #### Scenario: Department is due

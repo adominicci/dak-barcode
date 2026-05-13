@@ -26,7 +26,7 @@ const closedStatus: DepartmentStatus = {
 };
 
 describe('complete load readiness', () => {
-	it('allows completion only when allLoaded is true and every department is NA or DONE', () => {
+	it('allows completion when every live loading category is scanned to 100% and every department is NA or DONE', () => {
 		expect(
 			isCompleteLoadReadyForDisplay({
 				percentCompleted: 1,
@@ -42,6 +42,32 @@ describe('complete load readiness', () => {
 				percentCompleted: 0.875,
 				categoryAvailability: {
 					...loadedAvailability,
+					allLoaded: false
+				},
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
+	});
+
+	it('allows completion from percentCompleted fallback when live category availability is unavailable', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: null,
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
+	});
+
+	it('allows completion from percentCompleted fallback when live category availability has no labeled categories', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: {
+					...loadedAvailability,
+					rollHasLabels: 0,
+					wrapHasLabels: 0,
+					partsHasLabels: 0,
 					allLoaded: false
 				},
 				departmentStatus: closedStatus

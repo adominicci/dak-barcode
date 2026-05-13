@@ -36,27 +36,26 @@ function isLoadFullyScanned(
 	percentCompleted: number | null,
 	categoryAvailability: DropSheetCategoryAvailability | null
 ): boolean {
-	if (categoryAvailability === null) {
-		return percentCompleted !== null && percentCompleted >= 1;
-	}
+	const isPercentComplete = percentCompleted !== null && percentCompleted >= 1;
 
 	const loadingCategories = [
 		{
-			hasLabels: categoryAvailability.wrapHasLabels,
-			scannedPercent: categoryAvailability.wrapScannedPercent
+			hasLabels: categoryAvailability?.wrapHasLabels ?? 0,
+			scannedPercent: categoryAvailability?.wrapScannedPercent ?? 0
 		},
 		{
-			hasLabels: categoryAvailability.rollHasLabels,
-			scannedPercent: categoryAvailability.rollScannedPercent
+			hasLabels: categoryAvailability?.rollHasLabels ?? 0,
+			scannedPercent: categoryAvailability?.rollScannedPercent ?? 0
 		},
 		{
-			hasLabels: categoryAvailability.partsHasLabels,
-			scannedPercent: categoryAvailability.partsScannedPercent
+			hasLabels: categoryAvailability?.partsHasLabels ?? 0,
+			scannedPercent: categoryAvailability?.partsScannedPercent ?? 0
 		}
 	].filter((category) => category.hasLabels > 0);
 
-	return (
-		loadingCategories.length > 0 &&
-		loadingCategories.every((category) => category.scannedPercent >= 1)
-	);
+	if (loadingCategories.length === 0) {
+		return isPercentComplete;
+	}
+
+	return loadingCategories.every((category) => category.scannedPercent >= 1);
 }
