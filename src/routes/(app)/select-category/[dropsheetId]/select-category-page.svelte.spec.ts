@@ -1023,6 +1023,27 @@ describe('select-category page', () => {
 			.toHaveTextContent('Complete Load');
 	});
 
+	it('shows complete load when live category progress is complete before the loaded flag is checked', async () => {
+		mockCompleteLoadReady({}, { allLoaded: false });
+
+		render(SelectCategoryPage, {
+			params: { dropsheetId: '42' },
+			form: null,
+			data: {
+				...layoutData,
+				dropSheetId: 42,
+				loadNumber: 'L-042',
+				driverName: 'David Schmidt',
+				dropWeight: 2152.4,
+				percentCompleted: 0.875,
+				returnTo: '/dropsheets?date=2026-03-24',
+				loaders: [{ id: 7, name: 'Alex', isActive: true }]
+			}
+		});
+
+		await expect.element(page.getByRole('button', { name: 'Complete Load' })).toBeInTheDocument();
+	});
+
 	it('hides complete load when a department is DUE even if allLoaded is true', async () => {
 		mockCompleteLoadReady({ roll: 'DUE' });
 
