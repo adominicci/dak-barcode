@@ -106,7 +106,7 @@ architecture:
     - imperative reads from SvelteKit remote `query(...)` helpers must use `src/lib/remote-query-read.ts` so the app supports the installed promise-like query contract and future `.run()`-capable contracts
     - target-sensitive lookup wrappers must include a target cache qualifier in the serialized remote `query(...)` input so deployed clients cannot reuse the wrong reactive query instance across target changes
     - trailer lookup wrappers require an active target and fail before the remote call when no target is available, preventing a silent Canton equipment fallback
-    - Dropsheets trailer lookup targets dakview-web `X-Db: EQUIPMENT` while using the active app target only as the equipment `location` filter
+    - Dropsheets trailer lookup targets dakview-web `X-Db: EQUIPMENT` while using the active app target only as the equipment `location` filter; unusable equipment rows with blank/missing id or name are skipped so one dirty lookup row does not fail the picker
     - Dropsheets trailer updates target the active dak-web database header and send `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`
     - Dropsheet list mapping preserves the FastAPI `transfer` boolean and defaults it to false when old payloads omit it
     - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export; transfer export uses `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`

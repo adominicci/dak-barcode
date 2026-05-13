@@ -1,5 +1,18 @@
 # Current Context
 
+## 2026-05-13 Freeport Trailer Lookup Dirty Row Fix
+
+- Current worktree: `dev`.
+- Root cause: Freeport trailer lookup from dakview-web `GET /v1/lookup-tables/equipments?equipment_category=Trailers&location=Freeport` can include equipment rows with a blank/missing `id` or `equipment_name`; the frontend mapper threw on the first unusable row and turned the Dropsheets trailer picker into a page-level remote `500`.
+- Trailer lookup still uses `X-Db: EQUIPMENT` and active app target as the `location` filter. The frontend now skips unusable equipment rows and returns the usable trailer options instead of failing the whole query.
+- Focused regression updated:
+  - `src/lib/server/dak-equipment.spec.ts`
+- Verification completed:
+  - red focused run reproduced `DAK route /v1/lookup-tables/equipments returned no usable equipment record`
+  - `bun run test:unit -- --run src/lib/server/dak-equipment.spec.ts`
+  - `bun run test:unit -- --run src/lib/server/dak-equipment.spec.ts src/lib/target-scoped-lookups.spec.ts 'src/routes/(app)/dropsheets/dropsheets-page.svelte.spec.ts'`
+- Memory Impact Analysis: update required because repo-tracked Dropsheets trailer lookup behavior changed. Updated current-context and project-state; backend contract remains unchanged.
+
 ## 2026-05-13 Complete Load Progress Gate Fix
 
 - Current worktree: `features/complete-load-percent-gate`.
