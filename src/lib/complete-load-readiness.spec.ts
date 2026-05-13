@@ -26,8 +26,53 @@ const closedStatus: DepartmentStatus = {
 };
 
 describe('complete load readiness', () => {
-	it('allows completion only when allLoaded is true and every department is NA or DONE', () => {
-		expect(isCompleteLoadReadyForDisplay(loadedAvailability, closedStatus)).toBe(true);
+	it('allows completion when every live loading category is scanned to 100% and every department is NA or DONE', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: loadedAvailability,
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
+	});
+
+	it('allows completion when live loading-category progress is complete before AllLoaded is checked', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 0.875,
+				categoryAvailability: {
+					...loadedAvailability,
+					allLoaded: false
+				},
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
+	});
+
+	it('allows completion from percentCompleted fallback when live category availability is unavailable', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: null,
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
+	});
+
+	it('allows completion from percentCompleted fallback when live category availability has no labeled categories', () => {
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: {
+					...loadedAvailability,
+					rollHasLabels: 0,
+					wrapHasLabels: 0,
+					partsHasLabels: 0,
+					allLoaded: false
+				},
+				departmentStatus: closedStatus
+			})
+		).toBe(true);
 	});
 
 	it.each([
@@ -41,27 +86,45 @@ describe('complete load readiness', () => {
 		[null]
 	])('blocks completion when a department status is %s', (rollStatus) => {
 		expect(
-			isCompleteLoadReadyForDisplay(loadedAvailability, {
-				...closedStatus,
-				roll: rollStatus
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: loadedAvailability,
+				departmentStatus: {
+					...closedStatus,
+					roll: rollStatus
+				}
 			})
 		).toBe(false);
 	});
 
-	it('blocks completion when allLoaded is not true', () => {
+	it('blocks completion when live loading-category progress is not complete', () => {
 		expect(
-			isCompleteLoadReadyForDisplay(
-				{
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 0.875,
+				categoryAvailability: {
 					...loadedAvailability,
-					allLoaded: false
+					allLoaded: false,
+					rollScannedPercent: 0.75
 				},
-				closedStatus
-			)
+				departmentStatus: closedStatus
+			})
 		).toBe(false);
 	});
 
 	it('blocks completion while readiness data is unavailable', () => {
-		expect(isCompleteLoadReadyForDisplay(null, closedStatus)).toBe(false);
-		expect(isCompleteLoadReadyForDisplay(loadedAvailability, null)).toBe(false);
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 0.875,
+				categoryAvailability: null,
+				departmentStatus: closedStatus
+			})
+		).toBe(false);
+		expect(
+			isCompleteLoadReadyForDisplay({
+				percentCompleted: 1,
+				categoryAvailability: loadedAvailability,
+				departmentStatus: null
+			})
+		).toBe(false);
 	});
 });

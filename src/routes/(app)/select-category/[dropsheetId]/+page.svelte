@@ -149,7 +149,11 @@
 	});
 	const selectedLoaderLabel = $derived(currentLoader?.loaderName ?? 'Select loader');
 	const canCompleteLoad = $derived(
-		isCompleteLoadReadyForDisplay(categoryAvailability, currentStatus)
+		isCompleteLoadReadyForDisplay({
+			percentCompleted: data.percentCompleted,
+			categoryAvailability,
+			departmentStatus: currentStatus
+		})
 	);
 	const completeLoadingDescription = $derived(
 		completeLoadingPhase === 'sending_emails'
