@@ -747,6 +747,55 @@ describe('loading page', () => {
 		await expect.element(page.getByText('All items in this drop are scanned.')).not.toBeInTheDocument();
 	});
 
+	it('renders selected-location union labels when detail counters are zero', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=1&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Roll');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Roll' })));
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					locationId: 2,
+					sequence: 1,
+					labelCount: 0,
+					scannedCount: 0,
+					needPickCount: 0,
+					totalCountText: '0/0'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					partListId: 'ROLL-ZERO-COUNTER',
+					locationId: 1,
+					scanned: false
+				}),
+				createUnionLabel({
+					partListId: 'WRAP-ZERO-COUNTER',
+					locationId: 2,
+					scanned: false
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('ROLL-ZERO-COUNTER')).toBeInTheDocument();
+		await expect.element(page.getByText('WRAP-ZERO-COUNTER')).not.toBeInTheDocument();
+		await expect.element(page.getByText('No items are attached to this drop yet.')).not.toBeInTheDocument();
+		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*0/);
+		expect(getElementByTestId('loading-drop-stat-scanned').textContent).toMatch(/Scanned\s*0/);
+		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*0/);
+		expect(getLoadViewUnion).toHaveBeenCalledWith({
+			loadNumber: 'L-042',
+			sequence: 1,
+			locationId: 1
+		});
+	});
+
 	it('shows the completion message only when every attached label is scanned', async () => {
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');

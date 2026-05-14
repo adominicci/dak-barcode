@@ -221,11 +221,15 @@
 			? dropLabels.filter((label) => !label.scanned && label.locationId === activeLoadingLocationId)
 			: []
 	);
+	const hasVisibleUnscannedDropLabels = $derived(unscannedDropLabels.length > 0);
 	const unscannedPartListIds = $derived(
 		unscannedDropLabels.map((label) => label.partListId || '--')
 	);
 	const isEmptyDrop = $derived(
-		!isLoadingDropLabels && selectedDropDetail !== null && selectedDropDetail.labelCount === 0
+		!isLoadingDropLabels &&
+			selectedDropDetail !== null &&
+			selectedDropDetail.labelCount === 0 &&
+			!hasVisibleUnscannedDropLabels
 	);
 	const isFullyScannedDrop = $derived(
 		!isLoadingDropLabels &&

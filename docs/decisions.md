@@ -2,6 +2,17 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-14 - Loading union labels can render when detail counters are zero
+
+- Tags: product, loading, legacy-dst, backend-contract, reliability
+- Decision: The Loading label list uses selected-location `vwLoadLabelsUnion` rows as the visibility source. If that union list returns unscanned rows for the Select Category route `locationId`, the page renders those rows even when the active `LoadViewDetail` row reports `LabelCount = 0`, `Scanned = 0`, and `NeedPick = 0`.
+- Decision: The Loading counter cards remain sourced from `LoadViewDetail` and are not recalculated from union labels. CustomerPortalAPI-PY combined post-scan refresh now uses the request `LocationID` for the `vwLoadLabelsUnion` query and `load_view_union_key.location_id`, while still using the clamped detail row for `LoadNumber` and `DSSequence`.
+- Rationale: Access binds counters to `qryPassThroughPick`/`LoadViewDetail` while the subform label grid reads `vwLoadLabelsUnion`; FlutterFlow uses the same split with separate detail and union API calls. Keeping that split prevents valid legacy label rows from being hidden and avoids introducing a second frontend counter implementation.
+- Impacted areas: `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/src/barcode_module/routes/barcode_update.py`, `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/tests/barcode_module/test_process_loading_scan_v2.py`, `openspec/specs/loading-location-label-scope/spec.md`, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`, `docs/prd.md`, `agile_plan/stage-load-implementation-plan.md`
+- Supersedes/refines: the 2026-05-08 selected route location decision by clarifying that the selected location also governs combined refresh keys and that union list visibility takes precedence over zero detail counters.
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-05-13 - Complete Load uses live loading progress, not AllLoaded flag
 
 - Tags: product, loading, select-category, complete-load, reliability

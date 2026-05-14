@@ -1,7 +1,7 @@
 # Architecture: Stage & Load Barcode Module Frontend
 
-**Version**: 1.6
-**Date**: 2026-04-16
+**Version**: 1.7
+**Date**: 2026-05-14
 
 ---
 
@@ -226,6 +226,14 @@ Current scan ownership is split by workflow: staging scans use `dak-web`
 `dst-customer-portal`/CustomerPortalAPI-PY
 `POST /api/barcode-update/process-loading-scan-v2` so the response can include
 the post-scan Loading detail and label refresh rows.
+
+For Loading, the Select Category route `locationId` remains authoritative for
+label visibility and post-scan refresh keys. `LoadViewDetail` supplies the
+drop counters and selected drop sequence/load number, while
+`vwLoadLabelsUnion` supplies visible unscanned label rows. The UI must not hide
+selected-location union rows just because the detail counters are zero, and the
+combined CustomerPortalAPI-PY refresh payload must use the request `LocationID`
+for the union query and `load_view_union_key.location_id`.
 
 Complete Load uses `dak-web` `POST /v1/logistics/dropsheet-notify` for the
 loaded notification. When the Select Category handoff has `transfer=true`, the

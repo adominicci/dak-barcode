@@ -1,5 +1,25 @@
 # Current Context
 
+## 2026-05-14 Loading Union Labels With Zero Detail Counters
+
+- Current worktree: `dev`; OpenSpec change archived as `openspec/changes/archive/2026-05-14-align-loading-label-list-with-legacy`.
+- Root cause: Loading used `selectedDropDetail.labelCount === 0` as a hard empty-drop signal, but legacy Access and FlutterFlow render the label grid from `vwLoadLabelsUnion` independently from `LoadViewDetail` counters. This hid selected-location union rows when SQL detail counters were zero.
+- Loading now shows unscanned union rows whose returned `LocationID` matches the Select Category route `locationId` even when the active detail row counters are `0/0/0`. The `Labels`, `Scanned`, and `Need Pick` counter cards still display the exact `LoadViewDetail` values and are not recalculated from union rows.
+- CustomerPortalAPI-PY `_fetch_loading_refresh_payload` now uses the request `LocationID` for the post-scan `vwLoadLabelsUnion` query and `load_view_union_key.location_id`; it still uses the clamped selected detail row for `LoadNumber` and `DSSequence`.
+- Focused regressions added/updated:
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+  - `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/tests/barcode_module/test_process_loading_scan_v2.py`
+- Verification completed:
+  - red focused frontend run confirmed the union label was hidden by the old empty-state rule
+  - red focused backend run confirmed refreshed union keys used mismatched detail-row `LocationID`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run check`
+  - `bun run test:unit -- --run`
+  - `python -m pytest tests/barcode_module/test_process_loading_scan_v2.py` in CustomerPortalAPI-PY
+  - `openspec validate --all --strict`
+- OpenSpec archived to `openspec/changes/archive/2026-05-14-align-loading-label-list-with-legacy` after syncing the delta into `openspec/specs/loading-location-label-scope/spec.md`.
+- Memory Impact Analysis: update required because durable Loading label visibility and the combined refresh backend contract changed. Updated current-context, project-state, decisions, architecture, PRD, and the agile plan.
+
 ## 2026-05-13 Freeport Trailer Lookup Dirty Row Fix
 
 - Current worktree: `dev`.

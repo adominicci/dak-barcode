@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-05-13
+  last_updated_at: 2026-05-14
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-05-08
+  last_verified_at: 2026-05-14
   verified_against:
     - AGENTS.md
     - README.md
@@ -72,13 +72,14 @@ product:
     - staging and loading scan loops with hardware-scanner-first interaction
     - Loading uses a viewport-constrained iPad workflow panel with internal part-list scrolling so drop counters remain reachable without page-level scrolling
     - Loading treats the Select Category route `locationId` as authoritative for label lookup, visible label filtering, and scan/retry payloads
+    - Loading renders selected-location union label rows even when the active LoadViewDetail counters are zero, while leaving the counter cards sourced from LoadViewDetail
     - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label repair export after Complete Load notification
   intentionally_limited:
     - some support pages still rely on DST-backed read models while loading mixes DST, CustomerPortalAPI-PY, and dak-web data
     - Dropsheets trailer picker reads equipment options from dakview-web `X-Db: EQUIPMENT` and updates selected trailer fields through dakview-web `POST /v1/logistics/dropsheet-trailer-update`; the Dropsheets iPad table keeps delivery, drop weight, load number, trailer, completion, loaded timestamp, loader, and go action on one row
 
 architecture:
-  last_verified_at: 2026-05-08
+  last_verified_at: 2026-05-14
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
@@ -112,6 +113,7 @@ architecture:
     - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export; transfer export uses `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
     - `fetchDak` defaults to an 8s timeout but supports per-call timeout overrides for long-running Complete Load notify/export calls
     - Loading label lookup, visible label filtering, scan payloads, retry payloads, and fallback refresh keys use the Select Category route `locationId` as authoritative; returned drop-detail `LocationID` must not override the selected loading location
+    - CustomerPortalAPI-PY combined loading refresh responses must query `vwLoadLabelsUnion` and return `load_view_union_key.location_id` using the request `LocationID`; the selected detail row may only supply `LoadNumber` and `DSSequence`
     - Dropsheets and Select Category Loading entry use shared active-loader option derivation so inactive loader rows are not selectable for new assignments or sessions
   access_states:
     - anonymous
@@ -152,7 +154,7 @@ design_system:
     - centered modal shell styling
 
 workflows:
-  last_verified_at: 2026-05-08
+  last_verified_at: 2026-05-14
   verified_against:
     - AGENTS.md
     - src/routes/(app)/select-category/[dropsheetId]/+page.svelte
@@ -196,6 +198,7 @@ workflows:
       - loading keeps scan mutations sequential but leaves the main scan field enabled during post-scan work, queues up to 50 raw scans, and drains them only after refreshed drop data has settled
       - loading label scans post to CustomerPortalAPI-PY `/api/barcode-update/process-loading-scan-v2` and can consume returned detail/union refresh rows instead of always making separate post-scan refresh calls
       - loading label lookup, visible unscanned label filtering, direct scan payloads, and retry payloads use the Select Category-selected route `locationId`; returned drop-detail `LocationID` is not the active location source
+      - Loading shows selected-location unscanned union rows even when `LoadViewDetail` reports zero labels, scanned, and need-pick counters; the empty-drop message appears only when zero counters also have no visible selected-location union rows
       - loading clears queued scan texts on drop navigation so they cannot submit against a newly selected drop
       - the Loading route title appends the active scanned driver location while selected so operators can confirm the location used by subsequent scans
       - Loading location selection accepts numeric drop areas when DriverLocation is true and does not require department-specific location support
@@ -209,6 +212,7 @@ workflows:
       - Complete Load keeps the confirmation modal open while the two calls run, disables controls, shows the email-sending phase first, and switches to the transfer-label phase only when `transfer=true`
       - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors, and includes available post-send or transfer-export detail in the warning
       - the visible loading label list follows the legacy LocationID contract and shows unscanned rows whose returned LocationID matches the selected route location; CategoryID is not used as a loading department guard because valid legacy rows may return CategoryID 0
+      - Loading counter cards remain sourced from the active `LoadViewDetail` row and are not recalculated from `vwLoadLabelsUnion`, matching legacy Access and FlutterFlow split-source behavior
   support_views:
     status: live
     included:
