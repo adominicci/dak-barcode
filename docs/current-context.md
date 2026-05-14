@@ -1,5 +1,30 @@
 # Current Context
 
+## 2026-05-14 Loading Barcode-Derived Counter Endpoint
+
+- Current worktree: `features/add-loading-barcode-counter-endpoint`; backend companion branch in `/Users/andresdominicci/Projects/CustomerPortalAPI-PY` uses the same branch name.
+- Root cause: the confirmed Roll case `DropSheetID=27610`, `LoadNumber=05192026-0089`, `DSSequence=4`, `LocationID=1` returns four selected-location unscanned label units from `vwLoadLabelsUnion`/`qryBarcode`, while legacy `LoadViewDetail` counters remain `0/0/0`.
+- CustomerPortalAPI-PY now has additive read-only `POST /api/barcode-update/loadview-barcode-counters`. It verifies the active `LoadViewDetail` context, groups matching `qryBarcode` rows by `LPID` and `LabelNumber`, returns barcode counters plus legacy comparison values, and leaves shared SQL objects unchanged.
+- Loading now queries barcode counters for the active drop using selected route `locationId`. Counter cards use those values only when `DropSheetID`, `LoadNumber`, `DSSequence`, and `LocationID` match the active drop; stale/missing payloads fall back to `LoadViewDetail`.
+- Successful combined loading scan refreshes can carry `load_view_barcode_counters`, letting Loading update Labels/Scanned/Need Pick without an extra post-scan counter request.
+- PR #65/#66 review hardening: frontend rejects standalone and combined-scan barcode counter responses missing usable `LoadNumber`; separate post-scan counter refresh failures are swallowed inside the optional counter refresh so detail/union refreshes still settle before queued scans drain.
+- Focused regressions added/updated:
+  - `src/lib/server/type-mappers.spec.ts`
+  - `src/lib/server/dst-queries.spec.ts`
+  - `src/lib/server/dak-scan.spec.ts`
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+  - `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/tests/barcode_module/test_process_loading_scan_v2.py`
+- Verification completed so far:
+  - red backend run confirmed missing endpoint/combined-refresh payload
+  - `pytest tests/barcode_module/test_process_loading_scan_v2.py -q` in CustomerPortalAPI-PY
+  - red frontend run confirmed missing mapper/query/page counter wiring
+  - `bun run test:unit -- --run src/lib/server/type-mappers.spec.ts src/lib/server/dst-queries.spec.ts src/lib/server/dak-scan.spec.ts 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run test:unit -- --run`
+  - `bun run check`
+  - `npx @sveltejs/mcp svelte-autofixer './src/routes/(app)/loading/+page.svelte' --svelte-version 5`
+  - Dockerized CustomerPortalAPI-PY `POST http://localhost:3002/api/barcode-update/loadview-barcode-counters?db=Canton` for `27610 / 05192026-0089 / 4 / 1` returned barcode `4/0/4`, legacy `0/0/0`, and `CounterMismatch=true`
+- Memory Impact Analysis: update required because durable Loading counter source and backend contract changed; PR #65/#66 review added reliability constraints for optional counter refresh and response identity validation across standalone and combined-scan paths. Updated current-context, project-state, decisions, architecture, and PRD.
+
 ## 2026-05-14 Loading Counter Bottom Dock
 
 - Current worktree: `dev`.

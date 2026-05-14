@@ -157,6 +157,21 @@ export type LoadViewUnion = {
 	lpid: number;
 };
 
+export type LoadViewBarcodeCounters = {
+	dropSheetId: number;
+	dropSheetCustomerId: number;
+	loadNumber: string;
+	sequence: number;
+	locationId: number;
+	labelCount: number;
+	scannedCount: number;
+	needPickCount: number;
+	legacyLabelCount: number;
+	legacyScannedCount: number;
+	legacyNeedPickCount: number;
+	counterMismatch: boolean;
+};
+
 export type LegacyLoadViewAllEntry = {
 	dropSheetId: number;
 	dropSheetCustId: number;
@@ -301,6 +316,7 @@ export type LoadingScanRefreshPayload = {
 		sequence: number;
 		locationId: number;
 	};
+	dropCounters?: LoadViewBarcodeCounters | null;
 };
 
 export type ScanResult = {

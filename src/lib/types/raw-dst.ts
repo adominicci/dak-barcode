@@ -85,6 +85,21 @@ export type RawDstLoadViewUnion = {
 	LPID?: number | null;
 };
 
+export type RawDstLoadViewBarcodeCounters = {
+	DropSheetID: number;
+	DropSheetCustID: number;
+	LoadNumber: string;
+	DSSequence: number;
+	LocationID: number;
+	BarcodeLabelCount: number;
+	BarcodeScanned: number;
+	BarcodeNeedPick: number;
+	LegacyLabelCount: number;
+	LegacyScanned: number;
+	LegacyNeedPick: number;
+	CounterMismatch: boolean;
+};
+
 export type RawDstLegacyLoadViewAllEntry = {
 	DropSheetID: number;
 	Dropsheetcustid?: number | null;

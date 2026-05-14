@@ -228,12 +228,17 @@ Current scan ownership is split by workflow: staging scans use `dak-web`
 the post-scan Loading detail and label refresh rows.
 
 For Loading, the Select Category route `locationId` remains authoritative for
-label visibility and post-scan refresh keys. `LoadViewDetail` supplies the
-drop counters and selected drop sequence/load number, while
-`vwLoadLabelsUnion` supplies visible unscanned label rows. The UI must not hide
-selected-location union rows just because the detail counters are zero, and the
-combined CustomerPortalAPI-PY refresh payload must use the request `LocationID`
-for the union query and `load_view_union_key.location_id`.
+label visibility, counter lookup, scan payloads, and post-scan refresh keys.
+`LoadViewDetail` supplies the active drop metadata and legacy comparison
+counters, `vwLoadLabelsUnion` supplies visible unscanned label rows, and
+CustomerPortalAPI-PY `POST /api/barcode-update/loadview-barcode-counters`
+supplies barcode-derived Labels/Scanned/Need Pick values from grouped
+`qryBarcode` rows. The UI must not hide selected-location union rows just
+because legacy detail counters are zero, and it must only render barcode
+counters when the response matches the active `DropSheetID`, `LoadNumber`,
+`DSSequence`, and selected route `LocationID`. Combined CustomerPortalAPI-PY
+loading scan refreshes may include the same active counter payload and must use
+the request `LocationID` for both the union query and counter lookup.
 
 Complete Load uses `dak-web` `POST /v1/logistics/dropsheet-notify` for the
 loaded notification. When the Select Category handoff has `transfer=true`, the

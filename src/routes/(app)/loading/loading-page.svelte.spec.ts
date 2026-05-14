@@ -5,6 +5,7 @@ import { render } from 'vitest-browser-svelte';
 import type {
 	DepartmentStatus,
 	DropArea,
+	LoadViewBarcodeCounters,
 	LoadViewDetail,
 	LoadViewUnion,
 	LoaderInfo,
@@ -30,6 +31,7 @@ const {
 	goto,
 	getLoaderInfo,
 	getLoadViewDetailAll,
+	getLoadViewBarcodeCounters,
 	getLoadViewUnion,
 	getDepartmentStatus,
 	getDropAreasByDepartment,
@@ -56,6 +58,14 @@ const {
 		goto: vi.fn(),
 		getLoaderInfo: vi.fn<(loaderSessionId: number) => LoaderInfoQueryState>(),
 		getLoadViewDetailAll: vi.fn<(input: { dropSheetId: number; locationId: number }) => RemoteQueryState<LoadViewDetail[]>>(),
+		getLoadViewBarcodeCounters: vi.fn<
+			(input: {
+				dropSheetId: number;
+				loadNumber: string;
+				sequence: number;
+				locationId: number;
+			}) => RemoteQueryState<LoadViewBarcodeCounters>
+		>(),
 		getLoadViewUnion: vi.fn<
 			(input: { loadNumber: string; sequence: number; locationId: number }) => RemoteQueryState<LoadViewUnion[]>
 		>(),
@@ -88,6 +98,7 @@ vi.mock('$lib/loader-session.remote', () => ({
 
 vi.mock('$lib/load-view.remote', () => ({
 	getLoadViewDetailAll,
+	getLoadViewBarcodeCounters,
 	getLoadViewUnion
 }));
 
@@ -211,6 +222,26 @@ function createDropDetail(overrides: Partial<LoadViewDetail> = {}): LoadViewDeta
 	};
 }
 
+function createDropCounters(
+	overrides: Partial<LoadViewBarcodeCounters> = {}
+): LoadViewBarcodeCounters {
+	return {
+		dropSheetId: 42,
+		dropSheetCustomerId: 84,
+		loadNumber: 'L-042',
+		sequence: 1,
+		locationId: 2,
+		labelCount: 20,
+		scannedCount: 12,
+		needPickCount: 8,
+		legacyLabelCount: 20,
+		legacyScannedCount: 12,
+		legacyNeedPickCount: 8,
+		counterMismatch: false,
+		...overrides
+	};
+}
+
 function createUnionLabel(overrides: Partial<LoadViewUnion> = {}): LoadViewUnion {
 	return {
 		partListId: 'PL-100',
@@ -320,6 +351,7 @@ describe('loading page', () => {
 		goto.mockReset();
 		getLoaderInfo.mockReset();
 		getLoadViewDetailAll.mockReset();
+		getLoadViewBarcodeCounters.mockReset();
 		getLoadViewUnion.mockReset();
 		getDepartmentStatus.mockReset();
 		getDropAreasByDepartment.mockReset();
@@ -375,6 +407,23 @@ describe('loading page', () => {
 								scanned: false
 							})
 						]
+			)
+		);
+		getLoadViewBarcodeCounters.mockImplementation(({ sequence, locationId }) =>
+			createRemoteQuery(
+				sequence === 1
+					? createDropCounters({ sequence, locationId })
+					: createDropCounters({
+							dropSheetCustomerId: 85,
+							sequence,
+							locationId,
+							labelCount: 10,
+							scannedCount: 4,
+							needPickCount: 6,
+							legacyLabelCount: 10,
+							legacyScannedCount: 4,
+							legacyNeedPickCount: 6
+						})
 			)
 		);
 		getDepartmentStatus.mockReturnValue(createRemoteQuery(createDepartmentStatus()));
@@ -760,6 +809,18 @@ describe('loading page', () => {
 			])
 		);
 		getLoadViewUnion.mockReturnValue(createRemoteQuery([]));
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(
+				createDropCounters({
+					labelCount: 0,
+					scannedCount: 0,
+					needPickCount: 0,
+					legacyLabelCount: 0,
+					legacyScannedCount: 0,
+					legacyNeedPickCount: 0
+				})
+			)
+		);
 
 		render(LoadingPage);
 
@@ -800,20 +861,75 @@ describe('loading page', () => {
 				})
 			])
 		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(
+				createDropCounters({
+					locationId: 1,
+					labelCount: 4,
+					scannedCount: 0,
+					needPickCount: 4,
+					legacyLabelCount: 0,
+					legacyScannedCount: 0,
+					legacyNeedPickCount: 0,
+					counterMismatch: true
+				})
+			)
+		);
 
 		render(LoadingPage);
 
 		await expect.element(page.getByText('ROLL-ZERO-COUNTER')).toBeInTheDocument();
 		await expect.element(page.getByText('WRAP-ZERO-COUNTER')).not.toBeInTheDocument();
 		await expect.element(page.getByText('No items are attached to this drop yet.')).not.toBeInTheDocument();
-		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*0/);
+		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*4/);
 		expect(getElementByTestId('loading-drop-stat-scanned').textContent).toMatch(/Scanned\s*0/);
-		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*0/);
+		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*4/);
+		expect(getLoadViewBarcodeCounters).toHaveBeenCalledWith({
+			dropSheetId: 42,
+			loadNumber: 'L-042',
+			sequence: 1,
+			locationId: 1
+		});
 		expect(getLoadViewUnion).toHaveBeenCalledWith({
 			loadNumber: 'L-042',
 			sequence: 1,
 			locationId: 1
 		});
+	});
+
+	it('ignores stale barcode counter payloads that do not match the active drop', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					labelCount: 7,
+					scannedCount: 2,
+					needPickCount: 5,
+					totalCountText: '2/7'
+				})
+			])
+		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(
+				createDropCounters({
+					dropSheetId: 999,
+					loadNumber: 'STALE-LOAD',
+					sequence: 99,
+					locationId: 1,
+					labelCount: 4,
+					scannedCount: 0,
+					needPickCount: 4,
+					counterMismatch: true
+				})
+			)
+		);
+
+		render(LoadingPage);
+
+		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*7/);
+		expect(getElementByTestId('loading-drop-stat-scanned').textContent).toMatch(/Scanned\s*2/);
+		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*5/);
 	});
 
 	it('shows the completion message only when every attached label is scanned', async () => {
@@ -951,6 +1067,7 @@ describe('loading page', () => {
 	it('submits loading scans on Enter with the active drop context, refreshes data, and clears the input', async () => {
 		const detailRefresh = vi.fn().mockResolvedValue(undefined);
 		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		const counterRefresh = vi.fn().mockResolvedValue(undefined);
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		getLoadViewDetailAll.mockReturnValue(
@@ -961,6 +1078,11 @@ describe('loading page', () => {
 		getLoadViewUnion.mockReturnValue(
 			createRemoteQuery([createUnionLabel()], {
 				refresh: unionRefresh
+			})
+		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(createDropCounters(), {
+				refresh: counterRefresh
 			})
 		);
 
@@ -984,8 +1106,47 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
 			expect(unionRefresh).toHaveBeenCalledOnce();
+			expect(counterRefresh).toHaveBeenCalledOnce();
 		});
 		expect(toastSuccess).not.toHaveBeenCalled();
+		expect(inputElement.value).toBe('');
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('keeps the scan flow successful when the additive barcode counter refresh fails', async () => {
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		const counterRefresh = vi.fn().mockRejectedValue(new Error('Counter endpoint unavailable'));
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail()], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(createDropCounters(), {
+				refresh: counterRefresh
+			})
+		);
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await vi.waitFor(() => {
+			expect(detailRefresh).toHaveBeenCalledOnce();
+			expect(unionRefresh).toHaveBeenCalledOnce();
+			expect(counterRefresh).toHaveBeenCalledOnce();
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).not.toBeInTheDocument();
+		await expect.element(page.getByText('Connection issue')).not.toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
 	});
@@ -1113,10 +1274,14 @@ describe('loading page', () => {
 				}
 			})
 		});
+		const counterQuery = createRemoteQuery(createDropCounters(), {
+			refresh: vi.fn().mockRejectedValue(new Error('Counter endpoint unavailable'))
+		});
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		getLoadViewDetailAll.mockReturnValue(detailQuery.query);
 		getLoadViewUnion.mockReturnValue(unionQuery);
+		getLoadViewBarcodeCounters.mockReturnValue(counterQuery);
 		processLoadingScan.mockResolvedValue(createScanResult());
 
 		render(LoadingPage);
@@ -1251,7 +1416,18 @@ describe('loading page', () => {
 						loadNumber: 'L-042',
 						sequence: 2,
 						locationId: 2
-					}
+					},
+					dropCounters: createDropCounters({
+						dropSheetCustomerId: 85,
+						sequence: 2,
+						labelCount: 9,
+						scannedCount: 3,
+						needPickCount: 6,
+						legacyLabelCount: 0,
+						legacyScannedCount: 0,
+						legacyNeedPickCount: 0,
+						counterMismatch: true
+					})
 				}
 			})
 		);
@@ -1261,6 +1437,9 @@ describe('loading page', () => {
 		await submitMainScan('LP-100');
 
 		await expect.element(page.getByText('Combined Beacon')).toBeInTheDocument();
+		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*9/);
+		expect(getElementByTestId('loading-drop-stat-scanned').textContent).toMatch(/Scanned\s*3/);
+		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*6/);
 		await page.getByRole('button', { name: /Next drop/i }).click();
 
 		await expect.element(page.getByText('Acme Metals')).toBeInTheDocument();

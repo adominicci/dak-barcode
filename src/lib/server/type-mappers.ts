@@ -7,6 +7,7 @@ import type {
 	LegacyLoadViewAllEntry,
 	LegacyOrderStatusRow,
 	LegacyMoveOrderRow,
+	LoadViewBarcodeCounters,
 	LoadViewDetail,
 	LoadViewUnion,
 	Loader,
@@ -35,6 +36,7 @@ import type {
 	RawDstLegacyLoadViewAllEntry,
 	RawDstLegacyMoveOrderRow,
 	RawDstLegacyOrderStatusRow,
+	RawDstLoadViewBarcodeCounters,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
@@ -66,6 +68,27 @@ function stringOrEmpty(value: string | null | undefined): string {
 
 function numberOrZero(value: number | null | undefined): number {
 	return value ?? 0;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === 'string' && value.length > 0;
+}
+
+export function isUsableDstLoadViewBarcodeCounters(
+	record: Record<string, unknown> | null | undefined
+): record is RawDstLoadViewBarcodeCounters {
+	return (
+		!!record &&
+		isFiniteNumber(record.DropSheetID) &&
+		isFiniteNumber(record.DropSheetCustID) &&
+		isFiniteNumber(record.DSSequence) &&
+		isFiniteNumber(record.LocationID) &&
+		isNonEmptyString(record.LoadNumber)
+	);
 }
 
 function nullableBoolean(value: boolean | null | undefined): boolean | null {
@@ -254,6 +277,25 @@ export function mapDstLoadViewUnion(raw: RawDstLoadViewUnion): LoadViewUnion {
 		lengthText: raw.length ?? '',
 		categoryId: raw.CategoryID ?? 0,
 		lpid: raw.LPID ?? 0
+	};
+}
+
+export function mapDstLoadViewBarcodeCounters(
+	raw: RawDstLoadViewBarcodeCounters
+): LoadViewBarcodeCounters {
+	return {
+		dropSheetId: raw.DropSheetID,
+		dropSheetCustomerId: raw.DropSheetCustID,
+		loadNumber: raw.LoadNumber,
+		sequence: raw.DSSequence,
+		locationId: raw.LocationID,
+		labelCount: raw.BarcodeLabelCount,
+		scannedCount: raw.BarcodeScanned,
+		needPickCount: raw.BarcodeNeedPick,
+		legacyLabelCount: raw.LegacyLabelCount,
+		legacyScannedCount: raw.LegacyScanned,
+		legacyNeedPickCount: raw.LegacyNeedPick,
+		counterMismatch: Boolean(raw.CounterMismatch)
 	};
 }
 
@@ -481,6 +523,7 @@ export function mapCustomerPortalLoadingScanResult(
 	const rawDetails = raw.load_view_detail_all ?? raw.loadViewDetailAll;
 	const rawUnion = raw.load_view_union ?? raw.loadViewUnion;
 	const rawUnionKey = raw.load_view_union_key ?? raw.loadViewUnionKey;
+	const rawCounters = raw.load_view_barcode_counters ?? raw.loadViewBarcodeCounters;
 	const loadNumber = rawUnionKey?.load_number ?? rawUnionKey?.loadNumber;
 	const sequence = rawUnionKey?.sequence;
 	const locationId = rawUnionKey?.location_id ?? rawUnionKey?.locationId;
@@ -499,7 +542,10 @@ export function mapCustomerPortalLoadingScanResult(
 				loadNumber,
 				sequence,
 				locationId
-			}
+			},
+			dropCounters: isUsableDstLoadViewBarcodeCounters(rawCounters)
+				? mapDstLoadViewBarcodeCounters(rawCounters)
+				: null
 		};
 	}
 

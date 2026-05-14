@@ -365,6 +365,20 @@ describe('dak scan stub helpers', () => {
 					load_number: 'L-100',
 					sequence: 2,
 					location_id: 1
+				},
+				load_view_barcode_counters: {
+					DropSheetID: 3001,
+					DropSheetCustID: 8001,
+					LoadNumber: 'L-100',
+					DSSequence: 2,
+					LocationID: 1,
+					BarcodeLabelCount: 4,
+					BarcodeScanned: 1,
+					BarcodeNeedPick: 3,
+					LegacyLabelCount: 1,
+					LegacyScanned: 0,
+					LegacyNeedPick: 1,
+					CounterMismatch: true
 				}
 			})
 		);
@@ -413,7 +427,21 @@ describe('dak scan stub helpers', () => {
 						categoryId: 1,
 						lpid: 5001
 					}
-				]
+				],
+				dropCounters: {
+					dropSheetId: 3001,
+					dropSheetCustomerId: 8001,
+					loadNumber: 'L-100',
+					sequence: 2,
+					locationId: 1,
+					labelCount: 4,
+					scannedCount: 1,
+					needPickCount: 3,
+					legacyLabelCount: 1,
+					legacyScannedCount: 0,
+					legacyNeedPickCount: 1,
+					counterMismatch: true
+				}
 			}
 		});
 
