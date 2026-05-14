@@ -677,6 +677,38 @@ describe("dst query helpers", () => {
     });
   });
 
+  it("rejects barcode-derived load-view counters without a usable load number", async () => {
+    fetchDst.mockResolvedValue(
+      jsonResponse({
+        DropSheetID: 27610,
+        DropSheetCustID: 79206,
+        LoadNumber: "",
+        DSSequence: 4,
+        LocationID: 1,
+        BarcodeLabelCount: 4,
+        BarcodeScanned: 0,
+        BarcodeNeedPick: 4,
+        LegacyLabelCount: 0,
+        LegacyScanned: 0,
+        LegacyNeedPick: 0,
+        CounterMismatch: true,
+      }),
+    );
+
+    const { getDstLoadViewBarcodeCounters } = await import("./dst-queries");
+
+    await expect(
+      getDstLoadViewBarcodeCounters({
+        dropSheetId: 27610,
+        loadNumber: "05192026-0089",
+        sequence: 4,
+        locationId: 1,
+      }),
+    ).rejects.toThrow(
+      "DST route /api/barcode-update/loadview-barcode-counters returned no usable record.",
+    );
+  });
+
   it("loads staging day queries into the canonical staging list item contract", async () => {
     fetchDst
       .mockResolvedValueOnce(

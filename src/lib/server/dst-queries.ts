@@ -323,7 +323,8 @@ function hasUsableLoadViewBarcodeCounters(record: Record<string, unknown>) {
 		isFiniteNumber(record.DropSheetID) &&
 		isFiniteNumber(record.DropSheetCustID) &&
 		isFiniteNumber(record.DSSequence) &&
-		isFiniteNumber(record.LocationID)
+		isFiniteNumber(record.LocationID) &&
+		isNonEmptyString(record.LoadNumber)
 	);
 }
 

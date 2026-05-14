@@ -1067,6 +1067,7 @@ describe('loading page', () => {
 	it('submits loading scans on Enter with the active drop context, refreshes data, and clears the input', async () => {
 		const detailRefresh = vi.fn().mockResolvedValue(undefined);
 		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		const counterRefresh = vi.fn().mockResolvedValue(undefined);
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		getLoadViewDetailAll.mockReturnValue(
@@ -1077,6 +1078,11 @@ describe('loading page', () => {
 		getLoadViewUnion.mockReturnValue(
 			createRemoteQuery([createUnionLabel()], {
 				refresh: unionRefresh
+			})
+		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(createDropCounters(), {
+				refresh: counterRefresh
 			})
 		);
 
@@ -1100,8 +1106,47 @@ describe('loading page', () => {
 		await vi.waitFor(() => {
 			expect(detailRefresh).toHaveBeenCalledOnce();
 			expect(unionRefresh).toHaveBeenCalledOnce();
+			expect(counterRefresh).toHaveBeenCalledOnce();
 		});
 		expect(toastSuccess).not.toHaveBeenCalled();
+		expect(inputElement.value).toBe('');
+		expect(document.activeElement).toBe(inputElement);
+	});
+
+	it('keeps the scan flow successful when the additive barcode counter refresh fails', async () => {
+		const detailRefresh = vi.fn().mockResolvedValue(undefined);
+		const unionRefresh = vi.fn().mockResolvedValue(undefined);
+		const counterRefresh = vi.fn().mockRejectedValue(new Error('Counter endpoint unavailable'));
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([createDropDetail()], {
+				refresh: detailRefresh
+			})
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([createUnionLabel()], {
+				refresh: unionRefresh
+			})
+		);
+		getLoadViewBarcodeCounters.mockReturnValue(
+			createRemoteQuery(createDropCounters(), {
+				refresh: counterRefresh
+			})
+		);
+
+		render(LoadingPage);
+
+		const inputElement = await submitMainScan('LP-100');
+
+		await vi.waitFor(() => {
+			expect(detailRefresh).toHaveBeenCalledOnce();
+			expect(unionRefresh).toHaveBeenCalledOnce();
+			expect(counterRefresh).toHaveBeenCalledOnce();
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await expect.element(page.getByRole('button', { name: 'Retry scan' })).not.toBeInTheDocument();
+		await expect.element(page.getByText('Connection issue')).not.toBeInTheDocument();
 		expect(inputElement.value).toBe('');
 		expect(document.activeElement).toBe(inputElement);
 	});
@@ -1229,10 +1274,14 @@ describe('loading page', () => {
 				}
 			})
 		});
+		const counterQuery = createRemoteQuery(createDropCounters(), {
+			refresh: vi.fn().mockRejectedValue(new Error('Counter endpoint unavailable'))
+		});
 		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
 		workflowStores.setSelectedDepartment('Wrap');
 		getLoadViewDetailAll.mockReturnValue(detailQuery.query);
 		getLoadViewUnion.mockReturnValue(unionQuery);
+		getLoadViewBarcodeCounters.mockReturnValue(counterQuery);
 		processLoadingScan.mockResolvedValue(createScanResult());
 
 		render(LoadingPage);

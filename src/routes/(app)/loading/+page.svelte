@@ -231,8 +231,7 @@
 			return {
 				current: null,
 				error: null,
-				loading: false,
-				refresh: null
+				loading: false
 			};
 		}
 
@@ -247,8 +246,7 @@
 			return {
 				current: refreshedDropCounters,
 				error: null,
-				loading: false,
-				refresh: null
+				loading: false
 			};
 		}
 
@@ -261,8 +259,7 @@
 		return {
 			current: query.current ?? null,
 			error: query.error,
-			loading: query.loading,
-			refresh: () => query.refresh()
+			loading: query.loading
 		};
 	});
 	const matchingDropCounters = $derived(
@@ -705,6 +702,8 @@
 		const counterRefresh = (async () => {
 			try {
 				await activeCounterQuery.refresh();
+			} catch {
+				// Barcode counters are additive; keep legacy detail/union refreshes authoritative.
 			} finally {
 				logLoadingScanTiming('counter-refresh', counterRefreshStartedAt, {
 					dropSheetId: selectedDropDetail.dropSheetId,
@@ -1361,12 +1360,12 @@
 							class="mt-auto shrink-0 bg-white pt-2"
 							data-testid="loading-counter-dock"
 						>
-								<DropCounterBar
-									activeDropNumber={dropNavigation.activeDropNumber}
-									totalDrops={dropNavigation.totalDrops}
-									labels={activeDropCounters.labelCount}
-									scanned={activeDropCounters.scannedCount}
-									needPick={activeDropCounters.needPickCount}
+							<DropCounterBar
+								activeDropNumber={dropNavigation.activeDropNumber}
+								totalDrops={dropNavigation.totalDrops}
+								labels={activeDropCounters.labelCount}
+								scanned={activeDropCounters.scannedCount}
+								needPick={activeDropCounters.needPickCount}
 								canGoPrevious={dropNavigation.canGoPrevious}
 								canGoNext={dropNavigation.canGoNext}
 								onPrevious={() => moveToDrop('previous')}
