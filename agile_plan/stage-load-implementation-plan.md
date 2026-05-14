@@ -164,6 +164,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 
 - `POST /v1/scan/process-staging`
 - `POST /api/barcode-update/process-loading-scan-v2`
+- `POST /api/barcode-update/loadview-barcode-counters`
 - `GET /v1/scan/department-status`
 
 ### Frontend tasks in this repository
@@ -318,7 +319,7 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 - Label list with scanned/unscanned distinction
 - Visible label rows follow `vwLoadLabelsUnion` for the selected route `locationId`, even when `LoadViewDetail` counters are zero
 - NeedPick display
-- Counter values remain sourced from `LoadViewDetail`, not recalculated from the union label list
+- Counter values use matching barcode-derived active-drop counters when available, fall back to `LoadViewDetail` when unavailable or stale, and are not recalculated from the union label list
 
 **6.5 — Scan handling**
 - Numeric -> driver-location validation

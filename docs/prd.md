@@ -229,7 +229,8 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] If a loading scan needs a driver location, keep the original scan pending and prompt for the numeric location scan next
 - [ ] DUE/STOP department blocking matches the legacy Flutter behavior
 - [ ] The visible label list renders unscanned `vwLoadLabelsUnion` rows for the selected route `locationId`, even when the active `LoadViewDetail` counters are zero
-- [ ] Loading counter cards display `LoadViewDetail` values and are not recalculated from union label rows
+- [ ] Loading counter cards display barcode-derived active-drop values when the additive counter endpoint returns a matching `DropSheetID`, `LoadNumber`, `DSSequence`, and selected route `LocationID`; otherwise they fall back to `LoadViewDetail` values
+- [ ] Loading counter cards are never recalculated directly from visible `vwLoadLabelsUnion` rows in Svelte
 - [ ] NeedPick count updates after successful scans
 - [ ] Roll resets the selected drop area after each successful scan
 - [ ] Leaving the Loading page records loader end time
@@ -298,6 +299,7 @@ The target format differs by backend and must be treated as a strict contract:
 
 - `POST /v1/scan/process-staging`
 - `POST /api/barcode-update/process-loading-scan-v2`
+- `POST /api/barcode-update/loadview-barcode-counters`
 - `GET /v1/scan/department-status`
 - `POST /v1/logistics/dropsheet-notify`
 - `POST /v1/logistics/dropsheet-transfer-label-export`
@@ -306,7 +308,10 @@ These endpoints are part of the overall project, but they are not implemented in
 The combined Loading scan endpoint must keep the request `LocationID` for
 post-scan `vwLoadLabelsUnion` refresh queries and `load_view_union_key.location_id`;
 refreshed detail rows may only supply the selected drop `LoadNumber` and
-`DSSequence`.
+`DSSequence`. The combined response may also include the active
+`load_view_barcode_counters` payload, using the request `LocationID`, so the
+frontend can update Labels, Scanned, and Need Pick without issuing a second
+counter request after every successful scan.
 
 ---
 

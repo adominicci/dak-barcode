@@ -621,6 +621,62 @@ describe("dst query helpers", () => {
     expect(fetchDst.mock.calls).toHaveLength(4);
   });
 
+  it("loads barcode-derived load-view counters through the additive endpoint", async () => {
+    fetchDst.mockResolvedValue(
+      jsonResponse({
+        DropSheetID: 27610,
+        DropSheetCustID: 79206,
+        LoadNumber: "05192026-0089",
+        DSSequence: 4,
+        LocationID: 1,
+        BarcodeLabelCount: 4,
+        BarcodeScanned: 0,
+        BarcodeNeedPick: 4,
+        LegacyLabelCount: 0,
+        LegacyScanned: 0,
+        LegacyNeedPick: 0,
+        CounterMismatch: true,
+      }),
+    );
+
+    const { getDstLoadViewBarcodeCounters } = await import("./dst-queries");
+
+    await expect(
+      getDstLoadViewBarcodeCounters({
+        dropSheetId: 27610,
+        loadNumber: "05192026-0089",
+        sequence: 4,
+        locationId: 1,
+      }),
+    ).resolves.toEqual({
+      dropSheetId: 27610,
+      dropSheetCustomerId: 79206,
+      loadNumber: "05192026-0089",
+      sequence: 4,
+      locationId: 1,
+      labelCount: 4,
+      scannedCount: 0,
+      needPickCount: 4,
+      legacyLabelCount: 0,
+      legacyScannedCount: 0,
+      legacyNeedPickCount: 0,
+      counterMismatch: true,
+    });
+
+    const [path, init] = getFetchCall();
+    const headers = new Headers(init?.headers);
+
+    expect(path).toBe("/api/barcode-update/loadview-barcode-counters");
+    expect(init?.method).toBe("POST");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      DropSheetID: 27610,
+      LoadNumber: "05192026-0089",
+      DSSequence: 4,
+      LocationID: 1,
+    });
+  });
+
   it("loads staging day queries into the canonical staging list item contract", async () => {
     fetchDst
       .mockResolvedValueOnce(
@@ -885,6 +941,7 @@ describe("dst query schemas", () => {
       checkPalletBelongsToLpidInputSchema,
       getLpidForPalletLoadInputSchema,
       loadViewDetailAllInputSchema,
+      loadViewBarcodeCountersInputSchema,
       loadViewDetailInputSchema,
       loadViewUnionInputSchema,
       numberOfDropsInputSchema,
@@ -932,6 +989,22 @@ describe("dst query schemas", () => {
         locationId: 1,
       }).success,
     ).toBe(true);
+    expect(
+      v.safeParse(loadViewBarcodeCountersInputSchema, {
+        dropSheetId: 27610,
+        loadNumber: "05192026-0089",
+        sequence: 4,
+        locationId: 1,
+      }).success,
+    ).toBe(true);
+    expect(
+      v.safeParse(loadViewBarcodeCountersInputSchema, {
+        dropSheetId: 27610,
+        loadNumber: "",
+        sequence: 4,
+        locationId: 1,
+      }).success,
+    ).toBe(false);
     expect(
       v.safeParse(numberOfDropsInputSchema, {
         dropSheetId: 42,

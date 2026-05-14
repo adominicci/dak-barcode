@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import type {
   DepartmentStatus,
   LoadingScanRequest,
+  LoadViewBarcodeCounters,
   LoaderInfo,
   LoaderSession,
   OperationalDepartment,
@@ -14,12 +15,14 @@ import {
   mapDakLoaderInfo,
   mapDakLoaderSession,
   mapDakScanResult,
+  mapCustomerPortalLoadingScanResult,
   mapDstCategoryList,
   mapDstDropSheetCategoryAvailability,
   mapDstDepartmentStatusFromDrop,
   mapDstDepartmentStatusFromDropSheet,
   mapDstDropArea,
   mapDstDropSheet,
+  mapDstLoadViewBarcodeCounters,
   mapDstLoadViewDetail,
   mapDstLoadViewUnion,
   mapDstLegacyMoveOrderRow,
@@ -166,6 +169,36 @@ describe("dst record mappers", () => {
       lengthText: "10ft",
       categoryId: 3,
       lpid: 999,
+    });
+
+    expect(
+      mapDstLoadViewBarcodeCounters({
+        DropSheetID: 27610,
+        DropSheetCustID: 79206,
+        LoadNumber: "05192026-0089",
+        DSSequence: 4,
+        LocationID: 1,
+        BarcodeLabelCount: 4,
+        BarcodeScanned: 0,
+        BarcodeNeedPick: 4,
+        LegacyLabelCount: 0,
+        LegacyScanned: 0,
+        LegacyNeedPick: 0,
+        CounterMismatch: true,
+      }),
+    ).toEqual({
+      dropSheetId: 27610,
+      dropSheetCustomerId: 79206,
+      loadNumber: "05192026-0089",
+      sequence: 4,
+      locationId: 1,
+      labelCount: 4,
+      scannedCount: 0,
+      needPickCount: 4,
+      legacyLabelCount: 0,
+      legacyScannedCount: 0,
+      legacyNeedPickCount: 0,
+      counterMismatch: true,
     });
   });
 
@@ -457,6 +490,68 @@ describe("dak record mappers", () => {
       needPick: 4,
     });
   });
+
+  it("maps CustomerPortal loading scan refresh counter payloads", () => {
+    expect(
+      mapCustomerPortalLoadingScanResult({
+        scan_type: "single_label",
+        status: "success",
+        message: "Label loaded.",
+        needs_location: false,
+        load_view_detail_all: [
+          {
+            DropSequence: 4,
+            DropSheetID: 27610,
+            DropSheetCustID: 79206,
+            LoadNumber: "05192026-0089",
+            LocationID: 1,
+            DSSequence: 4,
+            CustomerName: "Herman Lumber",
+            LabelCount: 0,
+            Scanned: 0,
+            NeedPick: 0,
+          },
+        ],
+        load_view_union: [],
+        load_view_union_key: {
+          load_number: "05192026-0089",
+          sequence: 4,
+          location_id: 1,
+        },
+        load_view_barcode_counters: {
+          DropSheetID: 27610,
+          DropSheetCustID: 79206,
+          LoadNumber: "05192026-0089",
+          DSSequence: 4,
+          LocationID: 1,
+          BarcodeLabelCount: 4,
+          BarcodeScanned: 0,
+          BarcodeNeedPick: 4,
+          LegacyLabelCount: 0,
+          LegacyScanned: 0,
+          LegacyNeedPick: 0,
+          CounterMismatch: true,
+        },
+      }),
+    ).toMatchObject({
+      loadingRefresh: {
+        dropCounters: {
+          dropSheetId: 27610,
+          dropSheetCustomerId: 79206,
+          loadNumber: "05192026-0089",
+          sequence: 4,
+          locationId: 1,
+          labelCount: 4,
+          scannedCount: 0,
+          needPickCount: 4,
+          legacyLabelCount: 0,
+          legacyScannedCount: 0,
+          legacyNeedPickCount: 0,
+          counterMismatch: true,
+        },
+      },
+    });
+  });
 });
 
 describe("shared operational and scan contracts", () => {
@@ -490,6 +585,9 @@ describe("shared operational and scan contracts", () => {
         id: number;
         label: string;
       } | null;
+      loadingRefresh?: {
+        dropCounters?: LoadViewBarcodeCounters | null;
+      };
     }>();
     expectTypeOf<StagingListItem>().toMatchTypeOf<{
       lpidDetail: number;

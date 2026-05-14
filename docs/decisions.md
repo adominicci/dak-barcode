@@ -2,6 +2,17 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-05-14 - Loading counters use additive barcode-derived endpoint when available
+
+- Tags: product, loading, backend-contract, legacy-dst, reliability
+- Decision: Loading counter cards now use a matching barcode-derived active-drop payload from CustomerPortalAPI-PY `POST /api/barcode-update/loadview-barcode-counters` when available. The match key is `DropSheetID`, `LoadNumber`, `DSSequence`, and the Select Category route `LocationID`.
+- Decision: If the barcode counter payload is missing or stale, the page falls back to active `LoadViewDetail` counters. The page still renders label-list visibility from selected-location `vwLoadLabelsUnion` rows and does not calculate counters directly from those rows in Svelte.
+- Rationale: The confirmed Roll case `DropSheetID=27610`, `LoadNumber=05192026-0089`, `DSSequence=4`, `LocationID=1` has four visible unscanned barcode label units while legacy `LoadViewDetail` reports `0/0/0`. An additive read-only endpoint preserves shared SQL objects and makes the mismatch observable through returned legacy comparison values.
+- Impacted areas: `src/lib/types/index.ts`, `src/lib/types/raw-dst.ts`, `src/lib/types/raw-dak.ts`, `src/lib/server/type-mappers.ts`, `src/lib/server/dst-queries.ts`, `src/lib/load-view.remote.ts`, `src/lib/server/dak-scan.spec.ts`, `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/src/barcode_module/routes/barcode_update.py`, `/Users/andresdominicci/Projects/CustomerPortalAPI-PY/tests/barcode_module/test_process_loading_scan_v2.py`
+- Supersedes/refines: `2026-05-14 - Loading union labels can render when detail counters are zero` by changing counter-card source from always-legacy to barcode-derived when an exact active-drop payload exists.
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-05-14 - Loading drop counter is bottom docked
 
 - Tags: design-system, loading, iPad, workflow-ui

@@ -8,6 +8,7 @@ import {
 	type LegacyLoadViewAllEntry,
 	type LegacyMoveOrderRow,
 	type LegacyOrderStatusRow,
+	type LoadViewBarcodeCounters,
 	type LoadViewDetail,
 	type LoadViewUnion,
 	type Loader,
@@ -31,6 +32,7 @@ import type {
 	RawDstLegacyLoadViewAllEntry,
 	RawDstLegacyMoveOrderRow,
 	RawDstLegacyOrderStatusRow,
+	RawDstLoadViewBarcodeCounters,
 	RawDstLoadViewDetail,
 	RawDstLoadViewUnion,
 	RawDstLoader,
@@ -52,6 +54,7 @@ import {
 	mapDstLegacyMoveOrderRow,
 	mapDstLegacyOrderStatusRow,
 	mapDstLpidForPalletLoad,
+	mapDstLoadViewBarcodeCounters,
 	mapDstLoadViewDetail,
 	mapDstLoadViewUnion,
 	mapDstLoader,
@@ -88,6 +91,7 @@ const DST_ROUTES = {
 	loadViewDetail: '/api/barcode-update/loadview-details-by-sequence',
 	loadViewUnion: '/api/barcode-update/load-labels-union-view',
 	loadViewDetailAll: '/api/barcode-update/loadview-detail-sequence-all',
+	loadViewBarcodeCounters: '/api/barcode-update/loadview-barcode-counters',
 	numberOfDrops: '/api/barcode-get/get-number-of-drops',
 	stagingPartsForDay: '/api/barcode-get/get-staging-parts-for-day',
 	stagingPartsForDayRoll: '/api/barcode-get/get-staging-parts-for-day-roll'
@@ -133,6 +137,13 @@ export const loadViewUnionInputSchema = v.object({
 
 export const loadViewDetailAllInputSchema = v.object({
 	dropSheetId: v.number(),
+	locationId: v.number()
+});
+
+export const loadViewBarcodeCountersInputSchema = v.object({
+	dropSheetId: v.number(),
+	loadNumber: v.pipe(v.string(), v.nonEmpty('Expected a non-empty load number')),
+	sequence: v.number(),
 	locationId: v.number()
 });
 
@@ -183,6 +194,7 @@ export const numberOfDropsInputSchema = v.object({
 type LoadViewDetailInput = v.InferOutput<typeof loadViewDetailInputSchema>;
 type LoadViewUnionInput = v.InferOutput<typeof loadViewUnionInputSchema>;
 type LoadViewDetailAllInput = v.InferOutput<typeof loadViewDetailAllInputSchema>;
+type LoadViewBarcodeCountersInput = v.InferOutput<typeof loadViewBarcodeCountersInputSchema>;
 type LegacyLoadViewAllInput = v.InferOutput<typeof legacyLoadViewAllInputSchema>;
 type LegacyOrderStatusInput = v.InferOutput<typeof legacyOrderStatusInputSchema>;
 type LegacyMoveOrdersInput = v.InferOutput<typeof legacyMoveOrdersInputSchema>;
@@ -303,6 +315,15 @@ function hasUsableLoadViewDetail(record: Record<string, unknown>) {
 		isFiniteNumber(record.DropSheetID) &&
 		isFiniteNumber(record.DropSheetCustID) &&
 		isFiniteNumber(record.DSSequence)
+	);
+}
+
+function hasUsableLoadViewBarcodeCounters(record: Record<string, unknown>) {
+	return (
+		isFiniteNumber(record.DropSheetID) &&
+		isFiniteNumber(record.DropSheetCustID) &&
+		isFiniteNumber(record.DSSequence) &&
+		isFiniteNumber(record.LocationID)
 	);
 }
 
@@ -566,6 +587,28 @@ export async function getDstLoadViewDetailAll(
 
 	return expectListResponse<RawDstLoadViewDetail>(body, DST_ROUTES.loadViewDetailAll).map(
 		mapDstLoadViewDetail
+	);
+}
+
+export async function getDstLoadViewBarcodeCounters(
+	input: LoadViewBarcodeCountersInput
+): Promise<LoadViewBarcodeCounters> {
+	const body = await readDstJson(
+		DST_ROUTES.loadViewBarcodeCounters,
+		jsonInit({
+			DropSheetID: input.dropSheetId,
+			LoadNumber: input.loadNumber,
+			DSSequence: input.sequence,
+			LocationID: input.locationId
+		})
+	);
+
+	return mapDstLoadViewBarcodeCounters(
+		expectRecordResponse<RawDstLoadViewBarcodeCounters>(
+			body,
+			DST_ROUTES.loadViewBarcodeCounters,
+			hasUsableLoadViewBarcodeCounters
+		)
 	);
 }
 
