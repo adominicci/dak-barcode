@@ -1,9 +1,11 @@
 import { query } from '$app/server';
 import {
+	getDstLoadViewBarcodeCounters,
 	getDstLoadViewDetail,
 	getDstLoadViewDetailAll,
 	getDstLoadViewUnion,
 	getDstNumberOfDrops,
+	loadViewBarcodeCountersInputSchema,
 	loadViewDetailAllInputSchema,
 	loadViewDetailInputSchema,
 	loadViewUnionInputSchema,
@@ -20,6 +22,11 @@ export const getLoadViewUnion = query(loadViewUnionInputSchema, async (input) =>
 
 export const getLoadViewDetailAll = query(loadViewDetailAllInputSchema, async (input) =>
 	getDstLoadViewDetailAll(input)
+);
+
+export const getLoadViewBarcodeCounters = query(
+	loadViewBarcodeCountersInputSchema,
+	async (input) => getDstLoadViewBarcodeCounters(input)
 );
 
 export const getNumberOfDrops = query(numberOfDropsInputSchema, async (input) =>

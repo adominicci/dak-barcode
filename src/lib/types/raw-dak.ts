@@ -1,4 +1,8 @@
-import type { RawDstLoadViewDetail, RawDstLoadViewUnion } from './raw-dst';
+import type {
+	RawDstLoadViewBarcodeCounters,
+	RawDstLoadViewDetail,
+	RawDstLoadViewUnion
+} from './raw-dst';
 
 export type RawDakLoaderInfo = {
 	LoaderID: number;
@@ -99,4 +103,6 @@ export type RawCustomerPortalLoadingScanResult = RawDakScanResult & {
 	loadViewUnion?: RawDstLoadViewUnion[] | null;
 	load_view_union_key?: RawCustomerPortalLoadingRefreshKey | null;
 	loadViewUnionKey?: RawCustomerPortalLoadingRefreshKey | null;
+	load_view_barcode_counters?: RawDstLoadViewBarcodeCounters | null;
+	loadViewBarcodeCounters?: RawDstLoadViewBarcodeCounters | null;
 };

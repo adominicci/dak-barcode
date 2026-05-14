@@ -22,7 +22,11 @@
 	import StagingLocationModal from '$lib/components/workflow/staging-location-modal.svelte';
 	import WorkflowScanField from '$lib/components/workflow/workflow-scan-field.svelte';
 	import { getDepartmentStatus } from '$lib/department-status.remote';
-	import { getLoadViewDetailAll, getLoadViewUnion } from '$lib/load-view.remote';
+	import {
+		getLoadViewBarcodeCounters,
+		getLoadViewDetailAll,
+		getLoadViewUnion
+	} from '$lib/load-view.remote';
 	import { getLoaderInfo, endLoaderSession } from '$lib/loader-session.remote';
 	import { processLoadingScan } from '$lib/scan.remote';
 	import {
@@ -44,7 +48,13 @@
 		workflowStores,
 		type WorkflowDropAreaSelection
 	} from '$lib/workflow/stores';
-	import type { LoadingScanRequest, LoadViewDetail, LoadViewUnion, ScanResult } from '$lib/types';
+	import type {
+		LoadingScanRequest,
+		LoadViewBarcodeCounters,
+		LoadViewDetail,
+		LoadViewUnion,
+		ScanResult
+	} from '$lib/types';
 
 	const LOADING_SCAN_TIMEOUT_MS = 8000;
 	const LOADING_SCAN_TIMEOUT_MESSAGE = 'We could not process that scan right now.';
@@ -99,6 +109,7 @@
 	let isDrainingQueuedScans = $state(false);
 	let refreshedDropDetails = $state<LoadViewDetail[] | null>(null);
 	let refreshedDropLabelsByKey = $state<Record<string, LoadViewUnion[]>>({});
+	let refreshedDropCountersByKey = $state<Record<string, LoadViewBarcodeCounters>>({});
 	let pendingLocationScanText = $state<string | null>(null);
 	let scanIssues = $state<LoadingScanIssue[]>([]);
 	let isScanIssuesDrawerOpen = $state(false);
@@ -215,6 +226,54 @@
 		};
 	});
 	const dropLabels = $derived(dropLabelsState.current);
+	const dropCountersState = $derived.by(() => {
+		if (!selectedDropDetail || activeLoadingLocationId === null) {
+			return {
+				current: null,
+				error: null,
+				loading: false
+			};
+		}
+
+		const countersKey = getDropCountersQueryKey({
+			dropSheetId: selectedDropDetail.dropSheetId,
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: activeLoadingLocationId
+		});
+		const refreshedDropCounters = refreshedDropCountersByKey[countersKey];
+		if (refreshedDropCounters) {
+			return {
+				current: refreshedDropCounters,
+				error: null,
+				loading: false
+			};
+		}
+
+		const query = getLoadViewBarcodeCounters({
+			dropSheetId: selectedDropDetail.dropSheetId,
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: activeLoadingLocationId
+		});
+		return {
+			current: query.current ?? null,
+			error: query.error,
+			loading: query.loading
+		};
+	});
+	const matchingDropCounters = $derived(
+		selectedDropDetail && activeLoadingLocationId !== null && dropCountersState.current
+			? dropCountersMatchActiveDrop(dropCountersState.current, selectedDropDetail, activeLoadingLocationId)
+				? dropCountersState.current
+				: null
+			: null
+	);
+	const activeDropCounters = $derived({
+		labelCount: matchingDropCounters?.labelCount ?? selectedDropDetail?.labelCount ?? 0,
+		scannedCount: matchingDropCounters?.scannedCount ?? selectedDropDetail?.scannedCount ?? 0,
+		needPickCount: matchingDropCounters?.needPickCount ?? selectedDropDetail?.needPickCount ?? 0
+	});
 	const isLoadingDropLabels = $derived(dropLabelsState.loading && dropLabels.length === 0);
 	const unscannedDropLabels = $derived(
 		activeLoadingLocationId !== null
@@ -228,14 +287,14 @@
 	const isEmptyDrop = $derived(
 		!isLoadingDropLabels &&
 			selectedDropDetail !== null &&
-			selectedDropDetail.labelCount === 0 &&
+			activeDropCounters.labelCount === 0 &&
 			!hasVisibleUnscannedDropLabels
 	);
 	const isFullyScannedDrop = $derived(
 		!isLoadingDropLabels &&
 			selectedDropDetail !== null &&
-			selectedDropDetail.labelCount > 0 &&
-			(selectedDropDetail.scannedCount >= selectedDropDetail.labelCount ||
+			activeDropCounters.labelCount > 0 &&
+			(activeDropCounters.scannedCount >= activeDropCounters.labelCount ||
 				(dropLabels.length > 0 && unscannedDropLabels.length === 0))
 	);
 	const scanIssueCount = $derived(scanIssues.length);
@@ -491,6 +550,7 @@
 	function clearCombinedRefreshRows() {
 		refreshedDropDetails = null;
 		refreshedDropLabelsByKey = {};
+		refreshedDropCountersByKey = {};
 	}
 
 	function getDropLabelsQueryKey(input: {
@@ -499,6 +559,28 @@
 		locationId: number;
 	}) {
 		return [input.loadNumber, input.sequence, input.locationId].join('|');
+	}
+
+	function getDropCountersQueryKey(input: {
+		dropSheetId: number;
+		loadNumber: string;
+		sequence: number;
+		locationId: number;
+	}) {
+		return [input.dropSheetId, input.loadNumber, input.sequence, input.locationId].join('|');
+	}
+
+	function dropCountersMatchActiveDrop(
+		counters: LoadViewBarcodeCounters,
+		detail: LoadViewDetail,
+		locationId: number
+	) {
+		return (
+			counters.dropSheetId === detail.dropSheetId &&
+			counters.loadNumber === detail.loadNumber &&
+			counters.sequence === detail.sequence &&
+			counters.locationId === locationId
+		);
 	}
 
 	function isDuplicateQueuedScan(scannedText: string) {
@@ -565,15 +647,29 @@
 				[getDropLabelsQueryKey(result.loadingRefresh.dropLabelsKey)]:
 					result.loadingRefresh.dropLabels
 			};
+			if (result.loadingRefresh.dropCounters) {
+				refreshedDropCountersByKey = {
+					...refreshedDropCountersByKey,
+					[getDropCountersQueryKey(result.loadingRefresh.dropCounters)]:
+						result.loadingRefresh.dropCounters
+				};
+			}
 			logLoadingScanTiming('combined-refresh', refreshStartedAt, {
 				detailRows: result.loadingRefresh.dropDetails.length,
-				unionRows: result.loadingRefresh.dropLabels.length
+				unionRows: result.loadingRefresh.dropLabels.length,
+				counterMismatch: result.loadingRefresh.dropCounters?.counterMismatch ?? false
 			});
 			return;
 		}
 
 		clearCombinedRefreshRows();
 		const activeUnionQuery = getLoadViewUnion({
+			loadNumber: selectedDropDetail.loadNumber,
+			sequence: selectedDropDetail.sequence,
+			locationId: activeLoadingLocationId
+		});
+		const activeCounterQuery = getLoadViewBarcodeCounters({
+			dropSheetId: selectedDropDetail.dropSheetId,
 			loadNumber: selectedDropDetail.loadNumber,
 			sequence: selectedDropDetail.sequence,
 			locationId: activeLoadingLocationId
@@ -602,9 +698,24 @@
 				});
 			}
 		})();
+		const counterRefreshStartedAt = getLoadingScanTimestamp();
+		const counterRefresh = (async () => {
+			try {
+				await activeCounterQuery.refresh();
+			} catch {
+				// Barcode counters are additive; keep legacy detail/union refreshes authoritative.
+			} finally {
+				logLoadingScanTiming('counter-refresh', counterRefreshStartedAt, {
+					dropSheetId: selectedDropDetail.dropSheetId,
+					loadNumber: selectedDropDetail.loadNumber,
+					sequence: selectedDropDetail.sequence,
+					locationId: activeLoadingLocationId
+				});
+			}
+		})();
 
 		try {
-			await Promise.all([detailRefresh, unionRefresh]);
+			await Promise.all([detailRefresh, unionRefresh, counterRefresh]);
 		} finally {
 			logLoadingScanTiming('post-scan-refresh', refreshStartedAt, {
 				queuedCount: queuedScanTexts.length
@@ -1252,9 +1363,9 @@
 							<DropCounterBar
 								activeDropNumber={dropNavigation.activeDropNumber}
 								totalDrops={dropNavigation.totalDrops}
-								labels={selectedDropDetail.labelCount}
-								scanned={selectedDropDetail.scannedCount}
-								needPick={selectedDropDetail.needPickCount}
+								labels={activeDropCounters.labelCount}
+								scanned={activeDropCounters.scannedCount}
+								needPick={activeDropCounters.needPickCount}
 								canGoPrevious={dropNavigation.canGoPrevious}
 								canGoNext={dropNavigation.canGoNext}
 								onPrevious={() => moveToDrop('previous')}
