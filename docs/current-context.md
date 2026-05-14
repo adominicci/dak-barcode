@@ -1,5 +1,20 @@
 # Current Context
 
+## 2026-05-14 Loading Counter Bottom Dock
+
+- Current worktree: `dev`.
+- Root cause: the Loading work panel used only a max-height constraint, so the panel shrink-wrapped short label lists and left the `Drop X of Y`, previous/next arrows, and Labels/Scanned/Need Pick cards floating above unused page space.
+- Loading now gives the workflow panel a fixed `calc(100dvh - 6.5rem)` height and wraps the drop counter bar in a flex bottom dock. The label list remains the scrollable region above the dock, keeping navigation and counters reachable on the shared iPad.
+- Focused regression updated:
+  - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed the bottom dock was missing before implementation
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts' --testNamePattern 'pins the active drop counter|constrains the loading workspace'`
+  - `npx @sveltejs/mcp svelte-autofixer './src/routes/(app)/loading/+page.svelte' --async --svelte-version 5`
+  - `bun run test:unit -- --run 'src/routes/(app)/loading/loading-page.svelte.spec.ts'`
+  - `bun run check`
+- Memory Impact Analysis: update required because durable Loading iPad layout behavior changed. Updated current-context, project-state, decisions, and compact design references.
+
 ## 2026-05-14 Loading Union Labels With Zero Detail Counters
 
 - Current worktree: `dev`; OpenSpec change archived as `openspec/changes/archive/2026-05-14-align-loading-label-list-with-legacy`.

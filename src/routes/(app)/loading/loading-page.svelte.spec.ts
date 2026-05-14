@@ -510,7 +510,6 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/ds-operational-panel/);
-		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
 		await expect.element(page.getByTestId('loading-context-grid')).toHaveClass(/lg:grid-cols/);
 		await expect.element(page.getByTestId('loading-summary-strip')).toHaveClass(/gap-2/);
 		await expect.element(page.getByTestId('loading-summary-strip')).not.toHaveClass(/shadow/);
@@ -528,7 +527,10 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
+		expect(getElementByTestId('loading-workflow-panel').className.split(/\s+/)).toContain(
+			'h-[calc(100dvh-6.5rem)]'
+		);
+		await expect.element(page.getByTestId('loading-workflow-panel')).not.toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/overflow-hidden/);
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/p-3/);
 		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-0/);
@@ -538,6 +540,24 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('loading-part-list-shell')).toHaveClass(/p-2/);
 		expect(getElementByTestId('loading-active-drop-previous').className).toContain('!size-12');
 		expect(getElementByTestId('loading-active-drop-next').className).toContain('!size-12');
+	});
+
+	it('pins the active drop counter to the bottom of the loading workspace', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/sticky/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/bottom-0/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/z-10/);
+		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/mt-auto/);
+		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/shrink-0/);
+		expectDocumentOrder([
+			'loading-part-list-shell',
+			'loading-counter-dock',
+			'loading-active-drop-summary'
+		]);
 	});
 
 	it('renders the active drop summary with compact footer controls', async () => {

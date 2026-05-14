@@ -62,7 +62,7 @@ Use this for:
 
 Operational adjustments:
 - Scanned item cards show barcode/ID only.
-- Drop counters use 64px arrows plus three blue counter cards.
+- Drop counters use 64px arrows plus three blue counter cards and stay bottom-docked inside the Loading workflow panel.
 - Selection/location prompts use centered modals.
 
 ## Selection Modals
