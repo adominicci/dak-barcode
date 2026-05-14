@@ -1028,7 +1028,7 @@
 			</div>
 		{:else}
 			<div
-				class="ds-operational-panel flex h-[calc(100dvh-6.5rem)] max-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden p-3"
+				class="ds-operational-panel flex h-[calc(100dvh-6.5rem)] flex-col overflow-hidden p-3"
 				data-testid="loading-workflow-panel"
 			>
 				<div
