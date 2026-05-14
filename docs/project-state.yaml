@@ -70,7 +70,7 @@ product:
     - profile-based routing with admin target selection and operator warehouse resolution
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
-    - Loading uses a viewport-constrained iPad workflow panel with internal part-list scrolling so drop counters remain reachable without page-level scrolling
+    - Loading uses a viewport-height iPad workflow panel with internal part-list scrolling and a sticky bottom counter dock so drop navigation and counters remain reachable without page-level scrolling
     - Loading treats the Select Category route `locationId` as authoritative for label lookup, visible label filtering, and scan/retry payloads
     - Loading renders selected-location union label rows even when the active LoadViewDetail counters are zero, while leaving the counter cards sourced from LoadViewDetail
     - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label repair export after Complete Load notification
@@ -205,7 +205,7 @@ workflows:
       - the Loading driver-location modal is a compact centered scan-only prompt and does not show the browseable location-list card
       - the Loading screen active workspace uses one compact operational panel with delivery/customer context, department status pills, shortcut actions, scanner input, scanned ID grid, and drop counters arranged for the iPad operational layout while preserving the existing workflow data
       - scanned-item cards show only the barcode or part-list ID in a three-column monospace grid
-      - the active drop counter uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
+      - the active drop counter is docked to the bottom of the viewport-height Loading panel and uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
       - Select Category displays Complete Load only when every live loading category with labels is scanned to 100% and every dropsheet department status is closed as `NA` or `DONE`; if live category availability is unavailable or contains no loading categories with labels, carried dropsheet `percentCompleted >= 1` may be used as the loaded signal; any due, pending, blank, null, or unavailable department status hides the action
       - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
