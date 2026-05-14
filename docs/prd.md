@@ -228,6 +228,8 @@ The rebuild addresses those issues by moving to a same-origin SvelteKit architec
 - [ ] Non-numeric scans branch into pallet or single-label processing
 - [ ] If a loading scan needs a driver location, keep the original scan pending and prompt for the numeric location scan next
 - [ ] DUE/STOP department blocking matches the legacy Flutter behavior
+- [ ] The visible label list renders unscanned `vwLoadLabelsUnion` rows for the selected route `locationId`, even when the active `LoadViewDetail` counters are zero
+- [ ] Loading counter cards display `LoadViewDetail` values and are not recalculated from union label rows
 - [ ] NeedPick count updates after successful scans
 - [ ] Roll resets the selected drop area after each successful scan
 - [ ] Leaving the Loading page records loader end time
@@ -301,6 +303,10 @@ The target format differs by backend and must be treated as a strict contract:
 - `POST /v1/logistics/dropsheet-transfer-label-export`
 
 These endpoints are part of the overall project, but they are not implemented inside this repository.
+The combined Loading scan endpoint must keep the request `LocationID` for
+post-scan `vwLoadLabelsUnion` refresh queries and `load_view_union_key.location_id`;
+refreshed detail rows may only supply the selected drop `LoadNumber` and
+`DSSequence`.
 
 ---
 

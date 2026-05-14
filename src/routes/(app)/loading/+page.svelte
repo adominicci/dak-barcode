@@ -221,11 +221,15 @@
 			? dropLabels.filter((label) => !label.scanned && label.locationId === activeLoadingLocationId)
 			: []
 	);
+	const hasVisibleUnscannedDropLabels = $derived(unscannedDropLabels.length > 0);
 	const unscannedPartListIds = $derived(
 		unscannedDropLabels.map((label) => label.partListId || '--')
 	);
 	const isEmptyDrop = $derived(
-		!isLoadingDropLabels && selectedDropDetail !== null && selectedDropDetail.labelCount === 0
+		!isLoadingDropLabels &&
+			selectedDropDetail !== null &&
+			selectedDropDetail.labelCount === 0 &&
+			!hasVisibleUnscannedDropLabels
 	);
 	const isFullyScannedDrop = $derived(
 		!isLoadingDropLabels &&
@@ -1024,7 +1028,7 @@
 			</div>
 		{:else}
 			<div
-				class="ds-operational-panel flex max-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden p-3"
+				class="ds-operational-panel flex h-[calc(100dvh-6.5rem)] flex-col overflow-hidden p-3"
 				data-testid="loading-workflow-panel"
 			>
 				<div
@@ -1241,21 +1245,26 @@
 							{/if}
 						</div>
 
-						<DropCounterBar
-							activeDropNumber={dropNavigation.activeDropNumber}
-							totalDrops={dropNavigation.totalDrops}
-							labels={selectedDropDetail.labelCount}
-							scanned={selectedDropDetail.scannedCount}
-							needPick={selectedDropDetail.needPickCount}
-							canGoPrevious={dropNavigation.canGoPrevious}
-							canGoNext={dropNavigation.canGoNext}
-							onPrevious={() => moveToDrop('previous')}
-							onNext={() => moveToDrop('next')}
-							testId="loading-active-drop-summary"
-							previousTestId="loading-active-drop-previous"
-							nextTestId="loading-active-drop-next"
-							statTestIdBase="loading-drop-stat"
-						/>
+						<div
+							class="mt-auto shrink-0 bg-white pt-2"
+							data-testid="loading-counter-dock"
+						>
+							<DropCounterBar
+								activeDropNumber={dropNavigation.activeDropNumber}
+								totalDrops={dropNavigation.totalDrops}
+								labels={selectedDropDetail.labelCount}
+								scanned={selectedDropDetail.scannedCount}
+								needPick={selectedDropDetail.needPickCount}
+								canGoPrevious={dropNavigation.canGoPrevious}
+								canGoNext={dropNavigation.canGoNext}
+								onPrevious={() => moveToDrop('previous')}
+								onNext={() => moveToDrop('next')}
+								testId="loading-active-drop-summary"
+								previousTestId="loading-active-drop-previous"
+								nextTestId="loading-active-drop-next"
+								statTestIdBase="loading-drop-stat"
+							/>
+						</div>
 				</section>
 			</div>
 		{/if}

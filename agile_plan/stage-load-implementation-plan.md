@@ -316,7 +316,9 @@ Use shared remote-function wrappers that can start as stubs and then switch to t
 **6.4 — Load detail + label list**
 - Per-drop detail card
 - Label list with scanned/unscanned distinction
+- Visible label rows follow `vwLoadLabelsUnion` for the selected route `locationId`, even when `LoadViewDetail` counters are zero
 - NeedPick display
+- Counter values remain sourced from `LoadViewDetail`, not recalculated from the union label list
 
 **6.5 — Scan handling**
 - Numeric -> driver-location validation

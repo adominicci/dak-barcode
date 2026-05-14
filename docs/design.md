@@ -73,6 +73,7 @@ Render six labeled pills: Slit, Trim, Wrap, Roll, Parts, Soffit. Labels are alwa
 ### Loading Drop Counter
 
 Use 64px previous/next arrow buttons flanking three counter cards: Labels, Scanned, Need Pick. Counters use blue-600/500/400 fills and centered white numbers.
+On the Loading work surface, keep this bar bottom-docked inside the viewport-height panel so drop navigation and counters stay visible while the label list scrolls above it.
 
 ### Scanned Item Cards
 

@@ -510,7 +510,6 @@ describe('loading page', () => {
 		render(LoadingPage);
 
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/ds-operational-panel/);
-		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
 		await expect.element(page.getByTestId('loading-context-grid')).toHaveClass(/lg:grid-cols/);
 		await expect.element(page.getByTestId('loading-summary-strip')).toHaveClass(/gap-2/);
 		await expect.element(page.getByTestId('loading-summary-strip')).not.toHaveClass(/shadow/);
@@ -528,7 +527,10 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
+		expect(getElementByTestId('loading-workflow-panel').className.split(/\s+/)).toContain(
+			'h-[calc(100dvh-6.5rem)]'
+		);
+		await expect.element(page.getByTestId('loading-workflow-panel')).not.toHaveClass(/max-h-\[calc\(100dvh-6\.5rem\)\]/);
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/overflow-hidden/);
 		await expect.element(page.getByTestId('loading-workflow-panel')).toHaveClass(/p-3/);
 		await expect.element(page.getByTestId('loading-scan-section')).toHaveClass(/min-h-0/);
@@ -538,6 +540,24 @@ describe('loading page', () => {
 		await expect.element(page.getByTestId('loading-part-list-shell')).toHaveClass(/p-2/);
 		expect(getElementByTestId('loading-active-drop-previous').className).toContain('!size-12');
 		expect(getElementByTestId('loading-active-drop-next').className).toContain('!size-12');
+	});
+
+	it('pins the active drop counter to the bottom of the loading workspace', async () => {
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Wrap');
+
+		render(LoadingPage);
+
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/sticky/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/bottom-0/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/z-10/);
+		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/mt-auto/);
+		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/shrink-0/);
+		expectDocumentOrder([
+			'loading-part-list-shell',
+			'loading-counter-dock',
+			'loading-active-drop-summary'
+		]);
 	});
 
 	it('renders the active drop summary with compact footer controls', async () => {
@@ -745,6 +765,55 @@ describe('loading page', () => {
 
 		await expect.element(page.getByText('No items are attached to this drop yet.')).toBeInTheDocument();
 		await expect.element(page.getByText('All items in this drop are scanned.')).not.toBeInTheDocument();
+	});
+
+	it('renders selected-location union labels when detail counters are zero', async () => {
+		pageState.url = new URL(
+			'https://app.local/loading?dropsheetId=42&locationId=1&loaderSessionId=88&startedAt=2026-03-26T12%3A00%3A00.000Z&loadNumber=L-042&dropWeight=2152.4'
+		);
+		workflowStores.setCurrentLoader({ loaderId: 7, loaderName: 'Alex' });
+		workflowStores.setSelectedDepartment('Roll');
+		getLoaderInfo.mockReturnValue(createLoaderInfoQuery(createLoaderInfo({ department: 'Roll' })));
+		getLoadViewDetailAll.mockReturnValue(
+			createRemoteQuery([
+				createDropDetail({
+					locationId: 2,
+					sequence: 1,
+					labelCount: 0,
+					scannedCount: 0,
+					needPickCount: 0,
+					totalCountText: '0/0'
+				})
+			])
+		);
+		getLoadViewUnion.mockReturnValue(
+			createRemoteQuery([
+				createUnionLabel({
+					partListId: 'ROLL-ZERO-COUNTER',
+					locationId: 1,
+					scanned: false
+				}),
+				createUnionLabel({
+					partListId: 'WRAP-ZERO-COUNTER',
+					locationId: 2,
+					scanned: false
+				})
+			])
+		);
+
+		render(LoadingPage);
+
+		await expect.element(page.getByText('ROLL-ZERO-COUNTER')).toBeInTheDocument();
+		await expect.element(page.getByText('WRAP-ZERO-COUNTER')).not.toBeInTheDocument();
+		await expect.element(page.getByText('No items are attached to this drop yet.')).not.toBeInTheDocument();
+		expect(getElementByTestId('loading-drop-stat-labels').textContent).toMatch(/Labels\s*0/);
+		expect(getElementByTestId('loading-drop-stat-scanned').textContent).toMatch(/Scanned\s*0/);
+		expect(getElementByTestId('loading-drop-stat-need-pick').textContent).toMatch(/Need pick\s*0/);
+		expect(getLoadViewUnion).toHaveBeenCalledWith({
+			loadNumber: 'L-042',
+			sequence: 1,
+			locationId: 1
+		});
 	});
 
 	it('shows the completion message only when every attached label is scanned', async () => {
