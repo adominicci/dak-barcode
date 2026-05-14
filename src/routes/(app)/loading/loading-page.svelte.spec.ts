@@ -549,8 +549,9 @@ describe('loading page', () => {
 
 		render(LoadingPage);
 
-		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/sticky/);
-		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/bottom-0/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/sticky/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/bottom-0/);
+		await expect.element(page.getByTestId('loading-counter-dock')).not.toHaveClass(/z-10/);
 		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/mt-auto/);
 		await expect.element(page.getByTestId('loading-counter-dock')).toHaveClass(/shrink-0/);
 		expectDocumentOrder([

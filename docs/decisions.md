@@ -5,7 +5,7 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 ## 2026-05-14 - Loading drop counter is bottom docked
 
 - Tags: design-system, loading, iPad, workflow-ui
-- Decision: The Loading workflow panel fills the available iPad viewport height, and the active drop counter bar is a sticky bottom dock inside that panel. The label list scrolls above the dock so `Drop X of Y`, previous/next arrows, and Labels/Scanned/Need Pick cards stay reachable.
+- Decision: The Loading workflow panel fills the available iPad viewport height, and the active drop counter bar is a flex bottom dock inside that panel. The label list scrolls above the dock so `Drop X of Y`, previous/next arrows, and Labels/Scanned/Need Pick cards stay reachable.
 - Rationale: Operators need the active drop navigation and counters visible even when a drop has only a few labels. A fixed-height work surface also avoids leaving the footer controls floating above empty page space.
 - Impacted areas: `src/routes/(app)/loading/+page.svelte`, `src/routes/(app)/loading/loading-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`, `docs/design.md`, `docs/ui-reference/tokens.md`, `docs/ui-reference/screen-map.md`
 - `project-state.yaml` updated: yes

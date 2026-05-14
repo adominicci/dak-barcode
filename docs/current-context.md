@@ -4,7 +4,7 @@
 
 - Current worktree: `dev`.
 - Root cause: the Loading work panel used only a max-height constraint, so the panel shrink-wrapped short label lists and left the `Drop X of Y`, previous/next arrows, and Labels/Scanned/Need Pick cards floating above unused page space.
-- Loading now gives the workflow panel a fixed `calc(100dvh - 6.5rem)` height and wraps the drop counter bar in a sticky bottom dock. The label list remains the scrollable region above the dock, keeping navigation and counters reachable on the shared iPad.
+- Loading now gives the workflow panel a fixed `calc(100dvh - 6.5rem)` height and wraps the drop counter bar in a flex bottom dock. The label list remains the scrollable region above the dock, keeping navigation and counters reachable on the shared iPad.
 - Focused regression updated:
   - `src/routes/(app)/loading/loading-page.svelte.spec.ts`
 - Verification completed:

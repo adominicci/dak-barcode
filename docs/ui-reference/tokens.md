@@ -68,7 +68,7 @@ Six-up department status row with labels above values. `NA` and `DONE` are teal;
 ### Drop Counter
 
 Previous arrow, three counter cards, next arrow. Counter labels are uppercase and numbers are large, centered, white.
-On Loading, the counter bar sits in a sticky bottom dock inside the viewport-height workflow panel.
+On Loading, the counter bar sits in a flex bottom dock inside the viewport-height workflow panel.
 
 ### Scanned Item Grid
 

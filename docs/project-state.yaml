@@ -70,7 +70,7 @@ product:
     - profile-based routing with admin target selection and operator warehouse resolution
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
-    - Loading uses a viewport-height iPad workflow panel with internal part-list scrolling and a sticky bottom counter dock so drop navigation and counters remain reachable without page-level scrolling
+    - Loading uses a viewport-height iPad workflow panel with internal part-list scrolling and a flex bottom counter dock so drop navigation and counters remain reachable without page-level scrolling
     - Loading treats the Select Category route `locationId` as authoritative for label lookup, visible label filtering, and scan/retry payloads
     - Loading renders selected-location union label rows even when the active LoadViewDetail counters are zero, while leaving the counter cards sourced from LoadViewDetail
     - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label repair export after Complete Load notification

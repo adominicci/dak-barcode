@@ -1246,7 +1246,7 @@
 						</div>
 
 						<div
-							class="sticky bottom-0 z-10 mt-auto shrink-0 bg-white pt-2"
+							class="mt-auto shrink-0 bg-white pt-2"
 							data-testid="loading-counter-dock"
 						>
 							<DropCounterBar
