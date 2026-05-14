@@ -53,6 +53,7 @@ import {
 	mapDstLegacyLoadViewAllEntry,
 	mapDstLegacyMoveOrderRow,
 	mapDstLegacyOrderStatusRow,
+	isUsableDstLoadViewBarcodeCounters,
 	mapDstLpidForPalletLoad,
 	mapDstLoadViewBarcodeCounters,
 	mapDstLoadViewDetail,
@@ -315,16 +316,6 @@ function hasUsableLoadViewDetail(record: Record<string, unknown>) {
 		isFiniteNumber(record.DropSheetID) &&
 		isFiniteNumber(record.DropSheetCustID) &&
 		isFiniteNumber(record.DSSequence)
-	);
-}
-
-function hasUsableLoadViewBarcodeCounters(record: Record<string, unknown>) {
-	return (
-		isFiniteNumber(record.DropSheetID) &&
-		isFiniteNumber(record.DropSheetCustID) &&
-		isFiniteNumber(record.DSSequence) &&
-		isFiniteNumber(record.LocationID) &&
-		isNonEmptyString(record.LoadNumber)
 	);
 }
 
@@ -608,7 +599,7 @@ export async function getDstLoadViewBarcodeCounters(
 		expectRecordResponse<RawDstLoadViewBarcodeCounters>(
 			body,
 			DST_ROUTES.loadViewBarcodeCounters,
-			hasUsableLoadViewBarcodeCounters
+			isUsableDstLoadViewBarcodeCounters
 		)
 	);
 }

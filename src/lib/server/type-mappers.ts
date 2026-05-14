@@ -70,6 +70,27 @@ function numberOrZero(value: number | null | undefined): number {
 	return value ?? 0;
 }
 
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === 'string' && value.length > 0;
+}
+
+export function isUsableDstLoadViewBarcodeCounters(
+	record: Record<string, unknown> | null | undefined
+): record is RawDstLoadViewBarcodeCounters {
+	return (
+		!!record &&
+		isFiniteNumber(record.DropSheetID) &&
+		isFiniteNumber(record.DropSheetCustID) &&
+		isFiniteNumber(record.DSSequence) &&
+		isFiniteNumber(record.LocationID) &&
+		isNonEmptyString(record.LoadNumber)
+	);
+}
+
 function nullableBoolean(value: boolean | null | undefined): boolean | null {
 	return value ?? null;
 }
@@ -522,7 +543,9 @@ export function mapCustomerPortalLoadingScanResult(
 				sequence,
 				locationId
 			},
-			dropCounters: rawCounters ? mapDstLoadViewBarcodeCounters(rawCounters) : null
+			dropCounters: isUsableDstLoadViewBarcodeCounters(rawCounters)
+				? mapDstLoadViewBarcodeCounters(rawCounters)
+				: null
 		};
 	}
 

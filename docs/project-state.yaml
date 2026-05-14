@@ -115,7 +115,7 @@ architecture:
     - Loading label lookup, visible label filtering, scan payloads, retry payloads, and fallback refresh keys use the Select Category route `locationId` as authoritative; returned drop-detail `LocationID` must not override the selected loading location
     - CustomerPortalAPI-PY combined loading refresh responses must query `vwLoadLabelsUnion` and return `load_view_union_key.location_id` using the request `LocationID`; the selected detail row may only supply `LoadNumber` and `DSSequence`
     - CustomerPortalAPI-PY exposes additive read-only `POST /api/barcode-update/loadview-barcode-counters`; Loading only uses its barcode-derived counters when `DropSheetID`, `LoadNumber`, `DSSequence`, and selected route `LocationID` match the active drop
-    - barcode counter responses without a usable `LoadNumber` are rejected, and separate post-scan counter refresh failures are isolated so required detail/union refreshes still gate queued scan draining
+    - standalone and combined-scan barcode counter responses without a usable `LoadNumber` are rejected, and separate post-scan counter refresh failures are isolated so required detail/union refreshes still gate queued scan draining
     - Dropsheets and Select Category Loading entry use shared active-loader option derivation so inactive loader rows are not selectable for new assignments or sessions
   access_states:
     - anonymous

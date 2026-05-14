@@ -552,6 +552,55 @@ describe("dak record mappers", () => {
       },
     });
   });
+
+  it("drops CustomerPortal loading scan refresh counters without a usable load number", () => {
+    expect(
+      mapCustomerPortalLoadingScanResult({
+        scan_type: "single_label",
+        status: "success",
+        message: "Label loaded.",
+        needs_location: false,
+        load_view_detail_all: [
+          {
+            DropSequence: 4,
+            DropSheetID: 27610,
+            DropSheetCustID: 79206,
+            LoadNumber: "05192026-0089",
+            LocationID: 1,
+            DSSequence: 4,
+            CustomerName: "Herman Lumber",
+            LabelCount: 0,
+            Scanned: 0,
+            NeedPick: 0,
+          },
+        ],
+        load_view_union: [],
+        load_view_union_key: {
+          load_number: "05192026-0089",
+          sequence: 4,
+          location_id: 1,
+        },
+        load_view_barcode_counters: {
+          DropSheetID: 27610,
+          DropSheetCustID: 79206,
+          LoadNumber: "",
+          DSSequence: 4,
+          LocationID: 1,
+          BarcodeLabelCount: 4,
+          BarcodeScanned: 0,
+          BarcodeNeedPick: 4,
+          LegacyLabelCount: 0,
+          LegacyScanned: 0,
+          LegacyNeedPick: 0,
+          CounterMismatch: true,
+        },
+      }),
+    ).toMatchObject({
+      loadingRefresh: {
+        dropCounters: null,
+      },
+    });
+  });
 });
 
 describe("shared operational and scan contracts", () => {
