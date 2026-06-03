@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { Button } from '$lib/components/ui/button';
+	import AppVersionBadge from '$lib/components/app-version-badge.svelte';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 	import { parseLegacyDriverName, parseLegacyReturnTo } from '$lib/workflow/legacy-page-params';
 	import { parsePositiveNumber } from '$lib/workflow/loading-lifecycle';
@@ -209,9 +210,12 @@
 					>
 						<ArrowLeft class="size-5 text-slate-700" />
 					</a>
-					<h1 class="text-xl font-bold text-slate-900 tracking-tight" data-testid="app-header-title">
-						{appHeaderTitle}
-					</h1>
+					<div class="flex min-w-0 items-center gap-2">
+						<h1 class="text-xl font-bold text-slate-900 tracking-tight" data-testid="app-header-title">
+							{appHeaderTitle}
+						</h1>
+						<AppVersionBadge testId="app-shell-version-badge" />
+					</div>
 				</div>
 				<div class="flex items-center gap-4">
 					{#if isLoadingRoute}

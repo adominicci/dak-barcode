@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
+	import AppVersionBadge from '$lib/components/app-version-badge.svelte';
 	import logo from '$lib/assets/logo.png';
 
 	let { children } = $props();
@@ -14,9 +15,12 @@
 					alt="Dakota Steel & Trim"
 					class="mx-auto h-auto w-[min(24rem,70vw)]"
 				/>
-				<h1 class="font-display text-[clamp(1.35rem,2.2vw,1.85rem)] font-semibold leading-none tracking-[-0.03em] text-[#0058bc]">
-					Scanning
-				</h1>
+				<div class="flex items-center justify-center gap-2">
+					<h1 class="font-display text-[clamp(1.35rem,2.2vw,1.85rem)] font-semibold leading-none tracking-[-0.03em] text-[#0058bc]">
+						Scanning
+					</h1>
+					<AppVersionBadge testId="auth-version-badge" />
+				</div>
 			</div>
 		</section>
 
