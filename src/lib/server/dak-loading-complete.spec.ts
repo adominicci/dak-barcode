@@ -180,22 +180,22 @@ describe('dak loading complete helpers', () => {
 
 	it('does not inspect label copy totals after the async transfer job is accepted', async () => {
 		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
-		fetchDak.mockResolvedValueOnce(
-			jsonResponse(
-				{
-					job_id: 88,
-					status: 'queued',
-					orders_skipped: 99,
-					results: [
-						{
-							status: 'skipped',
-							reason: 'source_packages_missing'
-						}
-					]
-				},
-				{ status: 202, statusText: 'Accepted' }
-			)
+		const acceptedResponse = jsonResponse(
+			{
+				job_id: 88,
+				status: 'queued',
+				orders_skipped: 99,
+				results: [
+					{
+						status: 'skipped',
+						reason: 'source_packages_missing'
+					}
+				]
+			},
+			{ status: 202, statusText: 'Accepted' }
 		);
+		const readAcceptedBody = vi.spyOn(acceptedResponse, 'text');
+		fetchDak.mockResolvedValueOnce(acceptedResponse);
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
@@ -203,5 +203,6 @@ describe('dak loading complete helpers', () => {
 			ok: true,
 			partial: false
 		});
+		expect(readAcceptedBody).toHaveBeenCalledOnce();
 	});
 });

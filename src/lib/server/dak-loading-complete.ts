@@ -175,6 +175,8 @@ export async function exportDakTransferLabels(
 		};
 	}
 
+	await response.text();
+
 	return null;
 }
 
