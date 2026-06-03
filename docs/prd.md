@@ -302,7 +302,7 @@ The target format differs by backend and must be treated as a strict contract:
 - `POST /api/barcode-update/loadview-barcode-counters`
 - `GET /v1/scan/department-status`
 - `POST /v1/logistics/dropsheet-notify`
-- `POST /v1/logistics/dropsheet-transfer-label-export`
+- `POST /v1/logistics/dropsheet-transfer-label-export-jobs`
 
 These endpoints are part of the overall project, but they are not implemented inside this repository.
 The combined Loading scan endpoint must keep the request `LocationID` for

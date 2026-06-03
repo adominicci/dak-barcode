@@ -1270,12 +1270,12 @@ describe('select-category page', () => {
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
 	});
 
-	it('shows a do-not-resend warning and still exits when transfer label export needs retry', async () => {
+	it('shows a do-not-resend warning and still exits when transfer label export enqueue fails', async () => {
 		mockCompleteLoadReady();
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
 		exportTransferLabels.mockResolvedValue({
-			status: 'source_packages_missing',
-			message: 'Transfer label export skipped 1 order because source packages are missing.'
+			status: 'failed',
+			message: 'Transfer label export enqueue failed: 502 Bad Gateway'
 		});
 		goto.mockResolvedValue(undefined);
 
@@ -1301,7 +1301,7 @@ describe('select-category page', () => {
 		expect(sendLoadedNotification).toHaveBeenCalledWith({ dropSheetId: 42 });
 		expect(exportTransferLabels).toHaveBeenCalledWith({ dropSheetId: 42 });
 		expect(toastWarning).toHaveBeenCalledWith(
-			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export skipped 1 order because source packages are missing.'
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export enqueue failed: 502 Bad Gateway'
 		);
 		expect(goto).toHaveBeenCalledWith('/dropsheets?date=2026-03-24');
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
@@ -1366,10 +1366,10 @@ describe('select-category page', () => {
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it('closes the completion modal and prevents duplicate notifications when transfer label export throws after email send', async () => {
+	it('closes the completion modal and prevents duplicate notifications when transfer label export enqueue throws after email send', async () => {
 		mockCompleteLoadReady();
 		sendLoadedNotification.mockResolvedValue({ postSendSync: null });
-		exportTransferLabels.mockRejectedValue(new Error('Transfer label export failed.'));
+		exportTransferLabels.mockRejectedValue(new Error('Transfer label export enqueue failed.'));
 
 		render(SelectCategoryPage, {
 			params: { dropsheetId: '42' },
@@ -1392,7 +1392,7 @@ describe('select-category page', () => {
 
 		await expect.element(page.getByTestId('complete-loading-modal')).not.toBeInTheDocument();
 		expect(toastWarning).toHaveBeenCalledWith(
-			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export failed.'
+			'Notification was sent. Follow-up processing needs attention. Do not resend Complete Load. Transfer label export enqueue failed.'
 		);
 		expect(goto).not.toHaveBeenCalled();
 
