@@ -36,7 +36,7 @@
 		title="Stage & Load versions"
 		description={`Current version: ${APP_VERSION}`}
 		testId={`${testId}-history-modal`}
-		panelClass="max-w-xl"
+		panelClass="max-w-xl text-left"
 		onClose={() => {
 			isHistoryOpen = false;
 		}}

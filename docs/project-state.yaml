@@ -156,7 +156,7 @@ design_system:
     - loading drop counter bar
     - app version badge with centered left-aligned version-history dialog
     - barcode-only scanned ID grid
-    - centered modal shell styling that resets inherited text alignment
+    - centered modal shell styling
 
 workflows:
   last_verified_at: 2026-06-03

@@ -24,6 +24,9 @@ describe('app version badge', () => {
 		await expect
 			.element(page.getByRole('dialog'))
 			.toHaveTextContent('Displays the active app version on login and authenticated headers.');
+		await expect
+			.element(page.getByRole('dialog'))
+			.not.toHaveTextContent('async label export workflow');
 	});
 
 	it('keeps version history text left-aligned inside centered auth surfaces', async () => {
@@ -37,6 +40,9 @@ describe('app version badge', () => {
 		await expect
 			.element(page.getByTestId('centered-version-badge-history-modal'))
 			.toBeInTheDocument();
+		await expect
+			.element(page.getByTestId('centered-version-badge-history-modal'))
+			.toHaveClass(/text-left/);
 
 		const dialog = page.getByTestId('centered-version-badge-history-modal').element();
 		const currentVersion = dialog.querySelector('p');

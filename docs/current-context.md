@@ -7,7 +7,7 @@
 - The current app version is `v2.0` and is displayed next to the login `Scanning` title, on the authenticated home header, and on authenticated workflow route headers.
 - Version history is app-native metadata in `src/lib/app-version.ts` rendered by `src/lib/components/app-version-badge.svelte`; do not create a separate static HTML changelog for operator-facing version history unless there is a later requirement to expose it outside the SvelteKit app.
 - The version badge opens a centered in-app history dialog using the shared workflow modal shell.
-- The shared `.ds-modal` surface resets inherited text alignment so the version-history heading, current-version copy, and release version label stay left-aligned even when opened from centered auth surfaces.
+- The version-history dialog opts into left alignment so the heading, current-version copy, and release version label stay aligned even when opened from centered auth surfaces.
 - Focused regressions added/updated:
   - `src/lib/components/app-version-badge.svelte.spec.ts`
   - `src/routes/(auth)/auth-layout.svelte.spec.ts`
@@ -15,7 +15,7 @@
   - `src/routes/(app)/home/home-page.svelte.spec.ts`
   - `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`
 - Verification completed:
-  - red focused run confirmed version-history text inherited `text-align: center` from a centered auth surface before the `.ds-modal` alignment reset.
+  - red focused run confirmed version-history text inherited `text-align: center` from a centered auth surface before the scoped version-dialog alignment reset.
   - `bun run test:unit -- --run src/lib/components/app-version-badge.svelte.spec.ts --project client`
   - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts --project client`
   - Svelte MCP autofixer checked `app-version-badge.svelte`, auth layout, login page, app layout, home page, and the shared modal shell; only existing non-blocking advisories remained on shared patterns.
