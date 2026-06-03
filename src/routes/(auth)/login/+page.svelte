@@ -65,7 +65,7 @@
 				type="password"
 				name="password"
 				autocomplete="current-password"
-				placeholder="Temporary password"
+				placeholder="Password"
 			/>
 		</div>
 

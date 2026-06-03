@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-05-14
+  last_updated_at: 2026-06-03
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -67,6 +67,7 @@ product:
     - only admin users may access the location or environment selector
   implemented_surfaces:
     - auth shell plus login, logout, forgot-password, reset-password, change-password, and inactive gate
+    - app-native version visibility with `v2.0` on login and authenticated headers plus an in-app version history dialog
     - profile-based routing with admin target selection and operator warehouse resolution
     - Home, Location, Account, Add Loader, Will Call, Dropsheets, Select Category, Staging, Loading, Order Status, and Move Orders
     - staging and loading scan loops with hardware-scanner-first interaction
@@ -111,6 +112,7 @@ architecture:
     - Dropsheets trailer updates target the active dak-web database header and send `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`
     - Dropsheet list mapping preserves the FastAPI `transfer` boolean and defaults it to false when old payloads omit it
     - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export enqueue; transfer enqueue calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export-jobs` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
+    - app version and release history metadata lives in `src/lib/app-version.ts` and is rendered through the shared version badge component rather than a standalone static HTML changelog
     - `fetchDak` defaults to an 8s timeout but supports per-call timeout overrides; Complete Load notify uses 20s and transfer-label export enqueue uses 10s because label copying runs in the backend job worker
     - Loading label lookup, visible label filtering, scan payloads, retry payloads, and fallback refresh keys use the Select Category route `locationId` as authoritative; returned drop-detail `LocationID` must not override the selected loading location
     - CustomerPortalAPI-PY combined loading refresh responses must query `vwLoadLabelsUnion` and return `load_view_union_key.location_id` using the request `LocationID`; the selected detail row may only supply `LoadNumber` and `DSSequence`
@@ -125,7 +127,7 @@ architecture:
     - admin-ready
 
 design_system:
-  last_verified_at: 2026-04-30
+  last_verified_at: 2026-06-03
   verified_against:
     - docs/design.md
     - docs/ui-reference/tokens.md
@@ -152,6 +154,7 @@ design_system:
     - workflow scan field
     - department status pills
     - loading drop counter bar
+    - app version badge with centered left-aligned version-history dialog
     - barcode-only scanned ID grid
     - centered modal shell styling
 

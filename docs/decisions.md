@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-06-03 - App version history stays inside the SvelteKit app
+
+- Tags: product, versioning, workflow-ui, release-history
+- Decision: Show the current app version as `v2.0` next to the login `Scanning` title and in authenticated top headers. The visible version badge opens an in-app version-history dialog.
+- Decision: Keep current version and release-history metadata in `src/lib/app-version.ts` and render it through `src/lib/components/app-version-badge.svelte`; do not add a separate static HTML changelog for the operator-facing app version history.
+- Rationale: Operators need to identify the running version from the app surface they are already using. Keeping the history in typed app metadata avoids drift between a standalone HTML file and the deployed SvelteKit UI, preserves authenticated shell styling, and lets future releases reuse one badge/dialog component.
+- Impacted areas: `src/lib/app-version.ts`, `src/lib/components/app-version-badge.svelte`, auth layout, authenticated app layout, home page, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-06-03 - Complete Load transfer labels enqueue async job
 
 - Tags: backend-contract, loading, complete-load, transfer, reliability

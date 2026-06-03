@@ -176,6 +176,7 @@ describe('(app) layout workflow target sync', () => {
 		});
 
 		await expect.element(page.getByTestId('app-header-title')).toHaveTextContent('Loading Wrap Alex');
+		await expect.element(page.getByTestId('app-shell-version-badge')).toHaveTextContent('v2.0');
 		await expect
 			.element(page.getByTestId('loading-route-header-meta'))
 			.toHaveTextContent('Dylan Driver-2152.4 lbs');

@@ -6,12 +6,14 @@
 		title,
 		description = null,
 		testId,
+		panelClass = 'max-w-6xl',
 		onClose,
 		children
 	}: {
 		title: string;
 		description?: string | null;
 		testId: string;
+		panelClass?: string;
 		onClose: () => void;
 		children?: Snippet;
 	} = $props();
@@ -77,7 +79,7 @@
 		aria-labelledby={`${testId}-title`}
 		tabindex="-1"
 		bind:this={modalElement}
-		class="ds-modal flex w-full max-w-6xl flex-col overflow-hidden p-4"
+		class={`ds-modal flex w-full ${panelClass} flex-col overflow-hidden p-4`}
 		onkeydown={handleModalKeydown}
 	>
 		<div class="flex items-start justify-between gap-4">

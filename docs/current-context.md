@@ -1,5 +1,30 @@
 # Current Context
 
+## 2026-06-03 App Version Visibility
+
+- Current worktree: `features/version`.
+- Login password copy now uses `Password` instead of `Temporary password`.
+- The current app version is `v2.0` and is displayed next to the login `Scanning` title, on the authenticated home header, and on authenticated workflow route headers.
+- Version history is app-native metadata in `src/lib/app-version.ts` rendered by `src/lib/components/app-version-badge.svelte`; do not create a separate static HTML changelog for operator-facing version history unless there is a later requirement to expose it outside the SvelteKit app.
+- The version badge opens a centered in-app history dialog using the shared workflow modal shell.
+- The version-history dialog opts into left alignment so the heading, current-version copy, and release version label stay aligned even when opened from centered auth surfaces.
+- Focused regressions added/updated:
+  - `src/lib/components/app-version-badge.svelte.spec.ts`
+  - `src/routes/(auth)/auth-layout.svelte.spec.ts`
+  - `src/routes/(auth)/login/login-page.svelte.spec.ts`
+  - `src/routes/(app)/home/home-page.svelte.spec.ts`
+  - `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed version-history text inherited `text-align: center` from a centered auth surface before the scoped version-dialog alignment reset.
+  - `bun run test:unit -- --run src/lib/components/app-version-badge.svelte.spec.ts --project client`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts --project client`
+  - Svelte MCP autofixer checked `app-version-badge.svelte`, auth layout, login page, app layout, home page, and the shared modal shell; only existing non-blocking advisories remained on shared patterns.
+  - `bun run test:unit -- --run src/lib/components/app-version-badge.svelte.spec.ts 'src/routes/(auth)/auth-layout.svelte.spec.ts' 'src/routes/(auth)/login/login-page.svelte.spec.ts' 'src/routes/(app)/home/home-page.svelte.spec.ts' 'src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts'`
+  - `bun run check`
+  - `bun run test`
+  - Playwright live check on local `/login` confirmed `Scanning`, `v2.0`, password placeholder `Password`, no `Temporary password` placeholder, and the version-history dialog.
+- Memory Impact Analysis: update required because durable app version visibility and version-history placement changed, and again because the version-history modal alignment behavior changed. The version-visibility pass updated current-context, project-state, and decisions; the alignment pass updated current-context and project-state only because no new durable decision was needed.
+
 ## 2026-06-03 Async Transfer Label Export Job Enqueue
 
 - Current worktree: `features/async-transfer-label-export`; backend companion branch in `/Users/andresdominicci/Projects/dakview-web` uses the same branch name.

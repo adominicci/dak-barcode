@@ -15,5 +15,9 @@ describe('login page', () => {
 
 		await expect.element(page.getByRole('link', { name: /forgot password/i })).not.toBeInTheDocument();
 		await expect.element(page.getByRole('button', { name: /continue/i })).toBeInTheDocument();
+		await expect.element(page.getByPlaceholder('Password', { exact: true })).toBeInTheDocument();
+		await expect
+			.element(page.getByPlaceholder('Temporary password', { exact: true }))
+			.not.toBeInTheDocument();
 	});
 });

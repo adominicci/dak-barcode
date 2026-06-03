@@ -37,6 +37,7 @@ describe('home module selector', () => {
 		await expect.element(page.getByTestId('home-topbar')).toBeInTheDocument();
 		await expect.element(page.getByTestId('home-topbar')).toHaveClass(/ds-topbar/);
 		await expect.element(page.getByTestId('home-title')).toHaveTextContent('Stage & Load Module');
+		await expect.element(page.getByTestId('home-version-badge')).toHaveTextContent('v2.0');
 		await expect.element(page.getByTestId('home-card-grid')).toHaveClass(/md:grid-cols-2/);
 		await expect.element(page.getByTestId('home-card-staging')).toBeInTheDocument();
 		await expect.element(page.getByTestId('home-card-loading')).toBeInTheDocument();
