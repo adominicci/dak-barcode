@@ -48,7 +48,7 @@ meta:
       product_or_architecture_contract_change: update docs/architecture.md and-or docs/prd.md
 
 product:
-  last_verified_at: 2026-05-14
+  last_verified_at: 2026-06-03
   verified_against:
     - AGENTS.md
     - README.md
@@ -73,13 +73,13 @@ product:
     - Loading uses a viewport-height iPad workflow panel with internal part-list scrolling and a flex bottom counter dock so drop navigation and counters remain reachable without page-level scrolling
     - Loading treats the Select Category route `locationId` as authoritative for label lookup, visible label filtering, and scan/retry payloads
     - Loading renders selected-location union label rows even when legacy LoadViewDetail counters are zero, and counter cards use matching barcode-derived active-drop counters when available
-    - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger transfer label repair export after Complete Load notification
+    - Dropsheets carries the backend `transfer` boolean into Select Category route data, preserves it through the Loading return handoff, and uses it to trigger async transfer label repair export enqueue after Complete Load notification
   intentionally_limited:
     - some support pages still rely on DST-backed read models while loading mixes DST, CustomerPortalAPI-PY, and dak-web data
     - Dropsheets trailer picker reads equipment options from dakview-web `X-Db: EQUIPMENT` and updates selected trailer fields through dakview-web `POST /v1/logistics/dropsheet-trailer-update`; the Dropsheets iPad table keeps delivery, drop weight, load number, trailer, completion, loaded timestamp, loader, and go action on one row
 
 architecture:
-  last_verified_at: 2026-05-14
+  last_verified_at: 2026-06-03
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
@@ -110,8 +110,8 @@ architecture:
     - Dropsheets trailer lookup targets dakview-web `X-Db: EQUIPMENT` while using the active app target only as the equipment `location` filter; unusable equipment rows with blank/missing id or name are skipped so one dirty lookup row does not fail the picker
     - Dropsheets trailer updates target the active dak-web database header and send `DropSheetID`, `trailer_id`, `trailer_name`, and `trailer_url`
     - Dropsheet list mapping preserves the FastAPI `transfer` boolean and defaults it to false when old payloads omit it
-    - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export; transfer export uses `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
-    - `fetchDak` defaults to an 8s timeout but supports per-call timeout overrides for long-running Complete Load notify/export calls
+    - Complete Load uses separate awaited remote commands for loaded notify and transfer-label export enqueue; transfer enqueue calls dakview-web `POST /v1/logistics/dropsheet-transfer-label-export-jobs` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
+    - `fetchDak` defaults to an 8s timeout but supports per-call timeout overrides; Complete Load notify uses 20s and transfer-label export enqueue uses 10s because label copying runs in the backend job worker
     - Loading label lookup, visible label filtering, scan payloads, retry payloads, and fallback refresh keys use the Select Category route `locationId` as authoritative; returned drop-detail `LocationID` must not override the selected loading location
     - CustomerPortalAPI-PY combined loading refresh responses must query `vwLoadLabelsUnion` and return `load_view_union_key.location_id` using the request `LocationID`; the selected detail row may only supply `LoadNumber` and `DSSequence`
     - CustomerPortalAPI-PY exposes additive read-only `POST /api/barcode-update/loadview-barcode-counters`; Loading only uses its barcode-derived counters when `DropSheetID`, `LoadNumber`, `DSSequence`, and selected route `LocationID` match the active drop
@@ -156,7 +156,7 @@ design_system:
     - centered modal shell styling
 
 workflows:
-  last_verified_at: 2026-05-14
+  last_verified_at: 2026-06-03
   verified_against:
     - AGENTS.md
     - src/routes/(app)/select-category/[dropsheetId]/+page.svelte
@@ -210,9 +210,9 @@ workflows:
       - the active drop counter is docked to the bottom of the viewport-height Loading panel and uses 64px arrow buttons plus three blue counter cards for Labels, Scanned, and Need Pick
       - leaving Loading should record loader end time
       - Select Category displays Complete Load only when every live loading category with labels is scanned to 100% and every dropsheet department status is closed as `NA` or `DONE`; if live category availability is unavailable or contains no loading categories with labels, carried dropsheet `percentCompleted >= 1` may be used as the loaded signal; any due, pending, blank, null, or unavailable department status hides the action
-      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
+      - Complete Load keeps the legacy `/v1/logistics/dropsheet-notify` payload; for transfer dropsheets it then calls `/v1/logistics/dropsheet-transfer-label-export-jobs` with `mode: repair_missing_target`, active-target `X-Db`, and `Y-Db: AZURE`
       - Complete Load keeps the confirmation modal open while the two calls run, disables controls, shows the email-sending phase first, and switches to the transfer-label phase only when `transfer=true`
-      - Complete Load treats post-notification sync or transfer-export failures as operator warnings rather than resend-worthy errors, and includes available post-send or transfer-export detail in the warning
+      - Complete Load treats post-notification sync or transfer-export enqueue failures as operator warnings rather than resend-worthy errors, and includes available post-send or enqueue detail in the warning
       - the visible loading label list follows the legacy LocationID contract and shows unscanned rows whose returned LocationID matches the selected route location; CategoryID is not used as a loading department guard because valid legacy rows may return CategoryID 0
       - Loading counter cards use matching barcode-derived active-drop counters from CustomerPortalAPI-PY when available, fall back to the active `LoadViewDetail` row when unavailable or stale, and are not recalculated from `vwLoadLabelsUnion` in Svelte
   support_views:
@@ -241,7 +241,7 @@ integrations:
       target_format: X-Db CANTON|FREEPORT|SANDBOX
       target_exceptions:
         - equipment lookups use X-Db EQUIPMENT and pass Canton|Freeport|Sandbox as the `location` query filter
-        - transfer label export uses active-target X-Db plus Y-Db AZURE
+        - transfer label export enqueue uses active-target X-Db plus Y-Db AZURE
   required_endpoints:
     - POST /v1/scan/process-staging
     - POST /api/barcode-update/process-loading-scan-v2
@@ -249,7 +249,7 @@ integrations:
     - GET /v1/scan/department-status
     - GET /v1/lookup-tables/equipments
     - POST /v1/logistics/dropsheet-notify
-    - POST /v1/logistics/dropsheet-transfer-label-export
+    - POST /v1/logistics/dropsheet-transfer-label-export-jobs
   required_environment_variables:
     - PUBLIC_SUPABASE_URL
     - PUBLIC_SUPABASE_ANON_KEY

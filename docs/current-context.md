@@ -1,5 +1,21 @@
 # Current Context
 
+## 2026-06-03 Async Transfer Label Export Job Enqueue
+
+- Current worktree: `features/async-transfer-label-export`; backend companion branch in `/Users/andresdominicci/Projects/dakview-web` uses the same branch name.
+- Root cause: Complete Load transfer-label export used the synchronous dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` endpoint with a 35s frontend timeout, so large transfer dropsheets could exceed the UI/Heroku request window.
+- Complete Load still sends loaded notification first through dakview-web `POST /v1/logistics/dropsheet-notify`.
+- For `transfer=true`, `exportTransferLabels` now posts dakview-web `POST /v1/logistics/dropsheet-transfer-label-export-jobs` with `{ dropsheet_id, mode: "repair_missing_target" }`, active-target `X-Db`, and `Y-Db: AZURE`.
+- `202 Accepted` job enqueue is treated as successful handoff; the UI does not inspect copy totals or wait for background label copying. Enqueue failures after notification success still show the do-not-resend warning and do not prompt an email resend.
+- Focused regressions updated:
+  - `src/lib/server/dak-loading-complete.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed so far:
+  - red run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts` failed on old sync endpoint, old 35s timeout, and old skipped-row inspection.
+  - green run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts`
+  - green run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' --testNamePattern 'Complete Load|transfer label export|completion modal'`
+- Memory Impact Analysis: update required because Complete Load backend contract and timeout behavior changed. Updated current-context, project-state, decisions, architecture, and PRD.
+
 ## 2026-05-14 Loading Barcode-Derived Counter Endpoint
 
 - Current worktree: `features/add-loading-barcode-counter-endpoint`; backend companion branch in `/Users/andresdominicci/Projects/CustomerPortalAPI-PY` uses the same branch name.

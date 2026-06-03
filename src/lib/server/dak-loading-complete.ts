@@ -2,10 +2,10 @@ import * as v from 'valibot';
 import { fetchDak } from './proxy';
 
 export const DAK_LOADING_COMPLETE_ROUTE = '/v1/logistics/dropsheet-notify' as const;
-export const DAK_TRANSFER_LABEL_EXPORT_ROUTE =
-	'/v1/logistics/dropsheet-transfer-label-export' as const;
+export const DAK_TRANSFER_LABEL_EXPORT_JOBS_ROUTE =
+	'/v1/logistics/dropsheet-transfer-label-export-jobs' as const;
 const COMPLETE_LOAD_NOTIFY_TIMEOUT_MS = 20_000;
-const TRANSFER_LABEL_EXPORT_TIMEOUT_MS = 35_000;
+const TRANSFER_LABEL_EXPORT_JOB_TIMEOUT_MS = 10_000;
 
 const dropSheetIdSchema = v.pipe(
 	v.number(),
@@ -25,7 +25,7 @@ export const loadingCompleteInputSchema = v.object({
 type LoadingCompleteInput = v.InferOutput<typeof loadingCompleteInputSchema>;
 type LoadedNotificationInput = v.InferOutput<typeof loadingCompleteDropSheetInputSchema>;
 type PostSendSyncStatus = 'failed';
-type TransferLabelExportWarningStatus = 'failed' | 'orders_skipped' | 'source_packages_missing';
+type TransferLabelExportWarningStatus = 'failed';
 
 export type DakLoadingCompletePostSendSyncFailure = {
 	status: PostSendSyncStatus;
@@ -127,41 +127,16 @@ async function requireOkLoadingNotification(response: Response) {
 	}
 }
 
-function countSourcePackagesMissingResults(payload: unknown): number {
-	if (!isRecord(payload) || !Array.isArray(payload.results)) {
-		return 0;
-	}
-
-	return payload.results.filter(
-		(result) =>
-			isRecord(result) &&
-			result.status === 'skipped' &&
-			result.reason === 'source_packages_missing'
-	).length;
+function formatTransferExportEnqueueFailure(response: Response, details: string): string {
+	return `Transfer label export enqueue failed: ${response.status} ${response.statusText}${details ? `: ${details}` : ''}`;
 }
 
-function readNonNegativeInteger(value: unknown): number {
-	return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
-}
-
-function formatTransferExportFailure(response: Response, details: string): string {
-	return `Transfer label export failed: ${response.status} ${response.statusText}${details ? `: ${details}` : ''}`;
-}
-
-function formatSourcePackagesMissingMessage(count: number): string {
-	return `Transfer label export skipped ${count} ${count === 1 ? 'order' : 'orders'} because source packages are missing.`;
-}
-
-function formatOrdersSkippedMessage(count: number): string {
-	return `Transfer label export skipped ${count} ${count === 1 ? 'order' : 'orders'}.`;
-}
-
-function formatUnknownTransferExportError(error: unknown): string {
+function formatUnknownTransferExportEnqueueError(error: unknown): string {
 	if (error instanceof Error && error.message.trim()) {
-		return `Transfer label export failed: ${error.message}`;
+		return `Transfer label export enqueue failed: ${error.message}`;
 	}
 
-	return 'Transfer label export failed.';
+	return 'Transfer label export enqueue failed.';
 }
 
 export async function exportDakTransferLabels(
@@ -171,7 +146,7 @@ export async function exportDakTransferLabels(
 
 	try {
 		response = await fetchDak(
-			DAK_TRANSFER_LABEL_EXPORT_ROUTE,
+			DAK_TRANSFER_LABEL_EXPORT_JOBS_ROUTE,
 			jsonInit(
 				{
 					dropsheet_id: dropSheetId,
@@ -182,13 +157,13 @@ export async function exportDakTransferLabels(
 				}
 			),
 			{
-				timeoutMs: TRANSFER_LABEL_EXPORT_TIMEOUT_MS
+				timeoutMs: TRANSFER_LABEL_EXPORT_JOB_TIMEOUT_MS
 			}
 		);
 	} catch (error) {
 		return {
 			status: 'failed',
-			message: formatUnknownTransferExportError(error)
+			message: formatUnknownTransferExportEnqueueError(error)
 		};
 	}
 
@@ -196,25 +171,7 @@ export async function exportDakTransferLabels(
 		const details = (await response.text()).trim();
 		return {
 			status: 'failed',
-			message: formatTransferExportFailure(response, details)
-		};
-	}
-
-	const payload = await readJsonPayload(response);
-	const sourcePackagesMissingCount = countSourcePackagesMissingResults(payload);
-	const ordersSkippedCount = isRecord(payload) ? readNonNegativeInteger(payload.orders_skipped) : 0;
-
-	if (ordersSkippedCount > sourcePackagesMissingCount) {
-		return {
-			status: 'orders_skipped',
-			message: formatOrdersSkippedMessage(ordersSkippedCount)
-		};
-	}
-
-	if (sourcePackagesMissingCount > 0) {
-		return {
-			status: 'source_packages_missing',
-			message: formatSourcePackagesMissingMessage(sourcePackagesMissingCount)
+			message: formatTransferExportEnqueueFailure(response, details)
 		};
 	}
 
