@@ -1,5 +1,26 @@
 # Current Context
 
+## 2026-10-31 Hotfix: Browser Auth Refresh Loop
+
+- Current worktree: `hotfix/browser-auth-refresh-loop`, branched from `origin/main` (production). PR targets `main`; sync `main` back into `dev` after merge.
+- Production evidence (Supabase Auth logs, 24h ending 2026-10-31 10:45 UTC): the shared loading iPad (`loadingcanton@`, Safari reporting as Macintosh) made 1,639 successful `refresh_token` calls between 13:30 and 01:05 UTC, in pairs 30.0s apart, from `supabase-ssr/0.9.0 createBrowserClient`. Other devices refresh 8 to 10 times a day.
+- Prod edge logs for 2026-10-30 show when the loop starts: a Will Call signature upload at 15:03:41 UTC came right after two refreshes (startup recovery, then on-demand), and paired refreshes every 30s started at 15:04:11. The browser client exists only after the signature modal first calls storage.
+- Mechanism (confirmed in auth-js source): the browser client ran the auth-js 30s auto-refresh ticker while the page was visible. If every new one-hour token looks expired, each tick refreshes twice (`__loadSession` 90s margin, then the tick threshold). Production bundle versions: `@supabase/ssr` 0.9.0 with supabase-js/auth-js 2.105.4.
+- Likely trigger (inferred from the paired 30s cadence; the device clock has not been checked): the loading iPad's clock runs about an hour fast.
+- Fix: `createSupabaseBrowserClient()` now awaits `auth.initialize()` and calls `auth.stopAutoRefresh()`. The Will Call signature modal awaits it. On-demand refresh inside `getSession()` still runs before each storage request.
+- Status: merged to `main` in PR #69 (`b47d028`), live in production since 2026-10-31 12:51 UTC, then merged back into `dev`.
+- Pending: check the loading iPad's Date & Time; set it to "Set Automatically" with the correct time zone. That confirms the trigger and stops the loop before the code fix deploys.
+- Focused regression added: `src/lib/supabase/client.svelte.spec.ts` uses real `@supabase/ssr` and supabase-js in Chromium with a fake Auth/Storage server behind `fetch` and the browser clock set 1 hour fast.
+- Verification completed:
+  - red: original client refreshed 13 times where only the 2 startup refreshes were allowed (3 ticks, a foreground return, and 1 more tick), on supabase-js 2.99.3, 2.105.4, and 2.118.0; the bare `@supabase/ssr` control showed exactly 2 refreshes per 30s tick
+  - green: no refreshes after startup; signature preview and upload send a valid token after an on-demand refresh, on all three versions
+  - the spec shares the page-level `@supabase/ssr` singleton, so the background-refresh test asserts it built that client and fails loudly if test order changes
+  - `bun run test:unit -- --run`
+  - `bun run test:e2e`
+  - `bun run build`
+  - `bun run check` reports one pre-existing error (`node:fs` types in `src/lib/remote-query-lifecycle.spec.ts`) that also fails on the base commit with the fresh dependency resolution
+- Memory Impact Analysis: update required because browser auth runtime behavior changed. Updated current-context, project-state, decisions, and architecture.
+
 ## 2026-06-03 App Version Visibility
 
 - Current worktree: `features/version`.

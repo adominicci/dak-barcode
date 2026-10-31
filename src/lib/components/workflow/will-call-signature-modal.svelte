@@ -90,7 +90,7 @@
 		isResolvingSignature = true;
 
 		try {
-			const supabase = createSupabaseBrowserClient();
+			const supabase = await createSupabaseBrowserClient();
 			const { data, error } = await supabase.storage
 				.from(WILL_CALL_SIGNATURE_BUCKET)
 				.createSignedUrl(signaturePath, WILL_CALL_SIGNATURE_URL_TTL_SECONDS);
@@ -220,12 +220,12 @@
 		}
 
 		isUploading = true;
-		let supabaseClient: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+		let supabaseClient: Awaited<ReturnType<typeof createSupabaseBrowserClient>> | null = null;
 		let uploadedSignaturePath: string | null = null;
 
 		try {
 			const signatureBlob = await exportSignatureBlob();
-			supabaseClient = createSupabaseBrowserClient();
+			supabaseClient = await createSupabaseBrowserClient();
 			const signaturePath = buildWillCallSignatureStoragePath(dropSheetId);
 			const { data, error } = await supabaseClient.storage
 				.from(WILL_CALL_SIGNATURE_BUCKET)

@@ -2,6 +2,16 @@
 
 Use this file as the append-only ADR-style log for durable repo decisions. Add new entries at the top and keep older entries intact.
 
+## 2026-10-31 - Browser Supabase client refreshes tokens on demand only
+
+- Tags: auth, reliability, iPad, will-call, hotfix
+- Decision: `createSupabaseBrowserClient()` is async. It awaits Supabase Auth initialization and then calls `auth.stopAutoRefresh()`, so the browser client runs no 30s background refresh ticker and no `visibilitychange` refresh. Will Call signature storage calls still get a valid token because `getSession()` refreshes an expiring session before each request.
+- Rationale: Production Auth logs showed the shared loading iPad rotating its refresh token in pairs 30 seconds apart whenever the app was visible (1,639 refreshes between 13:30 and 01:05 UTC). The client header was `supabase-ssr/0.9.0 createBrowserClient`. The pattern matches a device clock running about an hour fast (inferred, not yet checked on the device): every new one-hour token already looks expired to auth-js, so each tick refreshes once in `__loadSession` and once more in the tick threshold check. `@supabase/ssr` 0.9.0 forces `autoRefreshToken` on in the browser after spreading caller options, so `auth: { autoRefreshToken: false }` cannot disable it.
+- Constraint: Stop auto refresh only after `initialize()` settles; auth-js registers the ticker and visibility listener in `_initialize`'s `finally`, so stopping earlier can be undone. Server-side auth (`createServerClient` in hooks and server helpers) is unchanged.
+- Impacted areas: `src/lib/supabase/client.ts`, `src/lib/supabase/client.svelte.spec.ts`, `src/lib/components/workflow/will-call-signature-modal.svelte`, `src/lib/components/workflow/will-call-signature-modal.svelte.spec.ts`, `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-06-03 - App version history stays inside the SvelteKit app
 
 - Tags: product, versioning, workflow-ui, release-history

@@ -59,7 +59,7 @@ describe('will-call signature modal', () => {
 			data: [],
 			error: null
 		});
-		createSupabaseBrowserClient.mockReturnValue({
+		createSupabaseBrowserClient.mockResolvedValue({
 			storage: {
 				from
 			}
