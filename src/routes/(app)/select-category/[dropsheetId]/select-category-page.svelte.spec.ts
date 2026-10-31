@@ -429,7 +429,7 @@ describe('select-category page', () => {
 		getWillCallSignature
 			.mockReturnValueOnce({ run: runInitialSignature })
 			.mockReturnValueOnce({ run: runRefreshedSignature });
-		createSupabaseBrowserClient.mockReturnValue({
+		createSupabaseBrowserClient.mockResolvedValue({
 			storage: {
 				from: () => ({
 					createSignedUrl,
