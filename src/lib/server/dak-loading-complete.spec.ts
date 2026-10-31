@@ -73,16 +73,18 @@ describe('dak loading complete helpers', () => {
 		});
 	});
 
-	it('posts the transfer label export after the loaded notification for transfer dropsheets', async () => {
+	it('enqueues the transfer label export job after the loaded notification for transfer dropsheets', async () => {
 		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
-		fetchDak.mockResolvedValueOnce(jsonResponse({
-			orders_considered: 2,
-			orders_exported: 2,
-			orders_skipped: 0,
-			packages_exported: 8,
-			details_exported: 8,
-			results: []
-		}));
+		fetchDak.mockResolvedValueOnce(
+			jsonResponse(
+				{
+					job_id: 77,
+					dropsheet_id: 42,
+					status: 'queued'
+				},
+				{ status: 202, statusText: 'Accepted' }
+			)
+		);
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
@@ -98,9 +100,9 @@ describe('dak loading complete helpers', () => {
 
 		expect(notifyPath).toBe('/v1/logistics/dropsheet-notify');
 		expect(notifyOptions).toEqual({ timeoutMs: 20_000 });
-		expect(exportPath).toBe('/v1/logistics/dropsheet-transfer-label-export');
+		expect(exportPath).toBe('/v1/logistics/dropsheet-transfer-label-export-jobs');
 		expect(exportInit?.method).toBe('POST');
-		expect(exportOptions).toEqual({ timeoutMs: 35_000 });
+		expect(exportOptions).toEqual({ timeoutMs: 10_000 });
 		expect(exportHeaders.get('Content-Type')).toBe('application/json');
 		expect(exportHeaders.get('Y-Db')).toBe('AZURE');
 		expect(exportHeaders.get('X-Db')).toBeNull();
@@ -157,7 +159,7 @@ describe('dak loading complete helpers', () => {
 	it('returns partial success when transfer label export fails after notification succeeds', async () => {
 		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
 		fetchDak.mockResolvedValueOnce(
-			new Response('label export failed', {
+			new Response('label export enqueue failed', {
 				status: 502,
 				statusText: 'Bad Gateway'
 			})
@@ -170,71 +172,37 @@ describe('dak loading complete helpers', () => {
 			partial: true,
 			transferLabelExport: {
 				status: 'failed',
-				message: 'Transfer label export failed: 502 Bad Gateway: label export failed'
+				message: 'Transfer label export enqueue failed: 502 Bad Gateway: label export enqueue failed'
 			}
 		});
 		expect(fetchDak).toHaveBeenCalledTimes(2);
 	});
 
-	it('returns partial success when transfer label export skips rows with missing source packages', async () => {
+	it('does not inspect label copy totals after the async transfer job is accepted', async () => {
 		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
-		fetchDak.mockResolvedValueOnce(
-			jsonResponse({
-				orders_considered: 1,
-				orders_exported: 0,
-				orders_skipped: 1,
-				packages_exported: 0,
-				details_exported: 0,
+		const acceptedResponse = jsonResponse(
+			{
+				job_id: 88,
+				status: 'queued',
+				orders_skipped: 99,
 				results: [
 					{
-						order_number: 41012026,
 						status: 'skipped',
 						reason: 'source_packages_missing'
 					}
 				]
-			})
+			},
+			{ status: 202, statusText: 'Accepted' }
 		);
+		const readAcceptedBody = vi.spyOn(acceptedResponse, 'text');
+		fetchDak.mockResolvedValueOnce(acceptedResponse);
 
 		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
 
 		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
 			ok: true,
-			partial: true,
-			transferLabelExport: {
-				status: 'source_packages_missing',
-				message: 'Transfer label export skipped 1 order because source packages are missing.'
-			}
+			partial: false
 		});
-	});
-
-	it('returns partial success when transfer label export reports skipped rows for an unhandled reason', async () => {
-		fetchDak.mockResolvedValueOnce(jsonResponse({ ok: true }));
-		fetchDak.mockResolvedValueOnce(
-			jsonResponse({
-				orders_considered: 2,
-				orders_exported: 1,
-				orders_skipped: 1,
-				packages_exported: 4,
-				details_exported: 4,
-				results: [
-					{
-						order_number: 41012027,
-						status: 'skipped',
-						reason: 'quota_exceeded'
-					}
-				]
-			})
-		);
-
-		const { completeDakLoadingEmail } = await import('./dak-loading-complete');
-
-		await expect(completeDakLoadingEmail({ dropSheetId: 42, transfer: true })).resolves.toEqual({
-			ok: true,
-			partial: true,
-			transferLabelExport: {
-				status: 'orders_skipped',
-				message: 'Transfer label export skipped 1 order.'
-			}
-		});
+		expect(readAcceptedBody).toHaveBeenCalledOnce();
 	});
 });

@@ -13,6 +13,7 @@
 		UserRoundPlus
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import AppVersionBadge from '$lib/components/app-version-badge.svelte';
 	import OperationalActionCard from '$lib/components/workflow/operational-action-card.svelte';
 	import TargetBadge from '$lib/components/workflow/target-badge.svelte';
 	import WillCallScanModal from '$lib/components/workflow/will-call-scan-modal.svelte';
@@ -122,12 +123,15 @@
 				>
 					<ArrowLeft class="size-5" />
 				</button>
-				<h1
-					data-testid="home-title"
-					class="text-xl font-bold text-slate-900 tracking-tight"
-				>
-					Stage &amp; Load Module
-				</h1>
+				<div class="flex min-w-0 items-center gap-2">
+					<h1
+						data-testid="home-title"
+						class="text-xl font-bold text-slate-900 tracking-tight"
+					>
+						Stage &amp; Load Module
+					</h1>
+					<AppVersionBadge testId="home-version-badge" />
+				</div>
 			</div>
 
 			<div class="flex items-center gap-4">

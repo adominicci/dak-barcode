@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 
 	let {
 		title,
 		description = null,
 		testId,
+		panelClass = 'max-w-6xl',
 		onClose,
 		children
 	}: {
 		title: string;
 		description?: string | null;
 		testId: string;
+		panelClass?: string;
 		onClose: () => void;
 		children?: Snippet;
 	} = $props();
@@ -29,6 +31,19 @@
 			)
 		).filter((element) => !element.hasAttribute('hidden') && element.tabIndex !== -1);
 	}
+
+	onMount(() => {
+		// Move focus into the dialog so Escape and the Tab trap work right away, then hand it back to
+		// the control that opened the dialog when it closes.
+		const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		(getFocusableElements()[0] ?? modalElement)?.focus();
+
+		return () => {
+			if (opener?.isConnected) {
+				opener.focus();
+			}
+		};
+	});
 
 	function handleModalKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
@@ -77,7 +92,7 @@
 		aria-labelledby={`${testId}-title`}
 		tabindex="-1"
 		bind:this={modalElement}
-		class="ds-modal flex w-full max-w-6xl flex-col overflow-hidden p-4"
+		class={`ds-modal flex w-full ${panelClass} flex-col overflow-hidden p-4`}
 		onkeydown={handleModalKeydown}
 	>
 		<div class="flex items-start justify-between gap-4">

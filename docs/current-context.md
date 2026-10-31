@@ -8,8 +8,8 @@
 - Mechanism (confirmed in auth-js source): the browser client ran the auth-js 30s auto-refresh ticker while the page was visible. If every new one-hour token looks expired, each tick refreshes twice (`__loadSession` 90s margin, then the tick threshold). Production bundle versions: `@supabase/ssr` 0.9.0 with supabase-js/auth-js 2.105.4.
 - Likely trigger (inferred from the paired 30s cadence; the device clock has not been checked): the loading iPad's clock runs about an hour fast.
 - Fix: `createSupabaseBrowserClient()` now awaits `auth.initialize()` and calls `auth.stopAutoRefresh()`. The Will Call signature modal awaits it. On-demand refresh inside `getSession()` still runs before each storage request.
+- Status: merged to `main` in PR #69 (`b47d028`), live in production since 2026-10-31 12:51 UTC, then merged back into `dev`.
 - Pending: check the loading iPad's Date & Time; set it to "Set Automatically" with the correct time zone. That confirms the trigger and stops the loop before the code fix deploys.
-- Known repo risk on `main` only: `bun.lock` still lists the removed `@sveltejs/adapter-auto` devDependency, so Bun 1.3.6 and 1.4.0 reject it and resolve fresh versions on every install (currently supabase-js 2.118.0). `dev` regenerated the lockfile in c85b05b and pins supabase-js/auth-js 2.99.3; drop this bullet when syncing `main` into `dev`.
 - Focused regression added: `src/lib/supabase/client.svelte.spec.ts` uses real `@supabase/ssr` and supabase-js in Chromium with a fake Auth/Storage server behind `fetch` and the browser clock set 1 hour fast.
 - Verification completed:
   - red: original client refreshed 13 times where only the 2 startup refreshes were allowed (3 ticks, a foreground return, and 1 more tick), on supabase-js 2.99.3, 2.105.4, and 2.118.0; the bare `@supabase/ssr` control showed exactly 2 refreshes per 30s tick
@@ -20,6 +20,48 @@
   - `bun run build`
   - `bun run check` reports one pre-existing error (`node:fs` types in `src/lib/remote-query-lifecycle.spec.ts`) that also fails on the base commit with the fresh dependency resolution
 - Memory Impact Analysis: update required because browser auth runtime behavior changed. Updated current-context, project-state, decisions, and architecture.
+
+## 2026-06-03 App Version Visibility
+
+- Current worktree: `features/version`.
+- Login password copy now uses `Password` instead of `Temporary password`.
+- The current app version is `v2.0` and is displayed next to the login `Scanning` title, on the authenticated home header, and on authenticated workflow route headers.
+- Version history is app-native metadata in `src/lib/app-version.ts` rendered by `src/lib/components/app-version-badge.svelte`; do not create a separate static HTML changelog for operator-facing version history unless there is a later requirement to expose it outside the SvelteKit app.
+- The version badge opens a centered in-app history dialog using the shared workflow modal shell.
+- PR #72 review follow-up (2026-10-31): the shared workflow modal shell now moves focus to its first focusable control when it opens and returns focus to the opener when it closes, so keyboard Escape and the Tab trap work immediately. Regression: `src/lib/components/app-version-badge.svelte.spec.ts`.
+- The version-history dialog opts into left alignment so the heading, current-version copy, and release version label stay aligned even when opened from centered auth surfaces.
+- Focused regressions added/updated:
+  - `src/lib/components/app-version-badge.svelte.spec.ts`
+  - `src/routes/(auth)/auth-layout.svelte.spec.ts`
+  - `src/routes/(auth)/login/login-page.svelte.spec.ts`
+  - `src/routes/(app)/home/home-page.svelte.spec.ts`
+  - `src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts`
+- Verification completed:
+  - red focused run confirmed version-history text inherited `text-align: center` from a centered auth surface before the scoped version-dialog alignment reset.
+  - `bun run test:unit -- --run src/lib/components/app-version-badge.svelte.spec.ts --project client`
+  - `bun run test:unit -- --run src/lib/components/workflow/operational-design-components.svelte.spec.ts --project client`
+  - Svelte MCP autofixer checked `app-version-badge.svelte`, auth layout, login page, app layout, home page, and the shared modal shell; only existing non-blocking advisories remained on shared patterns.
+  - `bun run test:unit -- --run src/lib/components/app-version-badge.svelte.spec.ts 'src/routes/(auth)/auth-layout.svelte.spec.ts' 'src/routes/(auth)/login/login-page.svelte.spec.ts' 'src/routes/(app)/home/home-page.svelte.spec.ts' 'src/routes/(app)/app-layout-workflow-sync.svelte.spec.ts'`
+  - `bun run check`
+  - `bun run test`
+  - Playwright live check on local `/login` confirmed `Scanning`, `v2.0`, password placeholder `Password`, no `Temporary password` placeholder, and the version-history dialog.
+- Memory Impact Analysis: update required because durable app version visibility and version-history placement changed, and again because the version-history modal alignment behavior changed. The version-visibility pass updated current-context, project-state, and decisions; the alignment pass updated current-context and project-state only because no new durable decision was needed.
+
+## 2026-06-03 Async Transfer Label Export Job Enqueue
+
+- Current worktree: `features/async-transfer-label-export`; backend companion branch in `/Users/andresdominicci/Projects/dakview-web` uses the same branch name.
+- Root cause: Complete Load transfer-label export used the synchronous dakview-web `POST /v1/logistics/dropsheet-transfer-label-export` endpoint with a 35s frontend timeout, so large transfer dropsheets could exceed the UI/Heroku request window.
+- Complete Load still sends loaded notification first through dakview-web `POST /v1/logistics/dropsheet-notify`.
+- For `transfer=true`, `exportTransferLabels` now posts dakview-web `POST /v1/logistics/dropsheet-transfer-label-export-jobs` with `{ dropsheet_id, mode: "repair_missing_target" }`, active-target `X-Db`, and `Y-Db: AZURE`.
+- `202 Accepted` job enqueue is treated as successful handoff; the UI does not inspect copy totals or wait for background label copying. Enqueue failures after notification success still show the do-not-resend warning and do not prompt an email resend.
+- Focused regressions updated:
+  - `src/lib/server/dak-loading-complete.spec.ts`
+  - `src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts`
+- Verification completed so far:
+  - red run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts` failed on old sync endpoint, old 35s timeout, and old skipped-row inspection.
+  - green run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run src/lib/server/dak-loading-complete.spec.ts`
+  - green run: `/Users/andresdominicci/.bun/bin/bun run test:unit -- --run 'src/routes/(app)/select-category/[dropsheetId]/select-category-page.svelte.spec.ts' --testNamePattern 'Complete Load|transfer label export|completion modal'`
+- Memory Impact Analysis: update required because Complete Load backend contract and timeout behavior changed. Updated current-context, project-state, decisions, architecture, and PRD.
 
 ## 2026-05-14 Loading Barcode-Derived Counter Endpoint
 

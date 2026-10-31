@@ -244,11 +244,13 @@ the request `LocationID` for both the union query and counter lookup.
 Complete Load uses `dak-web` `POST /v1/logistics/dropsheet-notify` for the
 loaded notification. When the Select Category handoff has `transfer=true`, the
 UI then calls a second remote command for
-`POST /v1/logistics/dropsheet-transfer-label-export` with
+`POST /v1/logistics/dropsheet-transfer-label-export-jobs` with
 `mode: "repair_missing_target"`, the active target as `X-Db`, and
 `Y-Db: AZURE`. The modal stays open and shows separate email and transfer-label
-phases while the commands run. Post-notification transfer export failures are
-warnings so operators do not resend loaded emails.
+phases while notification and enqueue run, but label copying happens in the
+dakview-web background worker after the job is accepted. Post-notification
+transfer export enqueue failures are warnings so operators do not resend loaded
+emails.
 
 ---
 

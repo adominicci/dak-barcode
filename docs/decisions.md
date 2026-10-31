@@ -12,6 +12,27 @@ Use this file as the append-only ADR-style log for durable repo decisions. Add n
 - `project-state.yaml` updated: yes
 - Folded into long-lived docs: yes
 
+## 2026-06-03 - App version history stays inside the SvelteKit app
+
+- Tags: product, versioning, workflow-ui, release-history
+- Decision: Show the current app version as `v2.0` next to the login `Scanning` title and in authenticated top headers. The visible version badge opens an in-app version-history dialog.
+- Decision: Keep current version and release-history metadata in `src/lib/app-version.ts` and render it through `src/lib/components/app-version-badge.svelte`; do not add a separate static HTML changelog for the operator-facing app version history.
+- Rationale: Operators need to identify the running version from the app surface they are already using. Keeping the history in typed app metadata avoids drift between a standalone HTML file and the deployed SvelteKit UI, preserves authenticated shell styling, and lets future releases reuse one badge/dialog component.
+- Impacted areas: `src/lib/app-version.ts`, `src/lib/components/app-version-badge.svelte`, auth layout, authenticated app layout, home page, related specs, `docs/project-state.yaml`, `docs/current-context.md`
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
+## 2026-06-03 - Complete Load transfer labels enqueue async job
+
+- Tags: backend-contract, loading, complete-load, transfer, reliability
+- Decision: Complete Load still sends loaded notification first through dakview-web `POST /v1/logistics/dropsheet-notify`. When Select Category has `transfer=true`, `exportTransferLabels` now posts dakview-web `POST /v1/logistics/dropsheet-transfer-label-export-jobs` with `{ dropsheet_id, mode: "repair_missing_target" }`, active-target `X-Db`, and `Y-Db: AZURE`.
+- Decision: The frontend treats `202 Accepted` job enqueue as success and does not inspect label-copy totals or wait for the backend worker to finish copying labels. Enqueue failures after notification success remain do-not-resend warnings.
+- Rationale: Large transfer-label exports can exceed the UI/Heroku request window. Persisting a job lets Complete Load exit after a durable handoff while dakview-web handles retries, status, and audit linkage.
+- Impacted areas: `src/lib/server/dak-loading-complete.ts`, `src/lib/loading-complete.remote.ts`, `src/routes/(app)/select-category/[dropsheetId]/+page.svelte`, related specs, `docs/project-state.yaml`, `docs/current-context.md`, `docs/architecture.md`, `docs/prd.md`
+- Supersedes/refines: `2026-05-07 - Complete Load splits notify and repair transfer labels visibly` by keeping the two-phase UI but changing the second phase from synchronous export to async job enqueue.
+- `project-state.yaml` updated: yes
+- Folded into long-lived docs: yes
+
 ## 2026-05-14 - Loading counters use additive barcode-derived endpoint when available
 
 - Tags: product, loading, backend-contract, legacy-dst, reliability
