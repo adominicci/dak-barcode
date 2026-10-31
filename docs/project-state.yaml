@@ -2,7 +2,7 @@ meta:
   version: 1
   purpose: Canonical fast-reload memory bundle for fresh contexts in this repository.
   status: active
-  last_updated_at: 2026-05-14
+  last_updated_at: 2026-10-31
   default_reload_order:
     - AGENTS.md
     - docs/project-state.yaml
@@ -79,10 +79,11 @@ product:
     - Dropsheets trailer picker reads equipment options from dakview-web `X-Db: EQUIPMENT` and updates selected trailer fields through dakview-web `POST /v1/logistics/dropsheet-trailer-update`; the Dropsheets iPad table keeps delivery, drop weight, load number, trailer, completion, loaded timestamp, loader, and go action on one row
 
 architecture:
-  last_verified_at: 2026-05-14
+  last_verified_at: 2026-10-31
   verified_against:
     - docs/architecture.md
     - src/lib/server/auth-context.ts
+    - src/lib/supabase/client.ts
     - src/lib/server/proxy.ts
     - src/lib/trailers.cached.ts
     - src/routes/(app)/+layout.server.ts
@@ -102,6 +103,7 @@ architecture:
   state_rules:
     - workflow state is intentionally disposable and mostly in memory
     - auth and target resolution are server-side concerns
+    - the browser Supabase client (`src/lib/supabase/client.ts`) only signs Will Call signature storage requests; its async factory awaits auth initialization and then stops the auth-js background refresh ticker and visibility listener, so tokens refresh only when the client first initializes or when `getSession()` runs before a storage request
     - operator-facing loaders, trailers, and drop-area lookups now fetch fresh remote query state instead of hydrating from browser cache
     - Svelte remote functions require `compilerOptions.experimental.async` alongside `kit.experimental.remoteFunctions`, and operator-facing remote-query banners must use shared sanitized messaging instead of raw framework URLs
     - imperative reads from SvelteKit remote `query(...)` helpers must use `src/lib/remote-query-read.ts` so the app supports the installed promise-like query contract and future `.run()`-capable contracts
