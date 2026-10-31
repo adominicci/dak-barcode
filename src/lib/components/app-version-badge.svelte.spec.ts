@@ -1,4 +1,4 @@
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import '../../app.css';
@@ -27,6 +27,26 @@ describe('app version badge', () => {
 		await expect
 			.element(page.getByRole('dialog'))
 			.not.toHaveTextContent('async label export workflow');
+	});
+
+	it('moves keyboard focus into the history dialog and back to the badge on Escape', async () => {
+		render(AppVersionBadge, {
+			testId: 'keyboard-version-badge'
+		});
+
+		const badge = page.getByTestId('keyboard-version-badge');
+		const dialog = page.getByTestId('keyboard-version-badge-history-modal');
+
+		badge.element().focus();
+		await userEvent.keyboard('{Enter}');
+
+		await expect.element(dialog).toBeInTheDocument();
+		expect(dialog.element().contains(document.activeElement)).toBe(true);
+
+		await userEvent.keyboard('{Escape}');
+
+		await expect.element(dialog).not.toBeInTheDocument();
+		expect(document.activeElement).toBe(badge.element());
 	});
 
 	it('keeps version history text left-aligned inside centered auth surfaces', async () => {

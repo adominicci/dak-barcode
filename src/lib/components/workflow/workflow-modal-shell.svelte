@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 
 	let {
 		title,
@@ -31,6 +31,19 @@
 			)
 		).filter((element) => !element.hasAttribute('hidden') && element.tabIndex !== -1);
 	}
+
+	onMount(() => {
+		// Move focus into the dialog so Escape and the Tab trap work right away, then hand it back to
+		// the control that opened the dialog when it closes.
+		const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		(getFocusableElements()[0] ?? modalElement)?.focus();
+
+		return () => {
+			if (opener?.isConnected) {
+				opener.focus();
+			}
+		};
+	});
 
 	function handleModalKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {

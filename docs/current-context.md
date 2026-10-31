@@ -28,6 +28,7 @@
 - The current app version is `v2.0` and is displayed next to the login `Scanning` title, on the authenticated home header, and on authenticated workflow route headers.
 - Version history is app-native metadata in `src/lib/app-version.ts` rendered by `src/lib/components/app-version-badge.svelte`; do not create a separate static HTML changelog for operator-facing version history unless there is a later requirement to expose it outside the SvelteKit app.
 - The version badge opens a centered in-app history dialog using the shared workflow modal shell.
+- PR #72 review follow-up (2026-10-31): the shared workflow modal shell now moves focus to its first focusable control when it opens and returns focus to the opener when it closes, so keyboard Escape and the Tab trap work immediately. Regression: `src/lib/components/app-version-badge.svelte.spec.ts`.
 - The version-history dialog opts into left alignment so the heading, current-version copy, and release version label stay aligned even when opened from centered auth surfaces.
 - Focused regressions added/updated:
   - `src/lib/components/app-version-badge.svelte.spec.ts`
