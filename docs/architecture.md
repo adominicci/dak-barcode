@@ -49,6 +49,7 @@ The architecture is built around shared iPads, hardware barcode scanners, and fa
 ### Live storage use
 
 - **Supabase Storage** for Will Call signature upload and signed-URL retrieval
+  - the browser Supabase client used for these calls refreshes tokens only when it initializes or right before a storage request; it stops the auth-js background refresh ticker after initialization so a skewed device clock cannot cause a refresh loop
 
 ---
 
